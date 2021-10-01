@@ -71,17 +71,51 @@ compressed size:          {}"#,
     }
 }
 
+fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8, ()> {
+    let mut checksum: u8 = 0;
+
+    if offset + (header.compressed_data_size as usize) - 10 > buffer.len() {
+        return Err(());
+    }
+
+    for value in buffer[offset..(header.compressed_data_size as usize) - 10 + offset].iter() {
+        checksum ^= value;
+    }
+
+    Ok(checksum)
+}
+
 fn main() {
-    let maindata = fs::read("main.dat").expect("give me main.dat");
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() != 2 {
+        println!("usage: rustlings <main.dat>");
+        return;
+    }
+
+    let maindata = fs::read(&args[1]).expect("give me main.dat");
 
     println!("read {} bytes\n", maindata.len());
     let mut offset = 0;
 
     loop {
         let (header, o) = Header::read(&maindata, offset).expect("bad file");
-        offset = o + (header.compressed_data_size as usize) - 10;
 
-        println!("found header:\n\n{}\n", header);
+        println!("found header:\n{}", header);
+
+        let checksum = calculate_checksum(&header, &maindata, o).expect("bad file");
+        if checksum == header.checksum {
+            println!("checksum OK!")
+        } else {
+            println!(
+                "checksum mismatch, expected {}, got {}",
+                header.checksum, checksum
+            )
+        }
+
+        println!();
+
+        offset = o + (header.compressed_data_size as usize) - 10;
 
         match offset.cmp(&maindata.len()) {
             Ordering::Equal => break,
