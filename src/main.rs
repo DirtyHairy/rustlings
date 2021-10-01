@@ -403,6 +403,8 @@ fn main() {
     println!("read {} bytes\n", maindata.len());
     let mut offset = 0;
 
+    let mut i = 0;
+
     loop {
         let (header, o) = Header::read(&maindata, offset).expect("bad file");
 
@@ -430,9 +432,46 @@ fn main() {
 
         assert_eq!(decompressed_section.len(), header.decompressed_data_size);
 
+        if i == 0 {
+            for frame in 0..8 {
+                for y in 0..10 {
+                    for x in 0..16 {
+                        let bit1 = (decompressed_section[((y * 16) + x) / 8 + frame * 40]
+                            >> (7 - (((y * 16) + x) % 8)))
+                            & 0x01;
+
+                        let bit2 = (decompressed_section[((y * 16) + x) / 8 + frame * 40 + 20]
+                            >> (7 - (((y * 16) + x) % 8)))
+                            & 0x01;
+
+                        let color = bit1 | (bit2 << 1);
+
+                        print!(
+                            "{}{}",
+                            if (color) > 0 {
+                                color.to_string()
+                            } else {
+                                String::from(" ")
+                            },
+                            if (color) > 0 {
+                                color.to_string()
+                            } else {
+                                String::from(" ")
+                            }
+                        );
+                    }
+
+                    println!("");
+                }
+
+                println!("\n====\n");
+            }
+        }
+
         offset = o + header.compressed_data_size - 10;
 
         println!();
+        i += 1;
 
         match offset.cmp(&maindata.len()) {
             Ordering::Equal => break,
