@@ -1,5 +1,6 @@
 mod bitstream;
 mod datfile;
+mod sdl_display;
 mod sprites;
 
 use sdl2::event::Event;
@@ -9,6 +10,16 @@ use sdl2::rect::Rect;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::sdl_display::SDLSprite;
+
+fn timestamp() -> u32 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u32
+}
 
 fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
@@ -27,65 +38,44 @@ fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
+    canvas.clear();
+
     let texture_creator = canvas.texture_creator();
 
     let pixel_format =
         sdl2::pixels::PixelFormat::try_from(sdl2::pixels::PixelFormatEnum::RGBA8888)?;
 
-    let mut texture = texture_creator
-        .create_texture(
-            sdl2::pixels::PixelFormatEnum::RGBA8888,
-            sdl2::render::TextureAccess::Static,
-            lemming.width as u32,
-            lemming.height as u32,
-        )
-        .map_err(|e| e.to_string())?;
-
-    let palette = ([
-        (0, 0, 0),
+    let palette: Vec<u32> = (vec![
+        (0u8, 0u8, 0u8),
         (64, 64, 224),
         (0, 176, 0),
         (240, 208, 208),
         (176, 176, 0),
         (240, 32, 32),
         (128, 128, 128),
-    ] as [(u8, u8, u8); 7])
-        .map(|(r, g, b)| Color::RGBA(r, g, b, 0xff).to_u32(&pixel_format));
+    ] as Vec<(u8, u8, u8)>) /* */
+        .iter()
+        .map(|(r, g, b)| Color::RGBA(*r, *g, *b, 0xff).to_u32(&pixel_format))
+        .collect();
 
-    let mut bitmap_data = vec![0u32; lemming.width * lemming.height];
-    for x in 0..lemming.width {
-        for y in 0..lemming.height {
-            bitmap_data[(y * lemming.width) + x] =
-                palette[lemming.frames[0].data[(y * lemming.width) + x] as usize];
-        }
-    }
-
-    let data8: &[u8];
-    unsafe {
-        let (_, x, _) = bitmap_data.align_to();
-        assert_eq!(x.len(), 4 * bitmap_data.len());
-
-        data8 = x;
-    }
-    texture
-        .update(None, data8, 4 * lemming.width)
-        .map_err(|e| e.to_string())?;
-
-    canvas.clear();
-    canvas.copy(
-        &texture,
-        None,
-        Some(Rect::new(
-            0,
-            0,
-            (lemming.width * 4) as u32,
-            (lemming.height * 4) as u32,
-        )),
-    )?;
-    canvas.present();
+    let sdl_lemming = SDLSprite::from_sprite(lemming, &palette, &texture_creator)?;
 
     let mut running = true;
+    let mut iframe = 0;
+    let mut last_draw: u32 = 0;
+
     while running {
+        let now = timestamp();
+
+        if now - last_draw > 1000 / 10 {
+            sdl_lemming.blit(&mut canvas, 0, 0, iframe, 4)?;
+            canvas.present();
+
+            iframe += 1;
+
+            last_draw = now;
+        }
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => running = false,
