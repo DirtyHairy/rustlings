@@ -40,7 +40,7 @@ impl Bitstream {
                 '0' => gobble(0),
                 '1' => gobble(1),
                 ' ' | '\n' => continue,
-                _ => panic!("fix yourr sample"),
+                _ => panic!("fix your sample"),
             }
         }
 

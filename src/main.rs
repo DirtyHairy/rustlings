@@ -1,5 +1,6 @@
 mod bitstream;
 mod datfile;
+mod sprites;
 
 use std::cmp::Ordering;
 use std::fs;
@@ -17,6 +18,7 @@ fn main() {
     println!("read {} bytes\n", maindata.len());
     let mut offset = 0;
 
+    let mut maybe_walking_lemming: Option<sprites::Sprite> = None;
     let mut i = 0;
 
     loop {
@@ -47,39 +49,8 @@ fn main() {
         assert_eq!(decompressed_section.len(), header.decompressed_data_size);
 
         if i == 0 {
-            for frame in 0..8 {
-                for y in 0..10 {
-                    for x in 0..16 {
-                        let bit1 = (decompressed_section[((y * 16) + x) / 8 + frame * 40]
-                            >> (7 - (((y * 16) + x) % 8)))
-                            & 0x01;
-
-                        let bit2 = (decompressed_section[((y * 16) + x) / 8 + frame * 40 + 20]
-                            >> (7 - (((y * 16) + x) % 8)))
-                            & 0x01;
-
-                        let color = bit1 | (bit2 << 1);
-
-                        print!(
-                            "{}{}",
-                            if (color) > 0 {
-                                color.to_string()
-                            } else {
-                                String::from(" ")
-                            },
-                            if (color) > 0 {
-                                color.to_string()
-                            } else {
-                                String::from(" ")
-                            }
-                        );
-                    }
-
-                    println!("");
-                }
-
-                println!("\n====\n");
-            }
+            maybe_walking_lemming =
+                sprites::Sprite::read_planar(8, 16, 10, 2, &decompressed_section).ok();
         }
 
         offset = o + header.compressed_data_size - 10;
@@ -93,4 +64,6 @@ fn main() {
             Ordering::Less => continue,
         };
     }
+
+    print!("{}", maybe_walking_lemming.expect("sprite not loaded"));
 }
