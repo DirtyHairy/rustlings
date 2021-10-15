@@ -2,8 +2,79 @@ mod bitstream;
 mod datfile;
 mod sprites;
 
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use std::cmp::Ordering;
 use std::fs;
+
+fn displayLemming(lemming: &sprites::Sprite) -> Result<(), String> {
+    let sdl_context = sdl2::init()?;
+    let sdl_video = sdl_context.video()?;
+    let mut event_pump = sdl_context.event_pump()?;
+
+    let window = sdl_video
+        .window("Rustlings", 640, 480)
+        .position_centered()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut canvas = window
+        .into_canvas()
+        .accelerated()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let texture_creator = canvas.texture_creator();
+
+    let mut texture = texture_creator
+        .create_texture(
+            sdl2::pixels::PixelFormatEnum::RGBA8888,
+            sdl2::render::TextureAccess::Static,
+            lemming.width as u32,
+            lemming.height as u32,
+        )
+        .map_err(|e| e.to_string())?;
+
+    // let palette: [u32; 2] = [0x0000000, 0x4040e0ff];
+
+    let mut bitmap_data = vec![0u32; lemming.width * lemming.height];
+
+    for x in 0..lemming.width {
+        for y in 0..lemming.height {
+            bitmap_data[(y * lemming.width) + x] = 0xff0000ff;
+        }
+    }
+
+    let data8: &[u8];
+    unsafe {
+        let (_, x, _) = bitmap_data.align_to();
+        data8 = x;
+    }
+
+    texture
+        .update(None, data8, lemming.width)
+        .map_err(|e| e.to_string())?;
+
+    canvas.clear();
+    canvas.copy(&texture, None, None);
+    canvas.present();
+
+    let mut running = true;
+    while running {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } => running = false,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => running = false,
+                _ => (),
+            }
+        }
+    }
+
+    Ok(())
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -65,5 +136,10 @@ fn main() {
         };
     }
 
-    print!("{}", maybe_walking_lemming.expect("sprite not loaded"));
+    let walking_lemming = maybe_walking_lemming.expect("sprite not loaded");
+    print!("{}", walking_lemming);
+
+    if let Err(msg) = displayLemming(&walking_lemming) {
+        println!("SDL failed: {}", msg);
+    }
 }
