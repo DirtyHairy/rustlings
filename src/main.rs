@@ -4,10 +4,13 @@ mod sprites;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 use std::fs;
 
-fn displayLemming(lemming: &sprites::Sprite) -> Result<(), String> {
+fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let sdl_video = sdl_context.video()?;
     let mut event_pump = sdl_context.event_pump()?;
@@ -26,6 +29,9 @@ fn displayLemming(lemming: &sprites::Sprite) -> Result<(), String> {
 
     let texture_creator = canvas.texture_creator();
 
+    let pixel_format =
+        sdl2::pixels::PixelFormat::try_from(sdl2::pixels::PixelFormatEnum::RGBA8888)?;
+
     let mut texture = texture_creator
         .create_texture(
             sdl2::pixels::PixelFormatEnum::RGBA8888,
@@ -35,28 +41,47 @@ fn displayLemming(lemming: &sprites::Sprite) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
 
-    // let palette: [u32; 2] = [0x0000000, 0x4040e0ff];
+    let palette = ([
+        (0, 0, 0),
+        (64, 64, 224),
+        (0, 176, 0),
+        (240, 208, 208),
+        (176, 176, 0),
+        (240, 32, 32),
+        (128, 128, 128),
+    ] as [(u8, u8, u8); 7])
+        .map(|(r, g, b)| Color::RGBA(r, g, b, 0xff).to_u32(&pixel_format));
 
     let mut bitmap_data = vec![0u32; lemming.width * lemming.height];
-
     for x in 0..lemming.width {
         for y in 0..lemming.height {
-            bitmap_data[(y * lemming.width) + x] = 0xff0000ff;
+            bitmap_data[(y * lemming.width) + x] =
+                palette[lemming.frames[0].data[(y * lemming.width) + x] as usize];
         }
     }
 
     let data8: &[u8];
     unsafe {
         let (_, x, _) = bitmap_data.align_to();
+        assert_eq!(x.len(), 4 * bitmap_data.len());
+
         data8 = x;
     }
-
     texture
-        .update(None, data8, lemming.width)
+        .update(None, data8, 4 * lemming.width)
         .map_err(|e| e.to_string())?;
 
     canvas.clear();
-    canvas.copy(&texture, None, None);
+    canvas.copy(
+        &texture,
+        None,
+        Some(Rect::new(
+            0,
+            0,
+            (lemming.width * 4) as u32,
+            (lemming.height * 4) as u32,
+        )),
+    )?;
     canvas.present();
 
     let mut running = true;
@@ -137,9 +162,8 @@ fn main() {
     }
 
     let walking_lemming = maybe_walking_lemming.expect("sprite not loaded");
-    print!("{}", walking_lemming);
 
-    if let Err(msg) = displayLemming(&walking_lemming) {
+    if let Err(msg) = display_lemming(&walking_lemming) {
         println!("SDL failed: {}", msg);
     }
 }
