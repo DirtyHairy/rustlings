@@ -6,13 +6,14 @@ mod sprites;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread::sleep;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::sdl_display::SDLSprite;
+use crate::sprites::Sprite;
 
 fn timestamp() -> u32 {
     SystemTime::now()
@@ -21,13 +22,13 @@ fn timestamp() -> u32 {
         .as_millis() as u32
 }
 
-fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
+fn display_sprites(sprites: Vec<&Sprite>) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let sdl_video = sdl_context.video()?;
     let mut event_pump = sdl_context.event_pump()?;
 
     let window = sdl_video
-        .window("Rustlings", 640, 480)
+        .window("Rustlings", 1024, 768)
         .position_centered()
         .build()
         .map_err(|e| e.to_string())?;
@@ -35,6 +36,7 @@ fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
+        .present_vsync()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -53,12 +55,26 @@ fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
         (176, 176, 0),
         (240, 32, 32),
         (128, 128, 128),
+        (0u8, 0u8, 0u8),
+        (64, 64, 224),
+        (0, 176, 0),
+        (240, 208, 208),
+        (176, 176, 0),
+        (240, 32, 32),
+        (128, 128, 128),
+        (0u8, 0u8, 0u8),
+        (64, 64, 224),
     ] as Vec<(u8, u8, u8)>) /* */
         .iter()
         .map(|(r, g, b)| Color::RGBA(*r, *g, *b, 0xff).to_u32(&pixel_format))
         .collect();
 
-    let sdl_lemming = SDLSprite::from_sprite(lemming, &palette, &texture_creator)?;
+    let sdl_sprites: Vec<SDLSprite> = sprites
+        .iter()
+        .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
+        .filter(|x| x.is_ok())
+        .map(|x| x.expect(""))
+        .collect();
 
     let mut running = true;
     let mut iframe = 0;
@@ -68,7 +84,16 @@ fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
         let now = timestamp();
 
         if now - last_draw > 1000 / 10 {
-            sdl_lemming.blit(&mut canvas, 0, 0, iframe, 4)?;
+            for (isprite, sprite) in sdl_sprites.iter().enumerate() {
+                sprite.blit(
+                    &mut canvas,
+                    (isprite % 8 * 32 * 4) as i32,
+                    (isprite / 8 * 32 * 4) as i32,
+                    iframe,
+                    4,
+                )?;
+            }
+
             canvas.present();
 
             iframe += 1;
@@ -86,6 +111,8 @@ fn display_lemming(lemming: &sprites::Sprite) -> Result<(), String> {
                 _ => (),
             }
         }
+
+        sleep(Duration::from_millis(1));
     }
 
     Ok(())
@@ -104,7 +131,7 @@ fn main() {
     println!("read {} bytes\n", maindata.len());
     let mut offset = 0;
 
-    let mut maybe_walking_lemming: Option<sprites::Sprite> = None;
+    let mut sprites: Vec<Option<Sprite>> = Vec::new();
     let mut i = 0;
 
     loop {
@@ -135,8 +162,128 @@ fn main() {
         assert_eq!(decompressed_section.len(), header.decompressed_data_size);
 
         if i == 0 {
-            maybe_walking_lemming =
-                sprites::Sprite::read_planar(8, 16, 10, 2, &decompressed_section).ok();
+            let mut offset = 0;
+
+            sprites.push(
+                Sprite::read_planar(8, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(1, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(1, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 14, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 12, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 12, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 12, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 12, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 13, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 13, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(32, 16, 10, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(32, 16, 10, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(24, 16, 13, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(24, 16, 13, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 16, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 16, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 16, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(4, 16, 16, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 13, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(14, 16, 14, 4, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(8, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(16, 16, 10, 2, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
+            sprites.push(
+                Sprite::read_planar(1, 32, 32, 3, &decompressed_section[offset..], &mut offset)
+                    .ok(),
+            );
         }
 
         offset = o + header.compressed_data_size - 10;
@@ -151,9 +298,13 @@ fn main() {
         };
     }
 
-    let walking_lemming = maybe_walking_lemming.expect("sprite not loaded");
+    let sprites: Vec<&Sprite> = sprites
+        .iter()
+        .filter(|x| x.is_some())
+        .map(|x| x.as_ref().expect(""))
+        .collect();
 
-    if let Err(msg) = display_lemming(&walking_lemming) {
+    if let Err(msg) = display_sprites(sprites) {
         println!("SDL failed: {}", msg);
     }
 }

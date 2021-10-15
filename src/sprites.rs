@@ -56,6 +56,7 @@ impl Sprite {
         height: usize,
         bpp: usize,
         data: &[u8],
+        offset: &mut usize,
     ) -> Result<Sprite, ()> {
         assert!(bpp < 8);
 
@@ -84,6 +85,8 @@ impl Sprite {
                 &data[base..base + frame_size],
             )?);
         }
+
+        *offset += frame_size * frame_count;
 
         Ok(sprite)
     }

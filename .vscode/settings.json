@@ -1,4 +1,4 @@
 {
     "editor.formatOnSave": true,
-    "debug.allowBreakpointsEverywhere": true
+    "debug.allowBreakpointsEverywhere": true,
 }
