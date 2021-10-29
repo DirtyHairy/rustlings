@@ -1,11 +1,10 @@
-mod bitstream;
-mod datfile;
 mod definitions;
 mod files;
 mod sdl_display;
 mod sprites;
 
 use anyhow::*;
+use clap::{App, Arg, SubCommand};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -115,19 +114,35 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
     Ok(())
 }
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
+fn main_sprites(path: &Path) {
+    let main_dat = files::main::parse(path).expect("failed to parse main.dat");
 
-    if args.len() != 2 {
-        println!("usage: rustlings <path/to/datfiles>");
-        return;
-    }
-
-    let path = Path::new(&args[1]);
-
-    let maindata = files::main::parse(path).expect("failed to parse main.dat");
-
-    if let Err(msg) = display_sprites(maindata.lemming_sprites.to_vec()) {
+    if let Err(msg) = display_sprites(main_dat.lemming_sprites.to_vec()) {
         println!("SDL failed: {}", msg);
     }
+}
+
+fn main() -> Result<()> {
+    let mut app = App::new("rustlings")
+        .arg(
+            Arg::with_name("PATH")
+                .required(true)
+                .help("path to .dat files")
+                .index(1),
+        )
+        .subcommand(SubCommand::with_name("sprites").about("display lemming sprites"));
+
+    let matches = app.clone().get_matches_safe()?;
+
+    let path = Path::new(matches.value_of("PATH").expect("internal"));
+
+    if matches.subcommand_matches("sprites").is_some() {
+        main_sprites(path);
+    } else {
+        app.print_help()?;
+
+        println!();
+    }
+
+    return Ok(());
 }

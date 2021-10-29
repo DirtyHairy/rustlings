@@ -1,6 +1,7 @@
-use crate::bitstream;
 use anyhow::*;
-use std::fmt::Display;
+use std::{cmp::Ordering, fmt};
+
+use super::bitstream;
 
 fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
     return Ok((
@@ -25,34 +26,16 @@ pub struct Header {
     pub compressed_data_size: usize,
 }
 
-impl Header {
-    pub fn read(buffer: &Vec<u8>, offset: usize) -> Result<(Self, usize)> {
-        let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
-        let (checksum, offset) = read_byte(&buffer, offset)?;
-
-        let offset = offset + 2;
-        let (decompressed_data_size, offset) = read_word(&buffer, offset)?;
-
-        let offset = offset + 2;
-        let (compressed_data_size, offset) = read_word(&buffer, offset)?;
-
-        if compressed_data_size < 10 {
-            bail!("compressed data size {} too small", compressed_data_size);
-        }
-
-        Ok((
-            Header {
-                num_bits_in_first_byte: num_bits_in_first_byte as usize,
-                checksum,
-                decompressed_data_size: decompressed_data_size as usize,
-                compressed_data_size: compressed_data_size as usize,
-            },
-            offset,
-        ))
-    }
+pub struct Section {
+    pub header: Header,
+    pub data: Vec<u8>,
 }
 
-impl Display for Header {
+pub struct Content {
+    pub sections: Vec<Section>,
+}
+
+impl fmt::Display for Header {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -66,6 +49,31 @@ compressed size:          {}"#,
             self.compressed_data_size
         )
     }
+}
+
+pub fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
+    let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
+    let (checksum, offset) = read_byte(&buffer, offset)?;
+
+    let offset = offset + 2;
+    let (decompressed_data_size, offset) = read_word(&buffer, offset)?;
+
+    let offset = offset + 2;
+    let (compressed_data_size, offset) = read_word(&buffer, offset)?;
+
+    if compressed_data_size < 10 {
+        bail!("compressed data size {} too small", compressed_data_size);
+    }
+
+    Ok((
+        Header {
+            num_bits_in_first_byte: num_bits_in_first_byte as usize,
+            checksum,
+            decompressed_data_size: decompressed_data_size as usize,
+            compressed_data_size: compressed_data_size as usize,
+        },
+        offset,
+    ))
 }
 
 pub fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8> {
@@ -171,9 +179,54 @@ pub fn decompress_section(
 
     return Ok(target.reverse());
 }
+
+pub fn parse(data: &Vec<u8>) -> Result<Content> {
+    let mut offset = 0;
+    let mut sections: Vec<Section> = Vec::new();
+
+    loop {
+        let (header, o) = read_header(data, offset)?;
+        let checksum = calculate_checksum(&header, data, o)?;
+
+        if checksum != header.checksum {
+            bail!("checksum mismatch");
+        }
+
+        let mut section_data: Vec<u8> = Vec::with_capacity(header.decompressed_data_size);
+        decompress_section(
+            &mut bitstream::Bitstream::create(
+                data.get(o..o + header.compressed_data_size - 10)
+                    .ok_or(anyhow!("out of bounds decompressing section"))?
+                    .to_vec(),
+                header.num_bits_in_first_byte,
+            ),
+            &mut section_data,
+        )?;
+
+        if section_data.len() != header.decompressed_data_size {
+            bail!("decompressed section does not match header");
+        }
+
+        offset = o + header.compressed_data_size - 10;
+        sections.push(Section {
+            header,
+            data: section_data,
+        });
+
+        match offset.cmp(&data.len()) {
+            Ordering::Equal => break,
+            Ordering::Greater => panic!("bad file"),
+            Ordering::Less => continue,
+        };
+    }
+
+    return Ok(Content { sections });
+}
+
 #[cfg(test)]
 mod test_decompress_section {
-    use crate::{bitstream::Bitstream, datfile::decompress_section};
+    use super::bitstream::Bitstream;
+    use super::decompress_section;
 
     #[test]
     fn test_op7() {
