@@ -1,8 +1,9 @@
 use anyhow::*;
 use std::{convert::TryInto, fs, path::Path};
 
-use crate::files::encoding::datfile;
-use crate::{definitions::LEMMING_SPRITES, sprites::Sprite};
+use super::sprite::Sprite;
+use crate::definitions::LEMMING_SPRITES;
+use crate::file::encoding::datfile;
 
 pub struct Content {
     pub lemming_sprites: [Sprite; 30],

@@ -1,7 +1,7 @@
 use anyhow::*;
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, render::*};
 
-use crate::sprites::Sprite;
+use crate::file::sprite::Sprite;
 
 pub struct SDLSprite<'a> {
     pub width: usize,

@@ -1,7 +1,6 @@
 mod definitions;
-mod files;
+mod file;
 mod sdl_display;
-mod sprites;
 
 use anyhow::*;
 use clap::{App, Arg, SubCommand};
@@ -15,7 +14,7 @@ use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::sdl_display::SDLSprite;
-use crate::sprites::Sprite;
+use file::sprite::Sprite;
 
 fn timestamp() -> u32 {
     SystemTime::now()
@@ -115,7 +114,7 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
 }
 
 fn main_sprites(path: &Path) {
-    let main_dat = files::main::parse(path).expect("failed to parse main.dat");
+    let main_dat = file::main::parse(path).expect("failed to parse main.dat");
 
     if let Err(msg) = display_sprites(main_dat.lemming_sprites.to_vec()) {
         println!("SDL failed: {}", msg);
@@ -123,7 +122,7 @@ fn main_sprites(path: &Path) {
 }
 
 fn main_tilesets(path: &Path) {
-    let ground0 = files::ground::parse(path, 0).expect("failed to read ground0o.dat");
+    let ground0 = file::ground::parse(path, 0).expect("failed to read ground0o.dat");
 
     println!("objects\n===\n");
     for object_info in ground0.object_info {
