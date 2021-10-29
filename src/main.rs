@@ -122,6 +122,22 @@ fn main_sprites(path: &Path) {
     }
 }
 
+fn main_tilesets(path: &Path) {
+    let ground0 = files::ground::parse(path, 0).expect("failed to read ground0o.dat");
+
+    println!("objects\n===\n");
+    for object_info in ground0.object_info {
+        println!("{}\n", object_info);
+    }
+
+    println!("terrain\n===\n");
+    for terrain_info in ground0.terrain_info {
+        println!("{}\n", terrain_info);
+    }
+
+    println!("palettes\n===\n{}", ground0.palettes);
+}
+
 fn main() -> Result<()> {
     let mut app = App::new("rustlings")
         .arg(
@@ -130,7 +146,8 @@ fn main() -> Result<()> {
                 .help("path to .dat files")
                 .index(1),
         )
-        .subcommand(SubCommand::with_name("sprites").about("display lemming sprites"));
+        .subcommand(SubCommand::with_name("sprites").about("display lemming sprites"))
+        .subcommand(SubCommand::with_name("tilesets").about("display tilesets"));
 
     let matches = app.clone().get_matches_safe()?;
 
@@ -138,6 +155,8 @@ fn main() -> Result<()> {
 
     if matches.subcommand_matches("sprites").is_some() {
         main_sprites(path);
+    } else if matches.subcommand_matches("tilesets").is_some() {
+        main_tilesets(path);
     } else {
         app.print_help()?;
 
