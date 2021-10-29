@@ -1,3 +1,5 @@
+use anyhow::*;
+
 pub struct Bitstream {
     buffer: Vec<u8>,
     bit_index: usize,
@@ -58,15 +60,17 @@ impl Bitstream {
         )
     }
 
-    pub fn consume(&mut self, count: usize) -> u8 {
-        assert!(count <= self.remaining());
-
+    pub fn consume(&mut self, count: usize) -> Result<u8> {
         let mut value: u8 = 0;
 
         for _ in 0..count {
+            let current_byte = *self
+                .buffer
+                .get(self.buffer.len() - self.byte_index - 1)
+                .ok_or(anyhow!("cosume: out of bounds"))?;
+
             value <<= 1;
-            value |=
-                (self.buffer[self.buffer.len() - self.byte_index - 1] >> self.bit_index) & 0x01;
+            value |= (current_byte >> self.bit_index) & 0x01;
 
             self.bit_index += 1;
             if self.bit_index
@@ -81,7 +85,12 @@ impl Bitstream {
             }
         }
 
-        value
+        return Ok(value);
+    }
+
+    #[cfg(test)]
+    pub fn consume_or_die(&mut self, count: usize) -> u8 {
+        return self.consume(count).expect("consume failed");
     }
 
     pub fn remaining(&self) -> usize {
@@ -105,10 +114,10 @@ mod test {
 
         assert_eq!(bitstream.remaining(), 14);
 
-        assert_eq!(bitstream.consume(8), 0b11000111);
+        assert_eq!(bitstream.consume_or_die(8), 0b11000111);
         assert_eq!(bitstream.remaining(), 6);
 
-        assert_eq!(bitstream.consume(6), 0b101010);
+        assert_eq!(bitstream.consume_or_die(6), 0b101010);
         assert_eq!(bitstream.remaining(), 0);
     }
 
@@ -118,13 +127,13 @@ mod test {
 
         assert_eq!(bitstream.remaining(), 14);
 
-        assert_eq!(bitstream.consume(4), 0b1100);
+        assert_eq!(bitstream.consume_or_die(4), 0b1100);
         assert_eq!(bitstream.remaining(), 10);
 
-        assert_eq!(bitstream.consume(5), 0b01111);
+        assert_eq!(bitstream.consume_or_die(5), 0b01111);
         assert_eq!(bitstream.remaining(), 5);
 
-        assert_eq!(bitstream.consume(5), 0b01010);
+        assert_eq!(bitstream.consume_or_die(5), 0b01010);
         assert_eq!(bitstream.remaining(), 0);
     }
 
@@ -133,7 +142,7 @@ mod test {
         let mut bitstream = Bitstream::create_from_example("10011");
 
         assert_eq!(bitstream.remaining(), 5);
-        assert_eq!(bitstream.consume(5), 0b10011);
+        assert_eq!(bitstream.consume_or_die(5), 0b10011);
     }
 
     #[test]
@@ -141,7 +150,7 @@ mod test {
         let mut bitstream = Bitstream::create_from_example("10 0   1 1");
 
         assert_eq!(bitstream.remaining(), 5);
-        assert_eq!(bitstream.consume(5), 0b10011);
+        assert_eq!(bitstream.consume_or_die(5), 0b10011);
     }
 
     #[test]
@@ -149,9 +158,9 @@ mod test {
         let mut bitstream = Bitstream::create_from_example("01 10010011");
 
         assert_eq!(bitstream.remaining(), 10);
-        assert_eq!(bitstream.consume(2), 0b01);
+        assert_eq!(bitstream.consume_or_die(2), 0b01);
 
         assert_eq!(bitstream.remaining(), 8);
-        assert_eq!(bitstream.consume(8), 0b10010011);
+        assert_eq!(bitstream.consume_or_die(8), 0b10010011);
     }
 }

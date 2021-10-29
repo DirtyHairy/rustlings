@@ -1,21 +1,19 @@
 use crate::bitstream;
+use anyhow::*;
 use std::fmt::Display;
 
-fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize), ()> {
-    if offset >= buffer.len() {
-        return Err(());
-    }
-
-    return Ok((buffer[offset], offset + 1));
+fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
+    return Ok((
+        *buffer
+            .get(offset)
+            .ok_or(anyhow!("offset {} out of bounds", offset))?,
+        offset + 1,
+    ));
 }
 
-fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(u16, usize), ()> {
-    if offset + 1 >= buffer.len() {
-        return Err(());
-    }
-
+fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(u16, usize)> {
     return Ok((
-        (buffer[offset] as u16) << 8 | (buffer[offset + 1] as u16),
+        (read_byte(buffer, offset)?.0 as u16) << 8 | (read_byte(buffer, offset + 1)?.0 as u16),
         offset + 2,
     ));
 }
@@ -28,7 +26,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn read(buffer: &Vec<u8>, offset: usize) -> Result<(Self, usize), ()> {
+    pub fn read(buffer: &Vec<u8>, offset: usize) -> Result<(Self, usize)> {
         let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
         let (checksum, offset) = read_byte(&buffer, offset)?;
 
@@ -39,7 +37,7 @@ impl Header {
         let (compressed_data_size, offset) = read_word(&buffer, offset)?;
 
         if compressed_data_size < 10 {
-            return Err(());
+            bail!("compressed data size {} too small", compressed_data_size);
         }
 
         Ok((
@@ -70,84 +68,108 @@ compressed size:          {}"#,
     }
 }
 
-pub fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8, ()> {
+pub fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8> {
     let mut checksum: u8 = 0;
 
     if offset + header.compressed_data_size - 10 > buffer.len() {
-        return Err(());
+        bail!("not enough data in buffer");
     }
 
-    for value in buffer[offset..header.compressed_data_size - 10 + offset].iter() {
+    let compressed_section = buffer
+        .get(offset..header.compressed_data_size - 10 + offset)
+        .ok_or(anyhow!("not enough data in buffer"))?;
+
+    for value in compressed_section {
         checksum ^= value;
     }
 
     Ok(checksum)
 }
 
-pub fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>) {
+pub fn decompress_section(
+    bitstream: &mut bitstream::Bitstream,
+    target: &mut Vec<u8>,
+) -> Result<()> {
     target.reverse();
 
     while bitstream.remaining() > 0 {
-        let first_bit: u8 = bitstream.consume(1);
+        let first_bit: u8 = bitstream.consume(1)?;
 
-        let chunk_type = if first_bit == 0 {
-            (first_bit << 1) | bitstream.consume(1)
+        let opcode = if first_bit == 0 {
+            (first_bit << 1) | bitstream.consume(1)?
         } else {
-            (first_bit << 2) | bitstream.consume(2)
+            (first_bit << 2) | bitstream.consume(2)?
         };
 
-        match chunk_type {
+        match opcode {
             7 => {
-                let count = bitstream.consume(8) + 9;
+                let count = bitstream.consume(8)? + 9;
 
                 for _ in 0..count {
-                    target.push(bitstream.consume(8))
+                    target.push(bitstream.consume(8)?)
                 }
             }
             1 => {
-                let offset = bitstream.consume(8);
+                let offset = bitstream.consume(8)?;
 
                 for _ in 0..2 {
-                    target.push(target[target.len() - 1 - offset as usize])
+                    target.push(
+                        *target
+                            .get(target.len() - 1 - offset as usize)
+                            .ok_or(anyhow!("opcode 1: reference out of bounds"))?,
+                    )
                 }
             }
             4 => {
                 let offset: usize =
-                    ((bitstream.consume(8) as usize) << 1) | (bitstream.consume(1) as usize);
+                    ((bitstream.consume(8)? as usize) << 1) | (bitstream.consume(1)? as usize);
 
                 for _ in 0..3 {
-                    target.push(target[target.len() - 1 - offset])
+                    target.push(
+                        *target
+                            .get(target.len() - 1 - offset as usize)
+                            .ok_or(anyhow!("opcode 4: reference out of bounds"))?,
+                    )
                 }
             }
             5 => {
                 let offset: usize =
-                    ((bitstream.consume(8) as usize) << 2) | (bitstream.consume(2) as usize);
+                    ((bitstream.consume(8)? as usize) << 2) | (bitstream.consume(2)? as usize);
 
                 for _ in 0..4 {
-                    target.push(target[target.len() - 1 - offset])
+                    target.push(
+                        *target
+                            .get(target.len() - 1 - offset as usize)
+                            .ok_or(anyhow!("opcode 5: reference out of bounds"))?,
+                    )
                 }
             }
             6 => {
-                let block_size = bitstream.consume(8) as usize + 1;
+                let block_size = bitstream.consume(8)? as usize + 1;
                 let offset: usize =
-                    ((bitstream.consume(8) as usize) << 4) | (bitstream.consume(4) as usize);
+                    ((bitstream.consume(8)? as usize) << 4) | (bitstream.consume(4)? as usize);
 
                 for _ in 0..block_size {
-                    target.push(target[target.len() - 1 - offset])
+                    target.push(
+                        *target
+                            .get(target.len() - 1 - offset as usize)
+                            .ok_or(anyhow!("opcode 6: reference out of bounds"))?,
+                    )
                 }
             }
             0 => {
-                let count = bitstream.consume(3) + 1;
+                let count = bitstream.consume(3)? + 1;
 
                 for _ in 0..count {
-                    target.push(bitstream.consume(8))
+                    target.push(bitstream.consume(8)?)
                 }
             }
-            _ => panic!("bad chunk type {}", chunk_type),
+
+            _ => bail!("bad chunk type {}", opcode),
         }
     }
 
-    target.reverse()
+    return Ok(target.reverse());
 }
 #[cfg(test)]
 mod test_decompress_section {
@@ -162,7 +184,7 @@ mod test_decompress_section {
 
         let mut target: Vec<u8> = Vec::new();
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(
             target,
@@ -175,7 +197,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("01 00000001");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x01, 0x02, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
@@ -185,7 +207,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("01 00000100");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x09, 0x07, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
@@ -195,7 +217,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("01 00000000");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x01, 0x01, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
@@ -205,7 +227,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("100 000000011");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x02, 0x03, 0x09, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
@@ -215,7 +237,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("100 000000001");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x02, 0x01, 0x02, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
@@ -225,7 +247,7 @@ mod test_decompress_section {
         let mut bitstream = Bitstream::create_from_example("100 000000000");
         let mut target: Vec<u8> = vec![0x01, 0x02, 0x03, 0x09, 0x07];
 
-        decompress_section(&mut bitstream, &mut target);
+        decompress_section(&mut bitstream, &mut target).expect("decompress failed");
 
         assert_eq!(target, vec![0x01, 0x01, 0x01, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }

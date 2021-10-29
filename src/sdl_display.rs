@@ -1,3 +1,4 @@
+use anyhow::*;
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, render::*};
 
 use crate::sprites::Sprite;
@@ -14,15 +15,13 @@ impl<'a> SDLSprite<'a> {
         sprite: &Sprite,
         palette: &Vec<u32>,
         texture_creator: &'a TextureCreator<T>,
-    ) -> Result<SDLSprite<'a>, String> {
-        let mut texture = texture_creator
-            .create_texture(
-                PixelFormatEnum::RGBA8888,
-                TextureAccess::Static,
-                (sprite.width * sprite.frames.len()) as u32,
-                sprite.height as u32,
-            )
-            .map_err(|e| e.to_string())?;
+    ) -> Result<SDLSprite<'a>> {
+        let mut texture = texture_creator.create_texture(
+            PixelFormatEnum::RGBA8888,
+            TextureAccess::Static,
+            (sprite.width * sprite.frames.len()) as u32,
+            sprite.height as u32,
+        )?;
 
         let mut bitmap_data = vec![0u32; sprite.width * sprite.height];
 
@@ -42,18 +41,16 @@ impl<'a> SDLSprite<'a> {
                 data8 = x;
             }
 
-            texture
-                .update(
-                    Rect::new(
-                        (iframe * sprite.width) as i32,
-                        0,
-                        (sprite.width) as u32,
-                        (sprite.height) as u32,
-                    ),
-                    data8,
-                    4 * sprite.width,
-                )
-                .map_err(|e| e.to_string())?;
+            texture.update(
+                Rect::new(
+                    (iframe * sprite.width) as i32,
+                    0,
+                    (sprite.width) as u32,
+                    (sprite.height) as u32,
+                ),
+                data8,
+                4 * sprite.width,
+            )?;
         }
 
         Ok(SDLSprite {
@@ -71,21 +68,23 @@ impl<'a> SDLSprite<'a> {
         y: i32,
         iframe: usize,
         scale: usize,
-    ) -> Result<(), String> {
-        canvas.copy(
-            &self.texture,
-            Rect::new(
-                ((iframe % self.frame_count) * self.width) as i32,
-                0,
-                (self.width) as u32,
-                self.height as u32,
-            ),
-            Rect::new(
-                x,
-                y,
-                (scale * self.width) as u32,
-                (scale * self.height) as u32,
-            ),
-        )
+    ) -> Result<()> {
+        return canvas
+            .copy(
+                &self.texture,
+                Rect::new(
+                    ((iframe % self.frame_count) * self.width) as i32,
+                    0,
+                    (self.width) as u32,
+                    self.height as u32,
+                ),
+                Rect::new(
+                    x,
+                    y,
+                    (scale * self.width) as u32,
+                    (scale * self.height) as u32,
+                ),
+            )
+            .map_err(|s| anyhow!(s));
     }
 }

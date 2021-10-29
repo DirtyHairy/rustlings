@@ -1,5 +1,7 @@
+use anyhow::*;
 use std::fmt::Display;
 
+#[derive(Clone)]
 pub struct Bitmap {
     pub width: usize,
     pub height: usize,
@@ -7,18 +9,16 @@ pub struct Bitmap {
 }
 
 impl Bitmap {
-    pub fn read_planar(width: usize, height: usize, bpp: usize, data: &[u8]) -> Result<Bitmap, ()> {
-        assert!(bpp < 8 && bpp > 0);
+    pub fn read_planar(width: usize, height: usize, bpp: usize, data: &[u8]) -> Result<Bitmap> {
+        if bpp > 8 {
+            bail!("bad bpp {}", bpp);
+        }
 
         if width * height % 8 != 0 {
-            return Err(());
+            bail!("bad dimensions {}x{}", width, height);
         }
 
         let plane_size = width * height / 8;
-
-        if data.len() != plane_size * bpp {
-            return Err(());
-        }
 
         let mut bitmap = Bitmap {
             width,
@@ -33,8 +33,11 @@ impl Bitmap {
                 for y in 0..height {
                     let ipixel = (y * width) + x;
 
-                    bitmap.data[ipixel] |=
-                        ((data[base + ipixel / 8] >> (7 - (ipixel % 8))) & 0x01) << iplane;
+                    let byte = *data
+                        .get(base + ipixel / 8)
+                        .ok_or(anyhow!("read_planar: out of bounds"))?;
+
+                    bitmap.data[ipixel] |= ((byte >> (7 - (ipixel % 8))) & 0x01) << iplane;
                 }
             }
         }
@@ -43,6 +46,7 @@ impl Bitmap {
     }
 }
 
+#[derive(Clone)]
 pub struct Sprite {
     pub width: usize,
     pub height: usize,
@@ -57,17 +61,8 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
-    ) -> Result<Sprite, ()> {
-        assert!(bpp < 8);
-
-        if width * height % 8 != 0 {
-            return Err(());
-        }
-
+    ) -> Result<Sprite> {
         let frame_size = width * height / 8 * bpp;
-        if data.len() < frame_size * frame_count {
-            return Err(());
-        }
 
         let mut sprite = Sprite {
             width,
@@ -82,13 +77,14 @@ impl Sprite {
                 width,
                 height,
                 bpp,
-                &data[base..base + frame_size],
+                data.get(base..base + frame_size)
+                    .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
             )?);
         }
 
         *offset += frame_size * frame_count;
 
-        Ok(sprite)
+        return Ok(sprite);
     }
 }
 
