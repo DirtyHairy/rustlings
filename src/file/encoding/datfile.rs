@@ -3,22 +3,6 @@ use std::{cmp::Ordering, fmt};
 
 use super::bitstream;
 
-fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
-    return Ok((
-        *buffer
-            .get(offset)
-            .ok_or(anyhow!("offset {} out of bounds", offset))?,
-        offset + 1,
-    ));
-}
-
-fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(u16, usize)> {
-    return Ok((
-        (read_byte(buffer, offset)?.0 as u16) << 8 | (read_byte(buffer, offset + 1)?.0 as u16),
-        offset + 2,
-    ));
-}
-
 pub struct Header {
     pub num_bits_in_first_byte: usize,
     pub checksum: u8,
@@ -33,6 +17,49 @@ pub struct Section {
 
 pub struct Content {
     pub sections: Vec<Section>,
+}
+
+pub fn parse(data: &Vec<u8>) -> Result<Content> {
+    let mut offset = 0;
+    let mut sections: Vec<Section> = Vec::new();
+
+    loop {
+        let (header, o) = read_header(data, offset)?;
+        let checksum = calculate_checksum(&header, data, o)?;
+
+        if checksum != header.checksum {
+            bail!("checksum mismatch");
+        }
+
+        let mut section_data: Vec<u8> = Vec::with_capacity(header.decompressed_data_size);
+        decompress_section(
+            &mut bitstream::Bitstream::create(
+                data.get(o..o + header.compressed_data_size - 10)
+                    .ok_or(anyhow!("out of bounds decompressing section"))?
+                    .to_vec(),
+                header.num_bits_in_first_byte,
+            ),
+            &mut section_data,
+        )?;
+
+        if section_data.len() != header.decompressed_data_size {
+            bail!("decompressed section does not match header");
+        }
+
+        offset = o + header.compressed_data_size - 10;
+        sections.push(Section {
+            header,
+            data: section_data,
+        });
+
+        match offset.cmp(&data.len()) {
+            Ordering::Equal => break,
+            Ordering::Greater => panic!("bad file"),
+            Ordering::Less => continue,
+        };
+    }
+
+    return Ok(Content { sections });
 }
 
 impl fmt::Display for Header {
@@ -51,7 +78,7 @@ compressed size:          {}"#,
     }
 }
 
-pub fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
+fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
     let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
     let (checksum, offset) = read_byte(&buffer, offset)?;
 
@@ -76,7 +103,7 @@ pub fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
     ))
 }
 
-pub fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8> {
+fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8> {
     let mut checksum: u8 = 0;
 
     if offset + header.compressed_data_size - 10 > buffer.len() {
@@ -94,10 +121,7 @@ pub fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> R
     Ok(checksum)
 }
 
-pub fn decompress_section(
-    bitstream: &mut bitstream::Bitstream,
-    target: &mut Vec<u8>,
-) -> Result<()> {
+fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>) -> Result<()> {
     target.reverse();
 
     while bitstream.remaining() > 0 {
@@ -178,49 +202,6 @@ pub fn decompress_section(
     }
 
     return Ok(target.reverse());
-}
-
-pub fn parse(data: &Vec<u8>) -> Result<Content> {
-    let mut offset = 0;
-    let mut sections: Vec<Section> = Vec::new();
-
-    loop {
-        let (header, o) = read_header(data, offset)?;
-        let checksum = calculate_checksum(&header, data, o)?;
-
-        if checksum != header.checksum {
-            bail!("checksum mismatch");
-        }
-
-        let mut section_data: Vec<u8> = Vec::with_capacity(header.decompressed_data_size);
-        decompress_section(
-            &mut bitstream::Bitstream::create(
-                data.get(o..o + header.compressed_data_size - 10)
-                    .ok_or(anyhow!("out of bounds decompressing section"))?
-                    .to_vec(),
-                header.num_bits_in_first_byte,
-            ),
-            &mut section_data,
-        )?;
-
-        if section_data.len() != header.decompressed_data_size {
-            bail!("decompressed section does not match header");
-        }
-
-        offset = o + header.compressed_data_size - 10;
-        sections.push(Section {
-            header,
-            data: section_data,
-        });
-
-        match offset.cmp(&data.len()) {
-            Ordering::Equal => break,
-            Ordering::Greater => panic!("bad file"),
-            Ordering::Less => continue,
-        };
-    }
-
-    return Ok(Content { sections });
 }
 
 #[cfg(test)]
@@ -304,4 +285,20 @@ mod test_decompress_section {
 
         assert_eq!(target, vec![0x01, 0x01, 0x01, 0x01, 0x02, 0x03, 0x09, 0x07]);
     }
+}
+
+fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
+    return Ok((
+        *buffer
+            .get(offset)
+            .ok_or(anyhow!("offset {} out of bounds", offset))?,
+        offset + 1,
+    ));
+}
+
+fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(u16, usize)> {
+    return Ok((
+        (read_byte(buffer, offset)?.0 as u16) << 8 | (read_byte(buffer, offset + 1)?.0 as u16),
+        offset + 2,
+    ));
 }

@@ -13,7 +13,7 @@ pub struct SDLSprite<'a> {
 impl<'a> SDLSprite<'a> {
     pub fn from_sprite<T>(
         sprite: &Sprite,
-        palette: &Vec<u32>,
+        palette: &[u32; 16],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<SDLSprite<'a>> {
         let mut texture = texture_creator.create_texture(

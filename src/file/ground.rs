@@ -17,7 +17,7 @@ pub struct ObjectInfo {
     pub trigger_height: usize,
     pub trigger_effect: usize,
     pub frames_offset: usize,
-    pub preview_frame: usize,
+    pub preview_frame_offset: usize,
     pub trap_sound_effect: usize,
 }
 
@@ -29,9 +29,9 @@ pub struct TerrainInfo {
 }
 
 pub struct Palettes {
-    custom: [(usize, usize, usize); 16],
-    standard: [(usize, usize, usize); 16],
-    preview: [(usize, usize, usize); 16],
+    pub custom: [(usize, usize, usize); 16],
+    pub standard: [(usize, usize, usize); 16],
+    pub preview: [(usize, usize, usize); 16],
 }
 
 pub struct Content {
@@ -40,7 +40,7 @@ pub struct Content {
     pub palettes: Palettes,
 }
 
-pub fn parse(path: &Path, index: usize) -> Result<Content> {
+pub fn read(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
     let data = fs::read(path.join(&filename).as_os_str())?;
 
@@ -103,7 +103,7 @@ fn read_object_info(buffer: &Vec<u8>, offset: usize) -> Result<(ObjectInfo, usiz
     let (trigger_height, offset) = read_byte(buffer, offset)?;
     let (trigger_effect, offset) = read_byte(buffer, offset)?;
     let (frames_offset, offset) = read_word(buffer, offset)?;
-    let (preview_frame, offset) = read_word(buffer, offset)?;
+    let (preview_frame_offset, offset) = read_word(buffer, offset)?;
     let offset = offset + 2;
     let (trap_sound_effect, offset) = read_byte(buffer, offset)?;
 
@@ -122,7 +122,7 @@ fn read_object_info(buffer: &Vec<u8>, offset: usize) -> Result<(ObjectInfo, usiz
             trigger_height,
             trigger_effect,
             frames_offset,
-            preview_frame,
+            preview_frame_offset,
             trap_sound_effect,
         },
         offset,
@@ -216,7 +216,7 @@ trigger_top:              {}
 trigger_width:            {}
 trigger_height:           {}
 trigger_effect:           {}
-frames_base:              {}
+frames_offset:            {}
 preview_frame:            {}
 trap_sound_effect:        {}"#,
             self.animation_loops,
@@ -232,7 +232,7 @@ trap_sound_effect:        {}"#,
             self.trigger_height,
             self.trigger_effect,
             self.frames_offset,
-            self.preview_frame,
+            self.preview_frame_offset,
             self.trap_sound_effect,
         )
     }

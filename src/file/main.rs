@@ -9,7 +9,7 @@ pub struct Content {
     pub lemming_sprites: [Sprite; 30],
 }
 
-pub fn parse(path: &Path) -> Result<Content> {
+pub fn read(path: &Path) -> Result<Content> {
     let maindata = fs::read(path.join("main.dat").as_os_str())?;
 
     println!("reading main.dat\n");
@@ -33,6 +33,7 @@ pub fn parse(path: &Path) -> Result<Content> {
                 .get(offset..)
                 .ok_or(anyhow!("out of bounds reading lemming sprites"))?,
             &mut offset,
+            0,
         )?);
     }
 

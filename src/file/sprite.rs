@@ -61,6 +61,7 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
+        padding: usize,
     ) -> Result<Sprite> {
         let frame_size = width * height / 8 * bpp;
 
@@ -71,7 +72,7 @@ impl Sprite {
         };
 
         for iframe in 0..frame_count {
-            let base = iframe * frame_size;
+            let base = *offset + iframe * (frame_size + padding);
 
             sprite.frames.push(Bitmap::read_planar(
                 width,
