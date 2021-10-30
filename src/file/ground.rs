@@ -44,7 +44,7 @@ pub fn read(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
     let data = fs::read(path.join(&filename).as_os_str())?;
 
-    println!("reading {}\n", &filename);
+    println!("reading {}", &filename);
 
     let mut offset = 0;
     let mut object_info: Vec<ObjectInfo> = Vec::new();
@@ -152,7 +152,7 @@ fn read_palette_entry(buffer: &Vec<u8>, offset: usize) -> Result<((usize, usize,
     let (g, offset) = read_byte(buffer, offset)?;
     let (b, offset) = read_byte(buffer, offset)?;
 
-    return Ok(((r, g, b), offset));
+    return Ok(((r << 2, g << 2, b << 2), offset));
 }
 fn read_palette(buffer: &Vec<u8>, offset: usize) -> Result<([(usize, usize, usize); 16], usize)> {
     const PALETTE_FIXED: [(usize, usize, usize); 7] = [
@@ -179,7 +179,7 @@ fn read_palette(buffer: &Vec<u8>, offset: usize) -> Result<([(usize, usize, usiz
         offset = new_offset;
     }
 
-    palette[7] = palette[15];
+    palette[7] = palette[8];
 
     return Ok((palette, offset));
 }

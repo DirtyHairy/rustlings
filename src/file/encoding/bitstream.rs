@@ -64,15 +64,6 @@ impl Bitstream {
         let mut value: u8 = 0;
 
         for _ in 0..count {
-            let current_byte = *self
-                .buffer
-                .get(self.buffer.len() - self.byte_index - 1)
-                .ok_or(anyhow!("cosume: out of bounds"))?;
-
-            value <<= 1;
-            value |= (current_byte >> self.bit_index) & 0x01;
-
-            self.bit_index += 1;
             if self.bit_index
                 >= (if self.byte_index == 0 {
                     self.bits_in_first_byte
@@ -83,6 +74,16 @@ impl Bitstream {
                 self.bit_index = 0;
                 self.byte_index += 1;
             }
+
+            let current_byte = *self
+                .buffer
+                .get(self.buffer.len() - self.byte_index - 1)
+                .ok_or(anyhow!("cosume: out of bounds"))?;
+
+            value <<= 1;
+            value |= (current_byte >> self.bit_index) & 0x01;
+
+            self.bit_index += 1;
         }
 
         return Ok(value);

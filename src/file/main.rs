@@ -28,10 +28,7 @@ pub fn read(path: &Path) -> Result<Content> {
             width,
             height,
             bpp,
-            sections[0]
-                .data
-                .get(offset..)
-                .ok_or(anyhow!("out of bounds reading lemming sprites"))?,
+            &sections[0].data,
             &mut offset,
             0,
         )?);

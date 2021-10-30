@@ -18,7 +18,7 @@ pub fn read(path: &Path, index: usize, ground_data: &ground::Content) -> Result<
     let filename = format!("vgagr{}.dat", index);
     let data = fs::read(path.join(&filename).as_os_str())?;
 
-    println!("reading {}\n", &filename);
+    println!("reading {}", &filename);
 
     let datfile::Content { sections } = datfile::parse(&data)?;
     if sections.len() != 2 {
