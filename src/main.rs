@@ -188,7 +188,7 @@ fn display_tileset(
                 } => match code {
                     Keycode::Escape => running = false,
                     Keycode::Left => {
-                        ispriteset = (ispriteset - 1 + spritesets.len()) % spritesets.len()
+                        ispriteset = ((ispriteset + spritesets.len()) - 1) % spritesets.len()
                     }
                     Keycode::Right => ispriteset = (ispriteset + 1) % spritesets.len(),
                     _ => (),
