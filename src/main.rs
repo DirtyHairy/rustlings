@@ -68,6 +68,8 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
     while running {
         let now = timestamp();
 
+        canvas.clear();
+
         if now - last_draw > 1000 / 10 {
             for (isprite, sprite) in sdl_sprites.iter().enumerate() {
                 sprite.blit(
