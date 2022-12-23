@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::{anyhow, Result};
 
 pub struct Bitstream {
     buffer: Vec<u8>,

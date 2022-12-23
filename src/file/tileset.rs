@@ -1,6 +1,6 @@
 use std::{convert::TryInto, fs, path::Path};
 
-use anyhow::*;
+use anyhow::{anyhow, bail, Result};
 
 use crate::file::encoding::datfile;
 

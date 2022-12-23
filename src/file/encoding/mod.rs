@@ -1,2 +1,3 @@
-pub mod bitstream;
 pub mod datfile;
+
+mod bitstream;

@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::{bail, Result};
 use std::{convert::TryInto, fs, path::Path};
 
 use super::sprite::Sprite;
