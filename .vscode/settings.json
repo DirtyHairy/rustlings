@@ -1,5 +1,6 @@
 {
     "editor.formatOnSave": true,
     "debug.allowBreakpointsEverywhere": true,
-    "rust-analyzer.inlayHints.enable": false
+    "rust-analyzer.inlayHints.typeHints.enable": false,
+    "rust-analyzer.inlayHints.chainingHints.enable": false
 }

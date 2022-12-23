@@ -110,6 +110,6 @@ impl Display for Sprite {
             writeln!(f)?;
         }
 
-        Ok(())
+        std::fmt::Result::Ok(())
     }
 }

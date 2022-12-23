@@ -3,7 +3,7 @@ mod file;
 mod sdl_display;
 
 use anyhow::*;
-use clap::{App, Arg, SubCommand};
+use clap::{Arg, Command};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -233,29 +233,26 @@ fn main_tilesets(path: &Path) {
 }
 
 fn main() -> Result<()> {
-    let mut app = App::new("rustlings")
+    let mut command = Command::new("rustlings")
+        .about("rust by rodent")
         .arg(
-            Arg::with_name("PATH")
+            Arg::new("PATH")
                 .required(true)
                 .help("path to .dat files")
                 .index(1),
         )
-        .subcommand(SubCommand::with_name("sprites").about("display lemming sprites"))
-        .subcommand(SubCommand::with_name("tilesets").about("display tilesets"));
+        .subcommand(Command::new("sprites").about("display lemming sprites"))
+        .subcommand(Command::new("tilesets").about("display tilesets"));
 
-    let matches = app.clone().get_matches_safe()?;
+    let matches = command.clone().get_matches();
 
-    let path = Path::new(matches.value_of("PATH").expect("internal"));
+    let path = Path::new(matches.get_one::<String>("PATH").expect("unreachable"));
 
-    if matches.subcommand_matches("sprites").is_some() {
-        main_sprites(path);
-    } else if matches.subcommand_matches("tilesets").is_some() {
-        main_tilesets(path);
-    } else {
-        app.print_help()?;
-
-        println!();
+    match matches.subcommand() {
+        Some(("sprites", _)) => main_sprites(path),
+        Some(("tilesets", _)) => main_tilesets(path),
+        _ => drop(command.print_help()),
     }
 
-    return Ok(());
+    Ok(())
 }
