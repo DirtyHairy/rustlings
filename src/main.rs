@@ -8,7 +8,8 @@ use clap::{Arg, ArgMatches, Command};
 
 use std::path::Path;
 
-const ARG_GAME_DATA_PATH: &str = "GAME_DATA";
+const ARG_GAME_DATA_PATH: &str = "GAME_DATA_PATH";
+const ARG_DAT_FILE_PATH: &str = "DAT_FILE";
 
 fn game_data_path(matches: &ArgMatches) -> &Path {
     Path::new(
@@ -35,6 +36,16 @@ fn main() -> Result<()> {
             Command::new("tilesets")
                 .about("display tilesets")
                 .arg(arg_data_path.clone()),
+        )
+        .subcommand(
+            Command::new("decode-dat")
+                .about("decode dat file into sections")
+                .arg(
+                    Arg::new(ARG_DAT_FILE_PATH)
+                        .help("dat file to decode")
+                        .required(true)
+                        .index(1),
+                ),
         );
 
     let matches = command.clone().get_matches();
@@ -43,11 +54,16 @@ fn main() -> Result<()> {
         Some(("sprites", subcommand_matches)) => {
             cmd::sprites::main(game_data_path(subcommand_matches))
         }
+
         Some(("tilesets", subcommand_matches)) => {
             cmd::tilesets::main(game_data_path(subcommand_matches))
         }
-        _ => drop(command.print_help()),
-    }
 
-    Ok(())
+        Some(("decode-dat", subcommand_matches)) => cmd::decode_dat::main(
+            subcommand_matches
+                .get_one::<String>(ARG_DAT_FILE_PATH)
+                .expect("unreachable"),
+        ),
+        _ => command.print_help().map_err(anyhow::Error::from),
+    }
 }

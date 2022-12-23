@@ -2,7 +2,7 @@ use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use super::util::{self, create_pixel_format};
 use crate::{file, sdl_display::SDLSprite};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
 fn display_tileset(
@@ -106,21 +106,23 @@ fn display_tileset(
     Ok(())
 }
 
-pub fn main(path: &Path) {
+pub fn main(path: &Path) -> Result<()> {
     let mut ground: Vec<file::ground::Content> = Vec::new();
     let mut tileset: Vec<file::tileset::Content> = Vec::new();
 
     for i in 0..5 {
-        let ground_dat = file::ground::read(path, i)
-            .expect(format!("failed to read ground data set {}", i).as_str());
+        let ground_dat =
+            file::ground::read(path, i).context(format!("failed to read ground data set {}", i))?;
 
         tileset.push(
             file::tileset::read(path, i, &ground_dat)
-                .expect(format!("failed to read tile set {}", i).as_str()),
+                .context(format!("failed to read ground data set {}", i))?,
         );
 
         ground.push(ground_dat);
     }
 
-    display_tileset(&ground, &tileset).expect("SDL failed");
+    display_tileset(&ground, &tileset)?;
+
+    Ok(())
 }

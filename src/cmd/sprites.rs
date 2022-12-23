@@ -75,10 +75,10 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
     Ok(())
 }
 
-pub fn main(path: &Path) {
-    let main_dat = file::main::read(path).expect("failed to parse main.dat");
+pub fn main(path: &Path) -> Result<()> {
+    let main_dat = file::main::read(path)?;
 
-    if let Err(msg) = display_sprites(main_dat.lemming_sprites.to_vec()) {
-        println!("SDL failed: {}", msg);
-    }
+    display_sprites(main_dat.lemming_sprites.to_vec())?;
+
+    Ok(())
 }
