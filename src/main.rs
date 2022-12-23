@@ -1,6 +1,7 @@
 mod cmd;
 mod definitions;
 mod file;
+mod level;
 mod sdl_display;
 
 use anyhow::Result;
@@ -46,6 +47,16 @@ fn main() -> Result<()> {
                         .required(true)
                         .index(1),
                 ),
+        )
+        .subcommand(
+            Command::new("view_levels")
+                .about("view levels in dat file")
+                .arg(
+                    Arg::new(ARG_DAT_FILE_PATH)
+                        .help("dat file to decode")
+                        .required(true)
+                        .index(1),
+                ),
         );
 
     let matches = command.clone().get_matches();
@@ -64,6 +75,13 @@ fn main() -> Result<()> {
                 .get_one::<String>(ARG_DAT_FILE_PATH)
                 .expect("unreachable"),
         ),
+
+        Some(("view_levels", subcommand_matches)) => cmd::view_levels::main(
+            subcommand_matches
+                .get_one::<String>(ARG_DAT_FILE_PATH)
+                .expect("unreachable"),
+        ),
+
         _ => command.print_help().map_err(anyhow::Error::from),
     }
 }
