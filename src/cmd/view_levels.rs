@@ -1,6 +1,6 @@
 use super::util::{create_pixel_format, create_window, read_ground};
 use crate::{
-    file::{self, tileset},
+    file::{self},
     level::Level,
 };
 
@@ -10,8 +10,15 @@ use sdl2::{
     keyboard::Keycode,
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
+    render::TextureCreator,
 };
-use std::{fs, path::Path, thread::sleep, time::Duration};
+use std::{
+    cmp::{max, min},
+    fs,
+    path::Path,
+    thread::sleep,
+    time::Duration,
+};
 
 use crate::sdl_display::SDLSprite;
 
@@ -20,6 +27,8 @@ struct GameData {
     ground_data: Vec<file::ground::Content>,
     tileset: Vec<file::tileset::Content>,
 }
+
+type SpriteSet<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
 
 fn read_levels(file_name: &str) -> Result<Vec<Level>> {
     let path = Path::new(file_name);
@@ -53,9 +62,9 @@ fn dump_levels(levels: &Vec<Level>, verbose: bool) -> () {
     }
 }
 
-fn render_level(
+fn render_level_to_canvas(
     data: &GameData,
-    sprites: [Vec<Option<SDLSprite>>; 5],
+    sprites: &SpriteSet,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     index: usize,
 ) -> Result<()> {
@@ -75,20 +84,30 @@ fn render_level(
     Ok(())
 }
 
-fn display_levels<'a>(data: &GameData) -> Result<()> {
-    let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
-    let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
-    let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
-    let window = create_window(&sdl_video)?;
+fn render_level_to_bitmap(
+    data: &GameData,
+    sprites: &SpriteSet,
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    texture: &mut sdl2::render::Texture,
+    index: usize,
+) -> Result<()> {
+    let mut result: Result<()> = Ok(());
 
-    let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
-    let texture_creator = canvas.texture_creator();
+    canvas.with_texture_canvas(texture, |texture_canvas| {
+        texture_canvas.clear();
+        result = render_level_to_canvas(data, sprites, texture_canvas, index);
+    })?;
+
+    result
+}
+
+fn prepare_sprites<'a, T>(
+    data: &GameData,
+    texture_creator: &'a TextureCreator<T>,
+) -> Result<SpriteSet<'a>> {
+    let mut sprites: SpriteSet = vec![(); 5].iter().map(|()| Vec::new()).collect();
     let pixel_format = create_pixel_format()?;
 
-    let mut background_texture =
-        texture_creator.create_texture_target(PixelFormatEnum::RGBA8888, 1200, 160)?;
-
-    let mut sprites: [Vec<Option<SDLSprite>>; 5] = [(); 5].map(|()| Vec::new());
     for (index, tileset) in data.tileset.iter().enumerate() {
         let palette = data
             .ground_data
@@ -101,33 +120,57 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
         for bitmap_option in &tileset.tiles {
             sprites[index].push(
                 bitmap_option.as_ref().and_then(|bitmap| {
-                    SDLSprite::from_bitmap(bitmap, &palette, &texture_creator).ok()
+                    SDLSprite::from_bitmap(bitmap, &palette, texture_creator).ok()
                 }),
             )
         }
     }
 
-    canvas.with_texture_canvas(&mut background_texture, |texture_canvas| {
-        texture_canvas.clear();
+    Ok(sprites)
+}
 
-        if let Err(e) = render_level(data, sprites, texture_canvas, 0) {
-            println!("failed to render background: {}", e);
-        }
-    })?;
-
+fn render(
+    x: u32,
+    background: &sdl2::render::Texture,
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+) -> Result<()> {
     canvas.clear();
 
     canvas
         .copy(
-            &background_texture,
-            Rect::new(0, 0, 1200, 160),
-            Rect::new(0, 80, 1200, 160),
+            &background,
+            Rect::new(x as i32, 0, 320, 160),
+            Rect::new(0, 80, 1200, 640),
         )
         .map_err(|s| anyhow!(s))?;
 
     canvas.present();
 
+    Ok(())
+}
+
+fn display_levels<'a>(data: &GameData) -> Result<()> {
+    let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
+    let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
+    let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
+    let window = create_window(&sdl_video)?;
+    let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
+    let texture_creator = canvas.texture_creator();
+
+    let mut background =
+        texture_creator.create_texture_target(PixelFormatEnum::RGBA8888, 1200, 160)?;
+
+    let sprites = prepare_sprites(data, &texture_creator)?;
+
     let mut running = true;
+    let mut x = 440;
+    let mut i_level = 0;
+
+    let mut left = false;
+    let mut right = false;
+
+    render_level_to_bitmap(data, &sprites, &mut canvas, &mut background, i_level)?;
+    render(x, &background, &mut canvas)?;
 
     while running {
         for event in event_pump.poll_iter() {
@@ -138,10 +181,55 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
                     ..
                 } => match code {
                     Keycode::Escape => running = false,
+                    Keycode::Left => left = true,
+                    Keycode::Right => right = true,
+                    Keycode::Up => {
+                        i_level = (i_level + 1) % data.levels.len();
+
+                        render_level_to_bitmap(
+                            data,
+                            &sprites,
+                            &mut canvas,
+                            &mut background,
+                            i_level,
+                        )?;
+
+                        render(x, &background, &mut canvas)?;
+                    }
+
+                    Keycode::Down => {
+                        i_level = ((i_level + data.levels.len()) - 1) % data.levels.len();
+
+                        render_level_to_bitmap(
+                            data,
+                            &sprites,
+                            &mut canvas,
+                            &mut background,
+                            i_level,
+                        )?;
+
+                        render(x, &background, &mut canvas)?;
+                    }
+                    _ => (),
+                },
+                Event::KeyUp {
+                    keycode: Some(code),
+                    ..
+                } => match code {
+                    Keycode::Left => left = false,
+                    Keycode::Right => right = false,
                     _ => (),
                 },
                 _ => (),
             }
+        }
+
+        if left {
+            x = max(x as i32 - 10, 0) as u32;
+            render(x, &background, &mut canvas)?;
+        } else if right {
+            x = min(x as i32 + 10, 1200 - 320) as u32;
+            render(x, &background, &mut canvas)?;
         }
 
         sleep(Duration::from_millis(20));
