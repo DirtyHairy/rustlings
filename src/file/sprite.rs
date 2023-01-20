@@ -6,10 +6,24 @@ pub struct Bitmap {
     pub width: usize,
     pub height: usize,
     pub data: Vec<u8>,
+    pub transparency: Vec<bool>,
+}
+
+#[derive(Clone)]
+pub enum TransparencyEncoding<'a> {
+    Black,
+    PlanarAt(&'a [u8]),
+    PlanarOffset(usize),
 }
 
 impl Bitmap {
-    pub fn read_planar(width: usize, height: usize, bpp: usize, data: &[u8]) -> Result<Bitmap> {
+    pub fn read_planar(
+        width: usize,
+        height: usize,
+        bpp: usize,
+        data: &[u8],
+        transparency_encoding: TransparencyEncoding,
+    ) -> Result<Bitmap> {
         if bpp > 8 {
             bail!("bad bpp {}", bpp);
         }
@@ -24,6 +38,7 @@ impl Bitmap {
             width,
             height,
             data: vec![0; width * height],
+            transparency: vec![false; width * height],
         };
 
         for iplane in 0..bpp {
@@ -40,6 +55,38 @@ impl Bitmap {
                     bitmap.data[ipixel] |= ((byte >> (7 - (ipixel % 8))) & 0x01) << iplane;
                 }
             }
+        }
+
+        let effective_transparency_encoding = match transparency_encoding {
+            TransparencyEncoding::PlanarOffset(offset) => TransparencyEncoding::PlanarAt(
+                data.get(offset..).ok_or(anyhow!("unable to obtain mask"))?,
+            ),
+            _ => transparency_encoding,
+        };
+
+        match effective_transparency_encoding {
+            TransparencyEncoding::Black => {
+                for x in 0..width {
+                    for y in 0..height {
+                        let ipixel = (y * width) + x;
+                        bitmap.transparency[ipixel] = bitmap.data[ipixel] == 0;
+                    }
+                }
+            }
+            TransparencyEncoding::PlanarAt(transparency_data) => {
+                for x in 0..width {
+                    for y in 0..height {
+                        let ipixel = (y * width) + x;
+
+                        let byte = *transparency_data
+                            .get(ipixel / 8)
+                            .ok_or(anyhow!("read_planar: transparency: out of bounds"))?;
+
+                        bitmap.transparency[ipixel] = ((byte >> (7 - (ipixel % 8))) & 0x01) == 0x00;
+                    }
+                }
+            }
+            _ => (),
         }
 
         Ok(bitmap)
@@ -61,10 +108,9 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
-        padding: usize,
+        frame_size: usize,
+        transparency_encoding: TransparencyEncoding,
     ) -> Result<Sprite> {
-        let frame_size = width * height / 8 * bpp;
-
         let mut sprite = Sprite {
             width,
             height,
@@ -72,7 +118,7 @@ impl Sprite {
         };
 
         for iframe in 0..frame_count {
-            let base = *offset + iframe * (frame_size + padding);
+            let base = *offset + iframe * frame_size;
 
             sprite.frames.push(Bitmap::read_planar(
                 width,
@@ -80,6 +126,7 @@ impl Sprite {
                 bpp,
                 data.get(base..base + frame_size)
                     .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
+                transparency_encoding.clone(),
             )?);
         }
 

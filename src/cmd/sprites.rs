@@ -25,7 +25,7 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
     let palette = STATIC_PALETTE
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
 
-    let sdl_sprites: Vec<SDLSprite> = sprites
+    let mut sdl_sprites: Vec<SDLSprite> = sprites
         .iter()
         .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
         .filter(|x| x.is_ok())
@@ -42,7 +42,7 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
         canvas.clear();
 
         if now - last_draw > 1000 / 10 {
-            for (isprite, sprite) in sdl_sprites.iter().enumerate() {
+            for (isprite, sprite) in sdl_sprites.iter_mut().enumerate() {
                 sprite.blit(
                     &mut canvas,
                     (isprite % 10 * 32 * 4) as i32,
@@ -50,6 +50,7 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
                     iframe,
                     4,
                     false,
+                    sdl2::render::BlendMode::Blend,
                 )?;
             }
 

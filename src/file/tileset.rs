@@ -2,7 +2,7 @@ use std::{convert::TryInto, fs, path::Path};
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::file::encoding::datfile;
+use crate::file::{encoding::datfile, sprite::TransparencyEncoding};
 
 use super::{
     ground,
@@ -42,7 +42,8 @@ pub fn read(path: &Path, index: usize, ground_data: &ground::Content) -> Result<
             4,
             &object_data,
             &mut offset,
-            object_info.animation_frame_size - object_info.width * object_info.height / 2,
+            object_info.animation_frame_size,
+            TransparencyEncoding::PlanarOffset(object_info.mask_offset),
         )?));
     }
 
@@ -62,6 +63,11 @@ pub fn read(path: &Path, index: usize, ground_data: &ground::Content) -> Result<
             &tileset_data
                 .get(terrain_info.image_offset..)
                 .ok_or(anyhow!("tile data out of bounds"))?,
+            TransparencyEncoding::PlanarAt(
+                &tileset_data
+                    .get(terrain_info.mask_offset..)
+                    .ok_or(anyhow!("tile data out of bounds"))?,
+            ),
         )?));
     }
 

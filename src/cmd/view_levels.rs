@@ -64,20 +64,54 @@ fn dump_levels(levels: &Vec<Level>, verbose: bool) -> () {
 
 fn render_level_to_canvas(
     data: &GameData,
-    sprites: &SpriteSet,
+    sprites: &mut SpriteSet,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     index: usize,
 ) -> Result<()> {
     let level = data.levels.get(index).context("invalid level ID")?;
+    for tile in level.terrain_tiles.iter().rev() {
+        if !tile.do_not_overwrite_exiting || tile.remove_terrain {
+            continue;
+        }
 
-    for tile in &level.terrain_tiles {
         let sprite_optional = sprites[level.graphics_set as usize]
-            .get(tile.id as usize)
-            .and_then(|x| x.as_ref());
+            .get_mut(tile.id as usize)
+            .and_then(|x| x.as_mut());
 
         match sprite_optional {
             None => continue,
-            Some(sprite) => sprite.blit(canvas, tile.x, tile.y, 0, 1, tile.flip_y)?,
+            Some(sprite) => sprite.blit(
+                canvas,
+                tile.x,
+                tile.y,
+                0,
+                1,
+                tile.flip_y,
+                sdl2::render::BlendMode::Blend,
+            )?,
+        }
+    }
+
+    for tile in level.terrain_tiles.iter() {
+        if tile.do_not_overwrite_exiting || tile.remove_terrain {
+            continue;
+        }
+
+        let sprite_optional = sprites[level.graphics_set as usize]
+            .get_mut(tile.id as usize)
+            .and_then(|x| x.as_mut());
+
+        match sprite_optional {
+            None => continue,
+            Some(sprite) => sprite.blit(
+                canvas,
+                tile.x,
+                tile.y,
+                0,
+                1,
+                tile.flip_y,
+                sdl2::render::BlendMode::Blend,
+            )?,
         }
     }
 
@@ -86,7 +120,7 @@ fn render_level_to_canvas(
 
 fn render_level_to_bitmap(
     data: &GameData,
-    sprites: &SpriteSet,
+    sprites: &mut SpriteSet,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     texture: &mut sdl2::render::Texture,
     index: usize,
@@ -160,7 +194,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     let mut background =
         texture_creator.create_texture_target(PixelFormatEnum::RGBA8888, 1200, 160)?;
 
-    let sprites = prepare_sprites(data, &texture_creator)?;
+    let mut sprites = prepare_sprites(data, &texture_creator)?;
 
     let mut running = true;
     let mut x = 440;
@@ -169,7 +203,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     let mut left = false;
     let mut right = false;
 
-    render_level_to_bitmap(data, &sprites, &mut canvas, &mut background, i_level)?;
+    render_level_to_bitmap(data, &mut sprites, &mut canvas, &mut background, i_level)?;
     render(x, &background, &mut canvas)?;
 
     while running {
@@ -188,7 +222,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
 
                         render_level_to_bitmap(
                             data,
-                            &sprites,
+                            &mut sprites,
                             &mut canvas,
                             &mut background,
                             i_level,
@@ -202,7 +236,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
 
                         render_level_to_bitmap(
                             data,
-                            &sprites,
+                            &mut sprites,
                             &mut canvas,
                             &mut background,
                             i_level,

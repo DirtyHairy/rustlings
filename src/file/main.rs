@@ -4,6 +4,7 @@ use std::{convert::TryInto, fs, path::Path};
 use super::sprite::Sprite;
 use crate::definitions::LEMMING_SPRITES;
 use crate::file::encoding::datfile;
+use crate::file::sprite::TransparencyEncoding;
 
 pub struct Content {
     pub lemming_sprites: [Sprite; 30],
@@ -31,6 +32,7 @@ pub fn read(path: &Path) -> Result<Content> {
             &sections[0].data,
             &mut offset,
             0,
+            TransparencyEncoding::Black,
         )?);
     }
 

@@ -77,8 +77,12 @@ impl<'a> SDLSprite<'a> {
 
         for x in 0..bitmap.width {
             for y in 0..bitmap.height {
-                bitmap_data[(y * bitmap.width) + x] =
-                    palette[bitmap.data[(y * bitmap.width) + x] as usize];
+                let ipixel = (y * bitmap.width) + x;
+                bitmap_data[ipixel] = if bitmap.transparency[ipixel] {
+                    0
+                } else {
+                    palette[bitmap.data[ipixel] as usize]
+                };
             }
         }
 
@@ -105,14 +109,17 @@ impl<'a> SDLSprite<'a> {
     }
 
     pub fn blit<T: RenderTarget>(
-        &self,
+        &mut self,
         canvas: &mut Canvas<T>,
         x: i32,
         y: i32,
         iframe: usize,
         scale: usize,
         flip_y: bool,
+        blend_mode: BlendMode,
     ) -> Result<()> {
+        &mut self.texture.set_blend_mode(blend_mode);
+
         return canvas
             .copy_ex(
                 &self.texture,
