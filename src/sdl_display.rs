@@ -111,9 +111,10 @@ impl<'a> SDLSprite<'a> {
         y: i32,
         iframe: usize,
         scale: usize,
+        flip_y: bool,
     ) -> Result<()> {
         return canvas
-            .copy(
+            .copy_ex(
                 &self.texture,
                 Rect::new(
                     ((iframe % self.frame_count) * self.width) as i32,
@@ -127,6 +128,10 @@ impl<'a> SDLSprite<'a> {
                     (scale * self.width) as u32,
                     (scale * self.height) as u32,
                 ),
+                0.,
+                None,
+                false,
+                flip_y,
             )
             .map_err(|s| anyhow!(s));
     }

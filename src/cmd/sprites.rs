@@ -49,6 +49,7 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
                     (isprite / 10 * 32 * 4) as i32,
                     iframe,
                     4,
+                    false,
                 )?;
             }
 

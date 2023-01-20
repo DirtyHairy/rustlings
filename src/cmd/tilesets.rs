@@ -1,6 +1,6 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
-use super::util::{self, create_pixel_format};
+use super::util::{create_pixel_format, create_window, timestamp};
 use crate::{file, sdl_display::SDLSprite};
 use anyhow::{anyhow, Context, Result};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
@@ -13,7 +13,7 @@ fn display_tileset(
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
 
-    let window = util::create_window(&sdl_video)?;
+    let window = create_window(&sdl_video)?;
 
     let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
     canvas.clear();
@@ -55,7 +55,7 @@ fn display_tileset(
     let mut ispriteset: usize = 0;
 
     while running {
-        let now = util::timestamp();
+        let now = timestamp();
 
         if now - last_draw > 1000 / 10 {
             let mut x: i32 = 0;
@@ -70,7 +70,7 @@ fn display_tileset(
                     y = y + 2 * (height + 1);
                 }
 
-                sprite.blit(&mut canvas, x, y, iframe, 2)?;
+                sprite.blit(&mut canvas, x, y, iframe, 2, false)?;
 
                 x = x + (sprite.width as i32 + 1) * 2;
                 height = max(height as usize, sprite.height + 1) as i32;

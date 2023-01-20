@@ -17,12 +17,12 @@ pub enum Skill {
 }
 
 pub struct TerrainTile {
-    x: i32,
-    y: i32,
-    id: u32,
-    do_not_overwrite_exiting: bool,
-    flip_y: bool,
-    remove_terrain: bool,
+    pub x: i32,
+    pub y: i32,
+    pub id: u32,
+    pub do_not_overwrite_exiting: bool,
+    pub flip_y: bool,
+    pub remove_terrain: bool,
 }
 
 pub struct Level {

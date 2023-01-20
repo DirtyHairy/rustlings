@@ -49,13 +49,19 @@ fn main() -> Result<()> {
                 ),
         )
         .subcommand(
-            Command::new("view_levels")
+            Command::new("view-levels")
                 .about("view levels in dat file")
                 .arg(
                     Arg::new(ARG_DAT_FILE_PATH)
                         .help("dat file to decode")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::new(ARG_GAME_DATA_PATH)
+                        .required(true)
+                        .help("path to lemmings data files")
+                        .index(2),
                 )
                 .arg(
                     Arg::new("verbose")
@@ -84,10 +90,11 @@ fn main() -> Result<()> {
                 .expect("unreachable"),
         ),
 
-        Some(("view_levels", subcommand_matches)) => cmd::view_levels::main(
+        Some(("view-levels", subcommand_matches)) => cmd::view_levels::main(
             subcommand_matches
                 .get_one::<String>(ARG_DAT_FILE_PATH)
                 .expect("unreachable"),
+            game_data_path(subcommand_matches),
             *subcommand_matches
                 .get_one::<bool>("verbose")
                 .expect("unreachable"),
