@@ -5,7 +5,7 @@ mod level;
 mod sdl_display;
 
 use anyhow::Result;
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 
 use std::path::Path;
 
@@ -56,6 +56,14 @@ fn main() -> Result<()> {
                         .help("dat file to decode")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::new("verbose")
+                        .short('v')
+                        .long("verbose")
+                        .required(false)
+                        .action(ArgAction::SetTrue)
+                        .help("verbose display decoded level data"),
                 ),
         );
 
@@ -79,6 +87,9 @@ fn main() -> Result<()> {
         Some(("view_levels", subcommand_matches)) => cmd::view_levels::main(
             subcommand_matches
                 .get_one::<String>(ARG_DAT_FILE_PATH)
+                .expect("unreachable"),
+            *subcommand_matches
+                .get_one::<bool>("verbose")
                 .expect("unreachable"),
         ),
 

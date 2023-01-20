@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
 
-pub fn main(path_name: &str) -> Result<()> {
+pub fn main(path_name: &str, verbose: bool) -> Result<()> {
     let path = Path::new(path_name);
 
     let compressed_data = fs::read(path.as_os_str())
@@ -16,7 +16,14 @@ pub fn main(path_name: &str) -> Result<()> {
 
         println!("Level {}:", index);
         println!("{}", level);
-        println!();
+
+        if verbose {
+            println!("");
+
+            for (index, tile) in level.terrain_tiles.iter().enumerate() {
+                println!("tile {}:\n{}\n", index, tile);
+            }
+        }
     }
 
     Ok(())
