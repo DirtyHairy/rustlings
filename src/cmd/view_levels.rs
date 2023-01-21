@@ -1,7 +1,7 @@
 use super::util::{create_pixel_format, create_window, read_ground};
 use crate::{
-    file::{self},
-    level::Level,
+    file::{self, sprite::Bitmap},
+    level::{Level, TerrainTile},
 };
 
 use anyhow::{anyhow, Context, Result};
@@ -10,7 +10,6 @@ use sdl2::{
     keyboard::Keycode,
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
-    render::TextureCreator,
 };
 use std::{
     cmp::{max, min},
@@ -20,15 +19,14 @@ use std::{
     time::Duration,
 };
 
-use crate::sdl_display::SDLSprite;
+const LEVEL_WIDTH: u32 = 1600;
+const LEVEL_HEIGHT: u32 = 160;
 
 struct GameData {
     levels: Vec<Level>,
     ground_data: Vec<file::ground::Content>,
     tileset: Vec<file::tileset::Content>,
 }
-
-type SpriteSet<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
 
 fn read_levels(file_name: &str) -> Result<Vec<Level>> {
     let path = Path::new(file_name);
@@ -62,109 +60,114 @@ fn dump_levels(levels: &Vec<Level>, verbose: bool) -> () {
     }
 }
 
-fn render_level_to_canvas(
+fn compose_tile_onto_background(
+    tile: &TerrainTile,
+    bitmap: &Bitmap,
+    background_data: &mut Vec<u8>,
+) -> () {
+    for x in 0..bitmap.width {
+        for y in 0..bitmap.height {
+            let y_transformed = if tile.flip_y {
+                bitmap.height - 1 - y
+            } else {
+                y
+            };
+
+            let x_dest = tile.x + x as i32;
+            let y_dest = tile.y + y as i32;
+            if x_dest < 0
+                || x_dest >= LEVEL_WIDTH as i32
+                || y_dest < 0
+                || y_dest >= LEVEL_HEIGHT as i32
+            {
+                continue;
+            }
+
+            let src_index = (y_transformed * bitmap.width + x) as usize;
+            let dest_index = (y_dest * LEVEL_WIDTH as i32 + x_dest) as usize;
+
+            if tile.remove_terrain && !tile.do_not_overwrite_exiting {
+                if !bitmap.transparency[src_index] {
+                    background_data[dest_index] = 255
+                }
+            } else if tile.do_not_overwrite_exiting {
+                if background_data[dest_index] == 255 && !bitmap.transparency[src_index] {
+                    background_data[dest_index] = bitmap.data[src_index];
+                }
+            } else {
+                if !bitmap.transparency[src_index] {
+                    background_data[dest_index] = bitmap.data[src_index];
+                }
+            }
+        }
+    }
+}
+
+fn compose_level(
     data: &GameData,
-    sprites: &mut SpriteSet,
-    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     index: usize,
+    background_texture: &mut sdl2::render::Texture,
 ) -> Result<()> {
     let level = data.levels.get(index).context("invalid level ID")?;
-    for tile in level.terrain_tiles.iter().rev() {
-        if !tile.do_not_overwrite_exiting || tile.remove_terrain {
-            continue;
-        }
+    let tiles = data
+        .tileset
+        .get(level.graphics_set as usize)
+        .context("invalid tile set")?;
 
-        let sprite_optional = sprites[level.graphics_set as usize]
-            .get_mut(tile.id as usize)
-            .and_then(|x| x.as_mut());
+    let mut background_data: Vec<u8> = vec![255; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
-        match sprite_optional {
+    for tile in &level.terrain_tiles {
+        let bitmap_optional = tiles.tiles.get(tile.id as usize).and_then(|x| x.as_ref());
+
+        match bitmap_optional {
             None => continue,
-            Some(sprite) => sprite.blit(
-                canvas,
-                tile.x,
-                tile.y,
-                0,
-                1,
-                tile.flip_y,
-                sdl2::render::BlendMode::Blend,
-            )?,
+            Some(bitmap) => compose_tile_onto_background(tile, bitmap, &mut background_data),
         }
     }
 
-    for tile in level.terrain_tiles.iter() {
-        if tile.do_not_overwrite_exiting || tile.remove_terrain {
-            continue;
-        }
+    let pixel_format = create_pixel_format()?;
 
-        let sprite_optional = sprites[level.graphics_set as usize]
-            .get_mut(tile.id as usize)
-            .and_then(|x| x.as_mut());
+    let palette = data
+        .ground_data
+        .get(level.graphics_set as usize)
+        .context("invalid tileset index")?
+        .palettes
+        .custom
+        .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
 
-        match sprite_optional {
-            None => continue,
-            Some(sprite) => sprite.blit(
-                canvas,
-                tile.x,
-                tile.y,
-                0,
-                1,
-                tile.flip_y,
-                sdl2::render::BlendMode::Blend,
-            )?,
+    let mut texture_data = vec![0u32; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
+
+    for x in 0..LEVEL_WIDTH {
+        for y in 0..LEVEL_HEIGHT {
+            let index = y * LEVEL_WIDTH + x;
+            texture_data[index as usize] = if background_data[index as usize] == 255 {
+                0
+            } else {
+                palette[background_data[index as usize] as usize]
+            }
         }
     }
+
+    let texture_data_8: &[u8];
+    unsafe {
+        let (_, x, _) = texture_data.align_to();
+        assert_eq!(x.len(), 4 * texture_data.len());
+
+        texture_data_8 = x;
+    }
+
+    background_texture.update(
+        Rect::new(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT),
+        texture_data_8,
+        4 * LEVEL_WIDTH as usize,
+    )?;
 
     Ok(())
 }
 
-fn render_level_to_bitmap(
-    data: &GameData,
-    sprites: &mut SpriteSet,
-    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
-    texture: &mut sdl2::render::Texture,
-    index: usize,
-) -> Result<()> {
-    let mut result: Result<()> = Ok(());
-
-    canvas.with_texture_canvas(texture, |texture_canvas| {
-        texture_canvas.clear();
-        result = render_level_to_canvas(data, sprites, texture_canvas, index);
-    })?;
-
-    result
-}
-
-fn prepare_sprites<'a, T>(
-    data: &GameData,
-    texture_creator: &'a TextureCreator<T>,
-) -> Result<SpriteSet<'a>> {
-    let mut sprites: SpriteSet = vec![(); 5].iter().map(|()| Vec::new()).collect();
-    let pixel_format = create_pixel_format()?;
-
-    for (index, tileset) in data.tileset.iter().enumerate() {
-        let palette = data
-            .ground_data
-            .get(index)
-            .context("invalid tileset index")?
-            .palettes
-            .custom
-            .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
-
-        for bitmap_option in &tileset.tiles {
-            sprites[index].push(
-                bitmap_option.as_ref().and_then(|bitmap| {
-                    SDLSprite::from_bitmap(bitmap, &palette, texture_creator).ok()
-                }),
-            )
-        }
-    }
-
-    Ok(sprites)
-}
-
 fn render(
     x: u32,
+    zoom: u32,
     background: &sdl2::render::Texture,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
 ) -> Result<()> {
@@ -173,8 +176,13 @@ fn render(
     canvas
         .copy(
             &background,
-            Rect::new(x as i32, 0, 320, 160),
-            Rect::new(0, 80, 1200, 640),
+            Rect::new(x as i32, 0, 320 * 4 / zoom, LEVEL_HEIGHT),
+            Rect::new(
+                0,
+                800 - (800 + LEVEL_HEIGHT as i32 * zoom as i32) / 2,
+                1280,
+                LEVEL_HEIGHT * zoom,
+            ),
         )
         .map_err(|s| anyhow!(s))?;
 
@@ -191,20 +199,22 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
     let texture_creator = canvas.texture_creator();
 
-    let mut background =
-        texture_creator.create_texture_target(PixelFormatEnum::RGBA8888, 1200, 160)?;
-
-    let mut sprites = prepare_sprites(data, &texture_creator)?;
+    let mut background = texture_creator.create_texture_target(
+        PixelFormatEnum::RGBA8888,
+        LEVEL_WIDTH,
+        LEVEL_HEIGHT,
+    )?;
 
     let mut running = true;
-    let mut x = 440;
+    let mut x = (LEVEL_WIDTH - 320) / 2;
     let mut i_level = 0;
+    let mut zoom = 4;
 
     let mut left = false;
     let mut right = false;
 
-    render_level_to_bitmap(data, &mut sprites, &mut canvas, &mut background, i_level)?;
-    render(x, &background, &mut canvas)?;
+    compose_level(data, i_level, &mut background)?;
+    render(x, zoom, &background, &mut canvas)?;
 
     while running {
         for event in event_pump.poll_iter() {
@@ -220,29 +230,35 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
                     Keycode::Up => {
                         i_level = (i_level + 1) % data.levels.len();
 
-                        render_level_to_bitmap(
-                            data,
-                            &mut sprites,
-                            &mut canvas,
-                            &mut background,
-                            i_level,
-                        )?;
-
-                        render(x, &background, &mut canvas)?;
+                        compose_level(data, i_level, &mut background)?;
+                        render(x, zoom, &background, &mut canvas)?;
                     }
-
                     Keycode::Down => {
                         i_level = ((i_level + data.levels.len()) - 1) % data.levels.len();
 
-                        render_level_to_bitmap(
-                            data,
-                            &mut sprites,
-                            &mut canvas,
-                            &mut background,
-                            i_level,
-                        )?;
+                        compose_level(data, i_level, &mut background)?;
+                        render(x, zoom, &background, &mut canvas)?;
+                    }
+                    Keycode::Plus => {
+                        zoom = match zoom {
+                            1 => 2,
+                            2 => 4,
+                            _ => zoom,
+                        };
 
-                        render(x, &background, &mut canvas)?;
+                        render(x, zoom, &background, &mut canvas)?;
+                    }
+
+                    Keycode::Minus => {
+                        zoom = match zoom {
+                            4 => 2,
+                            2 => 1,
+                            _ => zoom,
+                        };
+
+                        x = min(x as i32, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as u32;
+
+                        render(x, zoom, &background, &mut canvas)?;
                     }
                     _ => (),
                 },
@@ -260,10 +276,10 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
 
         if left {
             x = max(x as i32 - 10, 0) as u32;
-            render(x, &background, &mut canvas)?;
+            render(x, zoom, &background, &mut canvas)?;
         } else if right {
-            x = min(x as i32 + 10, 1200 - 320) as u32;
-            render(x, &background, &mut canvas)?;
+            x = min(x as i32 + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as u32;
+            render(x, zoom, &background, &mut canvas)?;
         }
 
         sleep(Duration::from_millis(20));

@@ -118,7 +118,7 @@ impl<'a> SDLSprite<'a> {
         flip_y: bool,
         blend_mode: BlendMode,
     ) -> Result<()> {
-        &mut self.texture.set_blend_mode(blend_mode);
+        let _ = &mut self.texture.set_blend_mode(blend_mode);
 
         return canvas
             .copy_ex(
