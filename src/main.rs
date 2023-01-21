@@ -52,16 +52,10 @@ fn main() -> Result<()> {
             Command::new("view-levels")
                 .about("view levels in dat file")
                 .arg(
-                    Arg::new(ARG_DAT_FILE_PATH)
-                        .help("dat file to decode")
-                        .required(true)
-                        .index(1),
-                )
-                .arg(
                     Arg::new(ARG_GAME_DATA_PATH)
                         .required(true)
                         .help("path to lemmings data files")
-                        .index(2),
+                        .index(1),
                 ),
         );
 
