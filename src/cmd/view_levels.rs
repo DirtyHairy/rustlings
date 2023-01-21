@@ -45,19 +45,9 @@ fn read_levels(file_name: &str) -> Result<Vec<Level>> {
     Ok(levels)
 }
 
-fn dump_levels(levels: &Vec<Level>, verbose: bool) -> () {
-    for (index, level) in levels.iter().enumerate() {
-        println!("Level {}:", index);
-        println!("{}", level);
-
-        if verbose {
-            println!("");
-
-            for (index, tile) in level.terrain_tiles.iter().enumerate() {
-                println!("tile {}:\n{}\n", index, tile);
-            }
-        }
-    }
+fn dump_level(level: &Level) -> () {
+    println!("{}", level);
+    println!();
 }
 
 fn compose_tile_onto_background(
@@ -191,6 +181,13 @@ fn render(
     Ok(())
 }
 
+fn cap_x(x: i32, zoom: u32) -> u32 {
+    max(
+        min(x as i32 + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as i32 - 10,
+        0,
+    ) as u32
+}
+
 fn display_levels<'a>(data: &GameData) -> Result<()> {
     let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
@@ -206,15 +203,16 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     )?;
 
     let mut running = true;
-    let mut x = (LEVEL_WIDTH - 320) / 2;
     let mut i_level = 0;
     let mut zoom = 4;
+    let mut x: u32 = cap_x(data.levels[i_level].start_x as i32, zoom);
 
     let mut left = false;
     let mut right = false;
 
     compose_level(data, i_level, &mut background)?;
     render(x, zoom, &background, &mut canvas)?;
+    dump_level(&data.levels[i_level]);
 
     while running {
         for event in event_pump.poll_iter() {
@@ -229,34 +227,50 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
                     Keycode::Right => right = true,
                     Keycode::Up => {
                         i_level = (i_level + 1) % data.levels.len();
+                        x = cap_x(data.levels[i_level].start_x as i32, zoom);
 
+                        dump_level(&data.levels[i_level]);
                         compose_level(data, i_level, &mut background)?;
                         render(x, zoom, &background, &mut canvas)?;
                     }
                     Keycode::Down => {
                         i_level = ((i_level + data.levels.len()) - 1) % data.levels.len();
+                        x = cap_x(data.levels[i_level].start_x as i32, zoom);
 
+                        dump_level(&data.levels[i_level]);
                         compose_level(data, i_level, &mut background)?;
                         render(x, zoom, &background, &mut canvas)?;
                     }
                     Keycode::Plus => {
+                        let old_zoom = zoom;
+
                         zoom = match zoom {
                             1 => 2,
                             2 => 4,
                             _ => zoom,
                         };
 
+                        x = cap_x(
+                            (x + 320 * 2 / old_zoom) as i32 - (320 * 2 / zoom) as i32,
+                            zoom,
+                        );
+
                         render(x, zoom, &background, &mut canvas)?;
                     }
 
                     Keycode::Minus => {
+                        let old_zoom = zoom;
+
                         zoom = match zoom {
                             4 => 2,
                             2 => 1,
                             _ => zoom,
                         };
 
-                        x = min(x as i32, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as u32;
+                        x = cap_x(
+                            (x + 320 * 2 / old_zoom) as i32 - (320 * 2 / zoom) as i32,
+                            zoom,
+                        );
 
                         render(x, zoom, &background, &mut canvas)?;
                     }
@@ -275,10 +289,10 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
         }
 
         if left {
-            x = max(x as i32 - 10, 0) as u32;
+            x = cap_x(x as i32 - 10, zoom);
             render(x, zoom, &background, &mut canvas)?;
         } else if right {
-            x = min(x as i32 + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as u32;
+            x = cap_x(x as i32 + 10, zoom);
             render(x, zoom, &background, &mut canvas)?;
         }
 
@@ -288,11 +302,20 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     Ok(())
 }
 
-pub fn main(level_file_name: &str, data_path: &Path, verbose: bool) -> Result<()> {
-    let levels = read_levels(level_file_name)?;
+pub fn main(data_path: &Path) -> Result<()> {
+    let mut levels: Vec<Level> = Vec::new();
+
+    for i in 0..10 {
+        levels.append(&mut read_levels(
+            data_path
+                .join(format!("level00{}.dat", i))
+                .to_str()
+                .unwrap(),
+        )?)
+    }
+
     let (ground_data, tileset) = read_ground(data_path)?;
 
-    dump_levels(&levels, verbose);
     display_levels(&GameData {
         levels,
         ground_data,

@@ -5,7 +5,7 @@ mod level;
 mod sdl_display;
 
 use anyhow::Result;
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgMatches, Command};
 
 use std::path::Path;
 
@@ -62,14 +62,6 @@ fn main() -> Result<()> {
                         .required(true)
                         .help("path to lemmings data files")
                         .index(2),
-                )
-                .arg(
-                    Arg::new("verbose")
-                        .short('v')
-                        .long("verbose")
-                        .required(false)
-                        .action(ArgAction::SetTrue)
-                        .help("verbose display decoded level data"),
                 ),
         );
 
@@ -90,15 +82,9 @@ fn main() -> Result<()> {
                 .expect("unreachable"),
         ),
 
-        Some(("view-levels", subcommand_matches)) => cmd::view_levels::main(
-            subcommand_matches
-                .get_one::<String>(ARG_DAT_FILE_PATH)
-                .expect("unreachable"),
-            game_data_path(subcommand_matches),
-            *subcommand_matches
-                .get_one::<bool>("verbose")
-                .expect("unreachable"),
-        ),
+        Some(("view-levels", subcommand_matches)) => {
+            cmd::view_levels::main(game_data_path(subcommand_matches))
+        }
 
         _ => command.print_help().map_err(anyhow::Error::from),
     }
