@@ -1,4 +1,4 @@
-use super::util::{create_pixel_format, create_window, read_ground};
+use super::util::{create_pixel_format, create_window, read_ground, read_levels};
 use crate::{
     file::{self, sprite::Bitmap},
     level::{Level, TerrainTile},
@@ -13,7 +13,6 @@ use sdl2::{
 };
 use std::{
     cmp::{max, min},
-    fs,
     path::Path,
     thread::sleep,
     time::Duration,
@@ -26,23 +25,6 @@ struct GameData {
     levels: Vec<Level>,
     ground_data: Vec<file::ground::Content>,
     tileset: Vec<file::tileset::Content>,
-}
-
-fn read_levels(file_name: &str) -> Result<Vec<Level>> {
-    let path = Path::new(file_name);
-
-    let compressed_level_data = fs::read(path.as_os_str())
-        .with_context(|| format!("failed to load read '{}'", file_name))?;
-
-    let decompressed_level_sections = file::encoding::datfile::parse(&compressed_level_data)?;
-    let mut levels: Vec<Level> = Vec::new();
-
-    for section in decompressed_level_sections.sections.iter() {
-        let level = Level::decode(&section.data)?;
-        levels.push(level);
-    }
-
-    Ok(levels)
 }
 
 fn dump_level(level: &Level) -> () {
@@ -64,7 +46,7 @@ fn compose_tile_onto_background(
             };
 
             let x_dest = tile.x + x as i32;
-            let y_dest = tile.y + y as i32;
+            let y_dest = (tile.y + 38 + y as i32) % 512 as i32 - 38;
             if x_dest < 0
                 || x_dest >= LEVEL_WIDTH as i32
                 || y_dest < 0
@@ -76,13 +58,13 @@ fn compose_tile_onto_background(
             let src_index = (y_transformed * bitmap.width + x) as usize;
             let dest_index = (y_dest * LEVEL_WIDTH as i32 + x_dest) as usize;
 
-            if tile.remove_terrain && !tile.do_not_overwrite_exiting {
-                if !bitmap.transparency[src_index] {
-                    background_data[dest_index] = 255
-                }
-            } else if tile.do_not_overwrite_exiting {
+            if tile.do_not_overwrite_exiting {
                 if background_data[dest_index] == 255 && !bitmap.transparency[src_index] {
                     background_data[dest_index] = bitmap.data[src_index];
+                }
+            } else if tile.remove_terrain {
+                if !bitmap.transparency[src_index] {
+                    background_data[dest_index] = 255
                 }
             } else {
                 if !bitmap.transparency[src_index] {
@@ -111,7 +93,9 @@ fn compose_level(
 
         match bitmap_optional {
             None => continue,
-            Some(bitmap) => compose_tile_onto_background(tile, bitmap, &mut background_data),
+            Some(bitmap) => {
+                compose_tile_onto_background(tile, bitmap, &mut background_data);
+            }
         }
     }
 
@@ -188,7 +172,7 @@ fn cap_x(x: i32, zoom: u32) -> u32 {
     ) as u32
 }
 
-fn display_levels<'a>(data: &GameData) -> Result<()> {
+fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
     let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
@@ -203,7 +187,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     )?;
 
     let mut running = true;
-    let mut i_level = 0;
+    let mut i_level = start_level;
     let mut zoom = 4;
     let mut x: u32 = cap_x(data.levels[i_level].start_x as i32, zoom);
 
@@ -302,7 +286,7 @@ fn display_levels<'a>(data: &GameData) -> Result<()> {
     Ok(())
 }
 
-pub fn main(data_path: &Path) -> Result<()> {
+pub fn main(data_path: &Path, start_level: Option<&String>) -> Result<()> {
     let mut levels: Vec<Level> = Vec::new();
 
     for i in 0..10 {
@@ -316,11 +300,29 @@ pub fn main(data_path: &Path) -> Result<()> {
 
     let (ground_data, tileset) = read_ground(data_path)?;
 
-    display_levels(&GameData {
-        levels,
-        ground_data,
-        tileset,
-    })?;
+    let mut i_start = 0;
+
+    if let Some(pattern) = start_level {
+        for (index, level) in levels.iter().enumerate() {
+            if level
+                .name
+                .to_lowercase()
+                .contains(pattern.to_lowercase().as_str())
+            {
+                i_start = index;
+                break;
+            }
+        }
+    }
+
+    display_levels(
+        &GameData {
+            levels,
+            ground_data,
+            tileset,
+        },
+        i_start,
+    )?;
 
     Ok(())
 }

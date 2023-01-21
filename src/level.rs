@@ -96,10 +96,10 @@ impl Level {
         for i in 0..400 as usize {
             let tile = read_terrain_tile(data, i)?;
             if tile.is_none() {
-                break;
+                continue;
             }
 
-            terrain_tiles.push(read_terrain_tile(data, i)?.expect("unreachable"));
+            terrain_tiles.push(tile.expect("unreachable"));
         }
 
         Ok(Level {

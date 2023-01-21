@@ -1,12 +1,13 @@
 use std::{
     convert::TryFrom,
+    fs,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{anyhow, Context, Error, Ok, Result};
 
-use crate::file;
+use crate::{file, level::Level};
 
 pub fn timestamp() -> u32 {
     SystemTime::now()
@@ -47,4 +48,21 @@ pub fn read_ground(
     }
 
     Ok((ground, tileset))
+}
+
+pub fn read_levels(file_name: &str) -> Result<Vec<Level>> {
+    let path = Path::new(file_name);
+
+    let compressed_level_data = fs::read(path.as_os_str())
+        .with_context(|| format!("failed to load read '{}'", file_name))?;
+
+    let decompressed_level_sections = file::encoding::datfile::parse(&compressed_level_data)?;
+    let mut levels: Vec<Level> = Vec::new();
+
+    for section in decompressed_level_sections.sections.iter() {
+        let level = Level::decode(&section.data)?;
+        levels.push(level);
+    }
+
+    Ok(levels)
 }
