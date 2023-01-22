@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fs, io::Write, path::Path};
 
 use anyhow::Result;
 
-use crate::level::Level;
+use crate::file::level::Level;
 
 use super::util::read_levels;
 

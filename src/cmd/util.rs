@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{anyhow, Context, Error, Ok, Result};
 
-use crate::{file, level::Level};
+use crate::file::{self, level::Level};
 
 pub fn timestamp() -> u32 {
     SystemTime::now()

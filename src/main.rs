@@ -1,7 +1,6 @@
 mod cmd;
 mod definitions;
 mod file;
-mod level;
 mod sdl_display;
 
 use anyhow::Result;

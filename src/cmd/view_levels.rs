@@ -1,7 +1,8 @@
 use super::util::{create_pixel_format, create_window, read_ground, read_levels};
-use crate::{
-    file::{self, sprite::Bitmap},
+use crate::file::{
+    self,
     level::{Level, TerrainTile},
+    sprite::Bitmap,
 };
 
 use anyhow::{anyhow, Context, Result};
