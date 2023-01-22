@@ -46,7 +46,7 @@ fn compose_tile_onto_background(
             };
 
             let x_dest = tile.x + x as i32;
-            let y_dest = (tile.y + 38 + y as i32) % 512 as i32 - 38;
+            let y_dest = tile.y + y as i32;
             if x_dest < 0
                 || x_dest >= LEVEL_WIDTH as i32
                 || y_dest < 0

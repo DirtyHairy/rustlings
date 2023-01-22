@@ -72,8 +72,10 @@ fn read_terrain_tile(data: &Vec<u8>, index: usize) -> Result<Option<TerrainTile>
     let y1 = read8(data, 0x123 + 4 * index)?;
 
     Ok(Option::Some(TerrainTile {
-        x: (x_and_flags & 0x0fff) as i32 - 16,
-        y: (0x200 + ((y0 << 1) | (y1 >> 7)) as i32 - 0x1de) % 0x200 - 38,
+        // sign extend 12 bits and shift zero
+        x: ((x_and_flags & 0x0fff) ^ 0x0800).wrapping_add(0xfffff800) as i32 - 16,
+        // sign extend 9 bits and shift zero
+        y: (((((y0 << 1) | (y1 >> 7)) ^ 0x0100).wrapping_add(0xffffff00)) as i32) - 4,
         id: (y1) & 0x3f,
         do_not_overwrite_exiting: (flags & 0x08) != 0,
         flip_y: (flags & 0x04) != 0,
