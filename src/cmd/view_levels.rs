@@ -59,7 +59,7 @@ fn compose_tile_onto_background(
             let src_index = (y_transformed * bitmap.width + x) as usize;
             let dest_index = (y_dest * LEVEL_WIDTH as i32 + x_dest) as usize;
 
-            if tile.do_not_overwrite_exiting {
+            if tile.do_not_overwrite {
                 if background_data[dest_index] == 255 && !bitmap.transparency[src_index] {
                     background_data[dest_index] = bitmap.data[src_index];
                 }

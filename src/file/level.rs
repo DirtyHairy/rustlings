@@ -20,9 +20,18 @@ pub struct TerrainTile {
     pub x: i32,
     pub y: i32,
     pub id: u32,
-    pub do_not_overwrite_exiting: bool,
+    pub do_not_overwrite: bool,
     pub flip_y: bool,
     pub remove_terrain: bool,
+}
+
+pub struct Object {
+    pub x: i32,
+    pub y: i32,
+    pub id: u32,
+    pub do_not_overwrite: bool,
+    pub flip_y: bool,
+    pub draw_only_over_terrain: bool,
 }
 
 pub struct Level {
@@ -36,14 +45,49 @@ pub struct Level {
     pub extended_graphics_set: u32,
     pub name: String,
     pub terrain_tiles: Vec<TerrainTile>,
+    pub objects: Vec<Object>,
 }
 
-fn read8(data: &Vec<u8>, offset: usize) -> Result<u32> {
-    Ok(*data.get(offset).context("invalid level data")? as u32)
+pub trait LevelStructure {
+    fn get_id(&self) -> u32;
+    fn get_x(&self) -> i32;
+    fn get_y(&self) -> i32;
 }
 
-fn read16(data: &Vec<u8>, offset: usize) -> Result<u32> {
-    Ok((read8(data, offset)? << 8) | read8(data, offset + 1)?)
+impl LevelStructure for Object {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+
+    fn get_x(&self) -> i32 {
+        self.x
+    }
+
+    fn get_y(&self) -> i32 {
+        self.y
+    }
+}
+
+impl LevelStructure for TerrainTile {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+
+    fn get_x(&self) -> i32 {
+        self.x
+    }
+
+    fn get_y(&self) -> i32 {
+        self.y
+    }
+}
+
+fn read8(data: &Vec<u8>, offset: usize) -> Result<u8> {
+    Ok(*data.get(offset).context("invalid level data")? as u8)
+}
+
+fn read16(data: &Vec<u8>, offset: usize) -> Result<u16> {
+    Ok(((read8(data, offset)? as u16) << 8) | read8(data, offset + 1)? as u16)
 }
 
 fn read_name(data: &Vec<u8>) -> Result<String> {
@@ -51,7 +95,7 @@ fn read_name(data: &Vec<u8>) -> Result<String> {
 
     for i in 0..32 {
         let charcode = read8(data, 0x07e0 + i)?;
-        name.push(char::from_u32(charcode).context("invalid level name")?);
+        name.push(char::from_u32(charcode as u32).context("invalid level name")?);
     }
 
     Ok(String::from(name.trim()))
@@ -68,17 +112,42 @@ fn read_terrain_tile(data: &Vec<u8>, index: usize) -> Result<Option<TerrainTile>
     }
     let flags = x_and_flags >> 12;
 
-    let y0 = read8(data, 0x122 + 4 * index)?;
-    let y1 = read8(data, 0x123 + 4 * index)?;
+    let y0 = read8(data, 0x122 + 4 * index)? as u32;
+    let y1 = read8(data, 0x123 + 4 * index)? as u32;
 
     Ok(Option::Some(TerrainTile {
         x: (x_and_flags & 0x0fff) as i32 - 16,
         // sign extend 9 bits and shift zero
         y: (((((y0 << 1) | (y1 >> 7)) ^ 0x0100).wrapping_add(0xffffff00)) as i32) - 4,
         id: (y1) & 0x3f,
-        do_not_overwrite_exiting: (flags & 0x08) != 0,
+        do_not_overwrite: (flags & 0x08) != 0,
         flip_y: (flags & 0x04) != 0,
         remove_terrain: (flags & 0x02) != 0,
+    }))
+}
+
+fn read_object(data: &Vec<u8>, index: usize) -> Result<Option<Object>> {
+    if index >= 32 {
+        bail!("invalid object index");
+    }
+
+    let x = read16(data, 0x20 + 8 * index)? as i16;
+    let y = read16(data, 0x22 + 8 * index)? as i16;
+    let id = read16(data, 0x24 + 8 * index)? as u32;
+    let flags = read8(data, 0x26 + 8 * index)?;
+    let flip = read8(data, 0x27 + 8 * index)?;
+
+    if x == 0 && y == 0 && id == 0 && flags == 0 && flip == 0 {
+        return Ok(Option::None);
+    }
+
+    Ok(Option::Some(Object {
+        x: (x as i32) - 16,
+        y: y as i32,
+        id,
+        do_not_overwrite: (flags & 0x80) != 0,
+        draw_only_over_terrain: (flags & 0x40) != 0,
+        flip_y: (flip & 0x80) != 0,
     }))
 }
 
@@ -90,30 +159,35 @@ impl Level {
 
         let mut skills = [0 as u32; Skill::Digger as usize + 1];
         for i in 0..Skill::Digger as usize {
-            skills[i] = read16(data, 0x08 + 2 * i)?;
+            skills[i] = read16(data, 0x08 + 2 * i)? as u32;
         }
 
-        let mut terrain_tiles = Vec::<TerrainTile>::new();
-        for i in 0..400 as usize {
-            let tile = read_terrain_tile(data, i)?;
-            if tile.is_none() {
-                continue;
+        let mut terrain_tiles: Vec<TerrainTile> = Vec::new();
+        for i in 0..400 {
+            if let Some(tile) = read_terrain_tile(data, i)? {
+                terrain_tiles.push(tile);
             }
+        }
 
-            terrain_tiles.push(tile.expect("unreachable"));
+        let mut objects: Vec<Object> = Vec::new();
+        for i in 0..32 {
+            if let Some(object) = read_object(data, i)? {
+                objects.push(object);
+            }
         }
 
         Ok(Level {
-            release_rate: read16(data, 0)?,
-            released: read16(data, 0x02)?,
-            required: read16(data, 0x04)?,
-            time_limit: read16(data, 0x06)?,
-            start_x: read16(data, 0x18)?,
-            graphics_set: read16(data, 0x1a)?,
+            release_rate: read16(data, 0)? as u32,
+            released: read16(data, 0x02)? as u32,
+            required: read16(data, 0x04)? as u32,
+            time_limit: read16(data, 0x06)? as u32,
+            start_x: read16(data, 0x18)? as u32,
+            graphics_set: read16(data, 0x1a)? as u32,
             skills,
-            extended_graphics_set: read16(data, 0x1c)?,
+            extended_graphics_set: read16(data, 0x1c)? as u32,
             name: read_name(data)?,
             terrain_tiles,
+            objects,
         })
     }
 }
@@ -179,15 +253,30 @@ impl fmt::Display for TerrainTile {
             r#"x: {}
 y: {}
 id: {}
-overwrite_exiting: {}
+do_not_overwrite: {}
 flip_y: {}
 remove_terrain: {}"#,
+            self.x, self.y, self.id, self.do_not_overwrite, self.flip_y, self.remove_terrain,
+        )
+    }
+}
+
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"x: {}
+y: {}
+id: {}
+do_not_overwrite: {}
+flip_y: {}
+draw_only_over_terrain: {}"#,
             self.x,
             self.y,
             self.id,
-            self.do_not_overwrite_exiting,
+            self.do_not_overwrite,
             self.flip_y,
-            self.remove_terrain,
+            self.draw_only_over_terrain,
         )
     }
 }
