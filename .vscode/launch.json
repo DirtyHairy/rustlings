@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/rustlings",
-            "args": ["${workspaceRoot}/data/main.dat"],
+            "args": ["view-levels", "${workspaceRoot}/data"],
             "stopAtEntry": false,
             "cwd": "/tmp",
             "environment": [],

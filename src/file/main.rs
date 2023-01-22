@@ -31,7 +31,7 @@ pub fn read(path: &Path) -> Result<Content> {
             bpp,
             &sections[0].data,
             &mut offset,
-            0,
+            (width * height * bpp) / 8,
             TransparencyEncoding::Black,
         )?);
     }

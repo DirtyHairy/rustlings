@@ -28,8 +28,13 @@ impl<'a> SDLSprite<'a> {
         for iframe in 0..sprite.frames.len() {
             for x in 0..sprite.width {
                 for y in 0..sprite.height {
+                    let ipixel = (y * sprite.width) + x;
                     bitmap_data[(y * sprite.width) + x] =
-                        palette[sprite.frames[iframe].data[(y * sprite.width) + x] as usize];
+                        if sprite.frames[iframe].transparency[ipixel] {
+                            0
+                        } else {
+                            palette[sprite.frames[iframe].data[ipixel] as usize]
+                        };
                 }
             }
 
@@ -51,6 +56,8 @@ impl<'a> SDLSprite<'a> {
                 data8,
                 4 * sprite.width,
             )?;
+
+            texture.set_blend_mode(BlendMode::Blend)
         }
 
         Ok(SDLSprite {
@@ -116,10 +123,7 @@ impl<'a> SDLSprite<'a> {
         iframe: usize,
         scale: usize,
         flip_y: bool,
-        blend_mode: BlendMode,
     ) -> Result<()> {
-        let _ = &mut self.texture.set_blend_mode(blend_mode);
-
         return canvas
             .copy_ex(
                 &self.texture,

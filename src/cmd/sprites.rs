@@ -50,7 +50,6 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
                     iframe,
                     4,
                     false,
-                    sdl2::render::BlendMode::Blend,
                 )?;
             }
 

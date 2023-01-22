@@ -48,9 +48,13 @@ impl Bitmap {
                 for y in 0..height {
                     let ipixel = (y * width) + x;
 
-                    let byte = *data
-                        .get(base + ipixel / 8)
-                        .ok_or(anyhow!("read_planar: out of bounds"))?;
+                    let byte = *data.get(base + ipixel / 8).ok_or(anyhow!(
+                        "read_planar: out of bounds {} {} {} {}",
+                        x,
+                        y,
+                        ipixel,
+                        data.len()
+                    ))?;
 
                     bitmap.data[ipixel] |= ((byte >> (7 - (ipixel % 8))) & 0x01) << iplane;
                 }

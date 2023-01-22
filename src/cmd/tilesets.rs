@@ -70,15 +70,7 @@ fn display_tileset(
                     y = y + 2 * (height + 1);
                 }
 
-                sprite.blit(
-                    &mut canvas,
-                    x,
-                    y,
-                    iframe,
-                    2,
-                    false,
-                    sdl2::render::BlendMode::Blend,
-                )?;
+                sprite.blit(&mut canvas, x, y, iframe, 2, false)?;
 
                 x = x + (sprite.width as i32 + 1) * 2;
                 height = max(height as usize, sprite.height + 1) as i32;
