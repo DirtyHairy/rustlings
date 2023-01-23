@@ -26,6 +26,7 @@ use std::{
 const LEVEL_WIDTH: u32 = 1600;
 const LEVEL_HEIGHT: u32 = 160;
 const TICK_TIME_MSEC: u32 = 1000 / 15;
+const VGASPEC_PALETTE_MAP: [u8; 8] = [0, 9, 10, 11, 12, 13, 14, 15];
 
 type ObjectSprites<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
 
@@ -33,6 +34,7 @@ struct GameData {
     levels: Vec<Level>,
     ground_data: Vec<file::ground::Content>,
     tileset: Vec<file::tileset::Content>,
+    vgaspec: Vec<file::vgaspec::Content>,
 }
 
 struct DrawState<'a> {
@@ -57,6 +59,17 @@ fn prepare_palette(data: &GameData, graphics_set: usize) -> Result<[u32; 16]> {
         .context("invalid tileset index")?
         .palettes
         .custom
+        .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
+}
+
+fn prepare_palette_spec(data: &GameData, i_spec: usize) -> Result<[u32; 16]> {
+    let pixel_format = create_pixel_format()?;
+
+    Ok(data
+        .vgaspec
+        .get(i_spec)
+        .context("invalid tileset index")?
+        .palette
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
 }
 
@@ -131,6 +144,26 @@ fn compose_level(
 
     let mut background_data: Vec<u8> = vec![255; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
+    if level.extended_graphics_set > 0 {
+        let vgaspec = data
+            .vgaspec
+            .get(level.extended_graphics_set as usize - 1)
+            .ok_or(anyhow!("bad extended graphics set"))?;
+
+        for y in 0..vgaspec.bitmap.height {
+            for x in 0..vgaspec.bitmap.width {
+                let i_src = y * vgaspec.bitmap.width + x;
+                let i_dest = y * LEVEL_WIDTH as usize + 304 + x;
+
+                background_data[i_dest] = if vgaspec.bitmap.transparency[i_src] {
+                    255
+                } else {
+                    VGASPEC_PALETTE_MAP[vgaspec.bitmap.data[i_src] as usize]
+                };
+            }
+        }
+    }
+
     for tile in &level.terrain_tiles {
         let bitmap_optional = tiles.tiles.get(tile.id as usize).and_then(|x| x.as_ref());
 
@@ -142,7 +175,11 @@ fn compose_level(
         }
     }
 
-    let palette = prepare_palette(&data, level.graphics_set as usize)?;
+    let palette = if level.extended_graphics_set > 0 {
+        prepare_palette_spec(data, level.extended_graphics_set as usize - 1)?
+    } else {
+        prepare_palette(&data, level.graphics_set as usize)?
+    };
     let one = Color::RGBA(0xff, 0xff, 0xff, 0xff).to_u32(&create_pixel_format()?);
 
     let mut texture_data = vec![0u32; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
@@ -508,11 +545,17 @@ pub fn main(data_path: &Path, start_level: Option<&String>) -> Result<()> {
         }
     }
 
+    let mut vgaspec: Vec<file::vgaspec::Content> = Vec::with_capacity(4);
+    for i in 0..4 {
+        vgaspec.push(file::vgaspec::Content::read(data_path, i)?);
+    }
+
     display_levels(
         &GameData {
             levels,
             ground_data,
             tileset,
+            vgaspec,
         },
         i_start,
     )?;

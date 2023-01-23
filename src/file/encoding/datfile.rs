@@ -19,7 +19,7 @@ pub struct Content {
     pub sections: Vec<Section>,
 }
 
-pub fn parse(data: &Vec<u8>) -> Result<Content> {
+pub fn parse(data: &[u8]) -> Result<Content> {
     let mut offset = 0;
     let mut sections: Vec<Section> = Vec::new();
 
@@ -78,7 +78,7 @@ compressed size:          {}"#,
     }
 }
 
-fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
+fn read_header(buffer: &[u8], offset: usize) -> Result<(Header, usize)> {
     let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
     let (checksum, offset) = read_byte(&buffer, offset)?;
 
@@ -103,7 +103,7 @@ fn read_header(buffer: &Vec<u8>, offset: usize) -> Result<(Header, usize)> {
     ))
 }
 
-fn calculate_checksum(header: &Header, buffer: &Vec<u8>, offset: usize) -> Result<u8> {
+fn calculate_checksum(header: &Header, buffer: &[u8], offset: usize) -> Result<u8> {
     let mut checksum: u8 = 0;
 
     if offset + header.compressed_data_size - 10 > buffer.len() {
@@ -287,7 +287,7 @@ mod test_decompress_section {
     }
 }
 
-fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
+fn read_byte(buffer: &[u8], offset: usize) -> Result<(u8, usize)> {
     return Ok((
         *buffer
             .get(offset)
@@ -296,7 +296,7 @@ fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(u8, usize)> {
     ));
 }
 
-fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(u16, usize)> {
+fn read_word(buffer: &[u8], offset: usize) -> Result<(u16, usize)> {
     return Ok((
         (read_byte(buffer, offset)?.0 as u16) << 8 | (read_byte(buffer, offset + 1)?.0 as u16),
         offset + 2,

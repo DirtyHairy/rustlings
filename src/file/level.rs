@@ -82,15 +82,15 @@ impl LevelStructure for TerrainTile {
     }
 }
 
-fn read8(data: &Vec<u8>, offset: usize) -> Result<u8> {
+fn read8(data: &[u8], offset: usize) -> Result<u8> {
     Ok(*data.get(offset).context("invalid level data")? as u8)
 }
 
-fn read16(data: &Vec<u8>, offset: usize) -> Result<u16> {
+fn read16(data: &[u8], offset: usize) -> Result<u16> {
     Ok(((read8(data, offset)? as u16) << 8) | read8(data, offset + 1)? as u16)
 }
 
-fn read_name(data: &Vec<u8>) -> Result<String> {
+fn read_name(data: &[u8]) -> Result<String> {
     let mut name = String::new();
 
     for i in 0..32 {
@@ -101,7 +101,7 @@ fn read_name(data: &Vec<u8>) -> Result<String> {
     Ok(String::from(name.trim()))
 }
 
-fn read_terrain_tile(data: &Vec<u8>, index: usize) -> Result<Option<TerrainTile>> {
+fn read_terrain_tile(data: &[u8], index: usize) -> Result<Option<TerrainTile>> {
     if index >= 400 {
         bail!("invalid terrain index");
     }
@@ -126,7 +126,7 @@ fn read_terrain_tile(data: &Vec<u8>, index: usize) -> Result<Option<TerrainTile>
     }))
 }
 
-fn read_object(data: &Vec<u8>, index: usize) -> Result<Option<Object>> {
+fn read_object(data: &[u8], index: usize) -> Result<Option<Object>> {
     if index >= 32 {
         bail!("invalid object index");
     }
@@ -152,7 +152,7 @@ fn read_object(data: &Vec<u8>, index: usize) -> Result<Option<Object>> {
 }
 
 impl Level {
-    pub fn decode(data: &Vec<u8>) -> Result<Level> {
+    pub fn decode(data: &[u8]) -> Result<Level> {
         if data.len() != 2048 {
             bail!("not a level: invalid length");
         }

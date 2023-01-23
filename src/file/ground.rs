@@ -3,6 +3,8 @@ use std::{convert::TryInto, fs, path::Path};
 
 use anyhow::*;
 
+use super::palette::PALETTE_FIXED;
+
 pub struct ObjectInfo {
     pub animation_loops: bool,
     pub animation_start: usize,
@@ -155,16 +157,6 @@ fn read_palette_entry(buffer: &Vec<u8>, offset: usize) -> Result<((usize, usize,
     return Ok(((r << 2, g << 2, b << 2), offset));
 }
 fn read_palette(buffer: &Vec<u8>, offset: usize) -> Result<([(usize, usize, usize); 16], usize)> {
-    const PALETTE_FIXED: [(usize, usize, usize); 7] = [
-        (0, 0, 0),
-        (64, 64, 224),
-        (0, 176, 0),
-        (240, 208, 208),
-        (176, 176, 0),
-        (240, 32, 32),
-        (128, 128, 128),
-    ];
-
     let mut palette: [(usize, usize, usize); 16] = [(0, 0, 0); 16];
     let mut offset = offset;
 
