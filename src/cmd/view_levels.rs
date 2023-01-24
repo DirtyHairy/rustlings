@@ -27,6 +27,7 @@ const LEVEL_WIDTH: u32 = 1600;
 const LEVEL_HEIGHT: u32 = 160;
 const TICK_TIME_MSEC: u32 = 1000 / 15;
 const VGASPEC_PALETTE_MAP: [u8; 8] = [0, 9, 10, 11, 12, 13, 14, 15];
+const VGASPEC_POSITION: usize = 304;
 
 type ObjectSprites<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
 
@@ -50,7 +51,7 @@ fn dump_level(level: &Level) -> () {
     println!();
 }
 
-fn prepare_palette(data: &GameData, graphics_set: usize) -> Result<[u32; 16]> {
+fn prepare_palette_tiled(data: &GameData, graphics_set: usize) -> Result<[u32; 16]> {
     let pixel_format = create_pixel_format()?;
 
     Ok(data
@@ -71,6 +72,19 @@ fn prepare_palette_spec(data: &GameData, i_spec: usize) -> Result<[u32; 16]> {
         .context("invalid tileset index")?
         .palette
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
+}
+
+fn prepare_palette(data: &GameData, level_index: usize) -> Result<[u32; 16]> {
+    let level = data
+        .levels
+        .get(level_index)
+        .ok_or(anyhow!("invalid level"))?;
+
+    Ok(if level.extended_graphics_set > 0 {
+        prepare_palette_spec(data, level.extended_graphics_set as usize - 1)?
+    } else {
+        prepare_palette_tiled(data, level.graphics_set as usize)?
+    })
 }
 
 fn compose_tile_onto_background(
@@ -133,6 +147,7 @@ fn update_texture(texture: &mut Texture, data: &[u32], dest: Rect, pitch: usize)
 fn compose_level(
     data: &GameData,
     index: usize,
+    palette: &[u32; 16],
     background_texture: &mut sdl2::render::Texture,
     mask_texture: &mut sdl2::render::Texture,
 ) -> Result<()> {
@@ -153,7 +168,7 @@ fn compose_level(
         for y in 0..vgaspec.bitmap.height {
             for x in 0..vgaspec.bitmap.width {
                 let i_src = y * vgaspec.bitmap.width + x;
-                let i_dest = y * LEVEL_WIDTH as usize + 304 + x;
+                let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION + x;
 
                 background_data[i_dest] = if vgaspec.bitmap.transparency[i_src] {
                     255
@@ -175,13 +190,6 @@ fn compose_level(
         }
     }
 
-    let palette = if level.extended_graphics_set > 0 {
-        prepare_palette_spec(data, level.extended_graphics_set as usize - 1)?
-    } else {
-        prepare_palette(&data, level.graphics_set as usize)?
-    };
-    let one = Color::RGBA(0xff, 0xff, 0xff, 0xff).to_u32(&create_pixel_format()?);
-
     let mut texture_data = vec![0u32; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
     let mut mask_data = vec![0u32; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
@@ -198,7 +206,7 @@ fn compose_level(
             mask_data[index as usize] = if background_data[index as usize] == 255 {
                 0
             } else {
-                one
+                0xffffffff
             };
         }
     }
@@ -222,18 +230,18 @@ fn compose_level(
 
 fn build_object_sprites<'a, T>(
     data: &GameData,
+    palette: &[u32; 16],
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<ObjectSprites<'a>> {
     let mut sprites: ObjectSprites = Vec::with_capacity(data.tileset.len());
 
-    for (graphics_set, tileset) in data.tileset.iter().enumerate() {
+    for tileset in &data.tileset {
         let mut object_sprites: Vec<Option<SDLSprite>> = Vec::with_capacity(16);
-        let palette = prepare_palette(data, graphics_set)?;
 
         for object_sprite in &tileset.object_sprites {
             object_sprites.push(match object_sprite {
                 None => None,
-                Some(sprite) => Some(SDLSprite::from_sprite(sprite, &palette, texture_creator)?),
+                Some(sprite) => Some(SDLSprite::from_sprite(sprite, palette, texture_creator)?),
             })
         }
 
@@ -362,10 +370,37 @@ fn clamp_x(x: i32, zoom: u32) -> u32 {
     ) as u32
 }
 
+fn transform_x_for_zoom(x: u32, old_zoom: u32, zoom: u32) -> u32 {
+    clamp_x(
+        (x + 320 * 2 / old_zoom) as i32 - (320 * 2 / zoom) as i32,
+        zoom,
+    )
+}
+
 fn create_canvas_texture<T>(texture_creator: &TextureCreator<T>) -> Result<Texture> {
     texture_creator
         .create_texture_target(PixelFormatEnum::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)
         .map_err(|e| anyhow!(e))
+}
+
+fn switch_level<'a, T>(
+    draw_state: &mut DrawState<'a>,
+    data: &GameData,
+    level_index: usize,
+    texture_creator: &'a TextureCreator<T>,
+) -> Result<()> {
+    let palette = prepare_palette(data, level_index)?;
+
+    draw_state.object_sprites = build_object_sprites(data, &palette, texture_creator)?;
+    compose_level(
+        data,
+        level_index,
+        &palette,
+        &mut draw_state.background,
+        &mut draw_state.mask,
+    )?;
+
+    Ok(())
 }
 
 fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
@@ -381,7 +416,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
         mask: create_canvas_texture(&texture_creator)?,
         compose_target: create_canvas_texture(&texture_creator)?,
         workbench: create_canvas_texture(&texture_creator)?,
-        object_sprites: build_object_sprites(data, &texture_creator)?,
+        object_sprites: Vec::new(),
     };
 
     let mut running = true;
@@ -429,10 +464,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
                             _ => zoom,
                         };
 
-                        x = clamp_x(
-                            (x + 320 * 2 / old_zoom) as i32 - (320 * 2 / zoom) as i32,
-                            zoom,
-                        );
+                        x = transform_x_for_zoom(x, old_zoom, zoom);
 
                         screen_dirty = true;
                     }
@@ -446,10 +478,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
                             _ => zoom,
                         };
 
-                        x = clamp_x(
-                            (x + 320 * 2 / old_zoom) as i32 - (320 * 2 / zoom) as i32,
-                            zoom,
-                        );
+                        x = transform_x_for_zoom(x, old_zoom, zoom);
 
                         screen_dirty = true;
                     }
@@ -484,12 +513,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
         }
 
         if level_changed {
-            compose_level(
-                data,
-                i_level,
-                &mut draw_state.background,
-                &mut draw_state.mask,
-            )?;
+            switch_level(&mut draw_state, data, i_level, &texture_creator)?;
             dump_level(&data.levels[i_level]);
 
             screen_dirty = true;
