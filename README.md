@@ -9,7 +9,7 @@ Lemmings. It may grow into a game at some point. Then again, it might not.
 
 # Building
 
-You need Rust, Cargo and SDL installed. Do
+You need Rust, Cargo and SDL2 installed. Do
 
 ```
    % cargo build -r
