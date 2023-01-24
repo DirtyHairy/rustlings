@@ -309,11 +309,13 @@ fn render<'a>(
     draw_state: &mut DrawState<'a>,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
 ) -> Result<()> {
-    let compose_target = &mut draw_state.compose_target;
-    let object_sprites = &mut draw_state.object_sprites;
-    let background = &mut draw_state.background;
-    let mask = &mut draw_state.mask;
-    let workbench = &mut draw_state.workbench;
+    let DrawState {
+        compose_target,
+        background,
+        mask,
+        object_sprites,
+        workbench,
+    } = draw_state;
 
     canvas.with_texture_canvas(compose_target, |canvas| {
         let _ = draw(background, canvas, BlendMode::None);
