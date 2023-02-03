@@ -59,7 +59,7 @@ pub fn parse(data: &[u8]) -> Result<Content> {
         };
     }
 
-    return Ok(Content { sections });
+    Ok(Content { sections })
 }
 
 impl fmt::Display for Header {
@@ -201,7 +201,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
         }
     }
 
-    return Ok(target.reverse());
+    Ok(target.reverse())
 }
 
 #[cfg(test)]
@@ -288,17 +288,17 @@ mod test_decompress_section {
 }
 
 fn read_byte(buffer: &[u8], offset: usize) -> Result<(u8, usize)> {
-    return Ok((
+    Ok((
         *buffer
             .get(offset)
             .ok_or(anyhow!("offset {} out of bounds", offset))?,
         offset + 1,
-    ));
+    ))
 }
 
 fn read_word(buffer: &[u8], offset: usize) -> Result<(u16, usize)> {
-    return Ok((
+    Ok((
         (read_byte(buffer, offset)?.0 as u16) << 8 | (read_byte(buffer, offset + 1)?.0 as u16),
         offset + 2,
-    ));
+    ))
 }

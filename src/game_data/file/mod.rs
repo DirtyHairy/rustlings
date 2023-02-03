@@ -3,6 +3,6 @@ pub mod ground;
 pub mod level;
 pub mod main;
 mod palette;
-pub mod sprite;
-pub mod tileset;
+mod sprite_helper;
+pub mod vgagr;
 pub mod vgaspec;

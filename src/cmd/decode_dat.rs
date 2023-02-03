@@ -1,6 +1,7 @@
-use crate::file;
 use anyhow::{Context, Ok, Result};
 use std::{fs, path::Path};
+
+use crate::game_data::file::encoding::datfile;
 
 pub fn main(path_name: &str) -> Result<()> {
     let path = Path::new(path_name);
@@ -8,9 +9,9 @@ pub fn main(path_name: &str) -> Result<()> {
     let compressed_data = fs::read(path.as_os_str())
         .with_context(|| format!("failed to load read '{}'", path_name))?;
 
-    let decompressed_sections = file::encoding::datfile::parse(&compressed_data)?;
+    let datfile = datfile::parse(&compressed_data)?;
 
-    for (index, section) in decompressed_sections.sections.iter().enumerate() {
+    for (index, section) in datfile.sections.iter().enumerate() {
         let file_name = format!(
             "{}.section.{}",
             path.file_name()

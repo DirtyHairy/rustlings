@@ -1,6 +1,5 @@
 mod cmd;
-mod definitions;
-mod file;
+mod game_data;
 mod sdl_display;
 
 use anyhow::Result;

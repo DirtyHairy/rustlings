@@ -1,15 +1,15 @@
 use std::{path::Path, thread::sleep, time::Duration};
 
-use super::util;
 use crate::{
-    definitions::STATIC_PALETTE,
-    file::{self, sprite::Sprite},
+    game_data::{read_game_data, GameData},
     sdl_display::SDLSprite,
 };
+
+use super::util;
 use anyhow::{anyhow, Result};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
-fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
+fn display_sprites(game_data: &GameData) -> Result<()> {
     let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
@@ -22,10 +22,12 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
     let texture_creator = canvas.texture_creator();
     let pixel_format = util::create_pixel_format()?;
 
-    let palette = STATIC_PALETTE
+    let palette = game_data
+        .static_palette
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
 
-    let mut sdl_sprites: Vec<SDLSprite> = sprites
+    let mut sdl_sprites: Vec<SDLSprite> = game_data
+        .lemming_sprites
         .iter()
         .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
         .filter(|x| x.is_ok())
@@ -77,9 +79,9 @@ fn display_sprites(sprites: Vec<Sprite>) -> Result<()> {
 }
 
 pub fn main(path: &Path) -> Result<()> {
-    let main_dat = file::main::read(path)?;
+    let game_data = read_game_data(path)?;
 
-    display_sprites(main_dat.lemming_sprites.to_vec())?;
+    display_sprites(&game_data)?;
 
     Ok(())
 }

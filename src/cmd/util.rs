@@ -1,13 +1,9 @@
 use std::{
     convert::TryFrom,
-    fs,
-    path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{anyhow, Context, Error, Ok, Result};
-
-use crate::file::{self, level::Level};
+use anyhow::{anyhow, Error, Result};
 
 pub fn timestamp() -> u32 {
     SystemTime::now()
@@ -27,42 +23,4 @@ pub fn create_window(sdl_video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Wi
 pub fn create_pixel_format() -> Result<sdl2::pixels::PixelFormat> {
     sdl2::pixels::PixelFormat::try_from(sdl2::pixels::PixelFormatEnum::RGBA8888)
         .map_err(|s| anyhow!(s))
-}
-
-pub fn read_ground(
-    path: &Path,
-) -> Result<(Vec<file::ground::Content>, Vec<file::tileset::Content>)> {
-    let mut ground: Vec<file::ground::Content> = Vec::new();
-    let mut tileset: Vec<file::tileset::Content> = Vec::new();
-
-    for i in 0..5 {
-        let ground_dat =
-            file::ground::read(path, i).context(format!("failed to read ground data set {}", i))?;
-
-        tileset.push(
-            file::tileset::read(path, i, &ground_dat)
-                .context(format!("failed to read ground data set {}", i))?,
-        );
-
-        ground.push(ground_dat);
-    }
-
-    Ok((ground, tileset))
-}
-
-pub fn read_levels(file_name: &str) -> Result<Vec<Level>> {
-    let path = Path::new(file_name);
-
-    let compressed_level_data = fs::read(path.as_os_str())
-        .with_context(|| format!("failed to load read '{}'", file_name))?;
-
-    let decompressed_level_sections = file::encoding::datfile::parse(&compressed_level_data)?;
-    let mut levels: Vec<Level> = Vec::new();
-
-    for section in decompressed_level_sections.sections.iter() {
-        let level = Level::decode(&section.data)?;
-        levels.push(level);
-    }
-
-    Ok(levels)
 }

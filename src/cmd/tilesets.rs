@@ -1,14 +1,14 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use super::util::{create_pixel_format, create_window, timestamp};
-use crate::{file, sdl_display::SDLSprite};
-use anyhow::{anyhow, Context, Result};
+use crate::{
+    game_data::{read_game_data, GameData},
+    sdl_display::SDLSprite,
+};
+use anyhow::{anyhow, Result};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
-fn display_tileset(
-    ground_dats: &Vec<file::ground::Content>,
-    tilesets: &Vec<file::tileset::Content>,
-) -> Result<()> {
+fn display_tileset(game_data: &GameData) -> Result<()> {
     let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
@@ -23,24 +23,22 @@ fn display_tileset(
 
     let mut spritesets: Vec<Vec<SDLSprite>> = Vec::new();
 
-    for i in 0..ground_dats.len() {
-        let ground_dat = &ground_dats[i];
-        let tileset = &tilesets[i];
+    for i in 0..game_data.tilesets.len() {
         let mut sprites: Vec<SDLSprite> = Vec::new();
 
-        let palette = ground_dat
+        let palette = game_data.tilesets[i]
             .palettes
             .custom
             .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
 
-        for object_sprite in &tileset.object_sprites {
+        for object_sprite in &game_data.tilesets[i].object_sprites {
             object_sprite
                 .as_ref()
                 .and_then(|sprite| SDLSprite::from_sprite(&sprite, &palette, &texture_creator).ok())
                 .map(|sdl_sprite| sprites.push(sdl_sprite));
         }
 
-        for tile in &tileset.tiles {
+        for tile in &game_data.tilesets[i].tiles {
             tile.as_ref()
                 .and_then(|bitmap| SDLSprite::from_bitmap(&bitmap, &palette, &texture_creator).ok())
                 .map(|sdl_sprite| sprites.push(sdl_sprite));
@@ -107,22 +105,7 @@ fn display_tileset(
 }
 
 pub fn main(path: &Path) -> Result<()> {
-    let mut ground: Vec<file::ground::Content> = Vec::new();
-    let mut tileset: Vec<file::tileset::Content> = Vec::new();
+    let game_data = read_game_data(path)?;
 
-    for i in 0..5 {
-        let ground_dat =
-            file::ground::read(path, i).context(format!("failed to read ground data set {}", i))?;
-
-        tileset.push(
-            file::tileset::read(path, i, &ground_dat)
-                .context(format!("failed to read ground data set {}", i))?,
-        );
-
-        ground.push(ground_dat);
-    }
-
-    display_tileset(&ground, &tileset)?;
-
-    Ok(())
+    display_tileset(&game_data)
 }

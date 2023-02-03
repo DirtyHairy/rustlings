@@ -2,5 +2,8 @@
     "editor.formatOnSave": true,
     "debug.allowBreakpointsEverywhere": true,
     "rust-analyzer.inlayHints.typeHints.enable": false,
-    "rust-analyzer.inlayHints.chainingHints.enable": false
+    "rust-analyzer.inlayHints.chainingHints.enable": false,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    }
 }

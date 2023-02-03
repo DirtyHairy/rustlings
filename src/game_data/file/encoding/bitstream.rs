@@ -86,12 +86,12 @@ impl Bitstream {
             self.bit_index += 1;
         }
 
-        return Ok(value);
+        Ok(value)
     }
 
     #[cfg(test)]
     pub fn consume_or_die(&mut self, count: usize) -> u8 {
-        return self.consume(count).expect("consume failed");
+        self.consume(count).expect("consume failed")
     }
 
     pub fn remaining(&self) -> usize {

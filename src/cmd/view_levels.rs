@@ -1,14 +1,11 @@
-use super::util::{create_pixel_format, create_window, read_ground, read_levels, timestamp};
-use crate::{
-    file::{
-        self,
-        level::{Level, Object, TerrainTile},
-        sprite::Bitmap,
-    },
-    sdl_display::SDLSprite,
+use crate::game_data::{
+    read_game_data, Bitmap, GameData, Level, Object, TerrainTile, OBJECTS_PER_TILESET, PALETTE_SIZE,
 };
+use crate::sdl_display::SDLSprite;
 
-use anyhow::{anyhow, Context, Result};
+use super::util::{create_pixel_format, create_window, timestamp};
+use anyhow::Context;
+use anyhow::{anyhow, Result};
 use sdl2::{
     event::Event,
     keyboard::Keycode,
@@ -31,13 +28,6 @@ const VGASPEC_POSITION: usize = 304;
 
 type ObjectSprites<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
 
-struct GameData {
-    levels: Vec<Level>,
-    ground_data: Vec<file::ground::Content>,
-    tileset: Vec<file::tileset::Content>,
-    vgaspec: Vec<file::vgaspec::Content>,
-}
-
 struct DrawState<'a> {
     background: Texture<'a>,
     mask: Texture<'a>,
@@ -51,30 +41,36 @@ fn dump_level(level: &Level) -> () {
     println!();
 }
 
-fn prepare_palette_tiled(data: &GameData, graphics_set: usize) -> Result<[u32; 16]> {
+fn prepare_palette_tiled(data: &GameData, tileset_index: usize) -> Result<[u32; PALETTE_SIZE]> {
     let pixel_format = create_pixel_format()?;
 
     Ok(data
-        .ground_data
-        .get(graphics_set)
-        .context("invalid tileset index")?
+        .tilesets
+        .get(tileset_index)
+        .ok_or(anyhow!("invalid tileset index {}", tileset_index))?
         .palettes
         .custom
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
 }
 
-fn prepare_palette_spec(data: &GameData, i_spec: usize) -> Result<[u32; 16]> {
+fn prepare_palette_spec(
+    data: &GameData,
+    special_background_index: usize,
+) -> Result<[u32; PALETTE_SIZE]> {
     let pixel_format = create_pixel_format()?;
 
     Ok(data
-        .vgaspec
-        .get(i_spec)
-        .context("invalid tileset index")?
+        .special_backgrounds
+        .get(special_background_index)
+        .ok_or(anyhow!(
+            "invalid vgaspec index {}",
+            special_background_index
+        ))?
         .palette
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
 }
 
-fn prepare_palette(data: &GameData, level_index: usize) -> Result<[u32; 16]> {
+fn prepare_palette(data: &GameData, level_index: usize) -> Result<[u32; PALETTE_SIZE]> {
     let level = data
         .levels
         .get(level_index)
@@ -147,40 +143,42 @@ fn update_texture(texture: &mut Texture, data: &[u32], dest: Rect, pitch: usize)
 fn compose_level(
     data: &GameData,
     index: usize,
-    palette: &[u32; 16],
+    palette: &[u32; PALETTE_SIZE],
     background_texture: &mut sdl2::render::Texture,
     mask_texture: &mut sdl2::render::Texture,
 ) -> Result<()> {
     let level = data.levels.get(index).context("invalid level ID")?;
-    let tiles = data
-        .tileset
-        .get(level.graphics_set as usize)
-        .context("invalid tile set")?;
 
     let mut background_data: Vec<u8> = vec![255; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
     if level.extended_graphics_set > 0 {
-        let vgaspec = data
-            .vgaspec
+        let special_background = data
+            .special_backgrounds
             .get(level.extended_graphics_set as usize - 1)
             .ok_or(anyhow!("bad extended graphics set"))?;
 
-        for y in 0..vgaspec.bitmap.height {
-            for x in 0..vgaspec.bitmap.width {
-                let i_src = y * vgaspec.bitmap.width + x;
+        for y in 0..special_background.bitmap.height {
+            for x in 0..special_background.bitmap.width {
+                let i_src = y * special_background.bitmap.width + x;
                 let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION + x;
 
-                background_data[i_dest] = if vgaspec.bitmap.transparency[i_src] {
+                background_data[i_dest] = if special_background.bitmap.transparency[i_src] {
                     255
                 } else {
-                    VGASPEC_PALETTE_MAP[vgaspec.bitmap.data[i_src] as usize]
+                    VGASPEC_PALETTE_MAP[special_background.bitmap.data[i_src] as usize]
                 };
             }
         }
     }
 
     for tile in &level.terrain_tiles {
-        let bitmap_optional = tiles.tiles.get(tile.id as usize).and_then(|x| x.as_ref());
+        let bitmap_optional = data
+            .tilesets
+            .get(level.graphics_set as usize)
+            .ok_or(anyhow!("bad graphics set"))?
+            .tiles
+            .get(tile.id as usize)
+            .and_then(|x| x.as_ref());
 
         match bitmap_optional {
             None => continue,
@@ -230,13 +228,13 @@ fn compose_level(
 
 fn build_object_sprites<'a, T>(
     data: &GameData,
-    palette: &[u32; 16],
+    palette: &[u32; PALETTE_SIZE],
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<ObjectSprites<'a>> {
-    let mut sprites: ObjectSprites = Vec::with_capacity(data.tileset.len());
+    let mut sprites: ObjectSprites = Vec::with_capacity(data.tilesets.len());
 
-    for tileset in &data.tileset {
-        let mut object_sprites: Vec<Option<SDLSprite>> = Vec::with_capacity(16);
+    for tileset in &data.tilesets {
+        let mut object_sprites: Vec<Option<SDLSprite>> = Vec::with_capacity(OBJECTS_PER_TILESET);
 
         for object_sprite in &tileset.object_sprites {
             object_sprites.push(match object_sprite {
@@ -542,24 +540,13 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
     Ok(())
 }
 
-pub fn main(data_path: &Path, start_level: Option<&String>) -> Result<()> {
-    let mut levels: Vec<Level> = Vec::new();
-
-    for i in 0..10 {
-        levels.append(&mut read_levels(
-            data_path
-                .join(format!("level00{}.dat", i))
-                .to_str()
-                .unwrap(),
-        )?)
-    }
-
-    let (ground_data, tileset) = read_ground(data_path)?;
+pub fn main(path: &Path, start_level: Option<&String>) -> Result<()> {
+    let data = read_game_data(path)?;
 
     let mut i_start = 0;
 
     if let Some(pattern) = start_level {
-        for (index, level) in levels.iter().enumerate() {
+        for (index, level) in data.levels.iter().enumerate() {
             if level
                 .name
                 .to_lowercase()
@@ -571,20 +558,7 @@ pub fn main(data_path: &Path, start_level: Option<&String>) -> Result<()> {
         }
     }
 
-    let mut vgaspec: Vec<file::vgaspec::Content> = Vec::with_capacity(4);
-    for i in 0..4 {
-        vgaspec.push(file::vgaspec::Content::read(data_path, i)?);
-    }
-
-    display_levels(
-        &GameData {
-            levels,
-            ground_data,
-            tileset,
-            vgaspec,
-        },
-        i_start,
-    )?;
+    display_levels(&data, i_start)?;
 
     Ok(())
 }

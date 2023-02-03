@@ -1,69 +1,44 @@
-use core::fmt;
-use std::{convert::TryInto, fs, path::Path};
+use std::{fs, path::Path};
 
 use anyhow::*;
 
+use crate::game_data::{
+    ObjectInfo, Palettes, TerrainInfo, OBJECTS_PER_TILESET, PALETTE_SIZE, TILES_PER_TILESET,
+};
+
 use super::palette::PALETTE_FIXED;
 
-pub struct ObjectInfo {
-    pub animation_loops: bool,
-    pub animation_start: usize,
-    pub animation_end: usize,
-    pub width: usize,
-    pub height: usize,
-    pub animation_frame_size: usize,
-    pub mask_offset: usize,
-    pub trigger_left: usize,
-    pub trigger_top: usize,
-    pub trigger_width: usize,
-    pub trigger_height: usize,
-    pub trigger_effect: usize,
-    pub frames_offset: usize,
-    pub preview_frame_offset: usize,
-    pub trap_sound_effect: usize,
-}
-
-pub struct TerrainInfo {
-    pub width: usize,
-    pub height: usize,
-    pub image_offset: usize,
-    pub mask_offset: usize,
-}
-
-pub struct Palettes {
-    pub custom: [(usize, usize, usize); 16],
-    pub standard: [(usize, usize, usize); 16],
-    pub preview: [(usize, usize, usize); 16],
-}
-
 pub struct Content {
-    pub object_info: [ObjectInfo; 16],
-    pub terrain_info: [TerrainInfo; 64],
+    pub object_info: [ObjectInfo; OBJECTS_PER_TILESET],
+    pub terrain_info: [TerrainInfo; TILES_PER_TILESET],
     pub palettes: Palettes,
 }
 
-pub fn read(path: &Path, index: usize) -> Result<Content> {
+pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
-    let data = fs::read(path.join(&filename).as_os_str())?;
-
     println!("reading {}", &filename);
 
-    let mut offset = 0;
-    let mut object_info: Vec<ObjectInfo> = Vec::new();
+    let data = fs::read(path.join(&filename).as_os_str())?;
 
-    for _ in 0..16 {
+    let mut offset = 0;
+    let mut object_info: [ObjectInfo; OBJECTS_PER_TILESET] =
+        [(); OBJECTS_PER_TILESET].map(|_| ObjectInfo::default());
+
+    for i in 0..16 {
         let (value, new_offset) = read_object_info(&data, offset)?;
         offset = new_offset;
 
-        object_info.push(value);
+        object_info[i] = value;
     }
 
-    let mut terrain_info: Vec<TerrainInfo> = Vec::new();
-    for _ in 0..64 {
+    let mut terrain_info: [TerrainInfo; TILES_PER_TILESET] =
+        [(); TILES_PER_TILESET].map(|_| TerrainInfo::default());
+
+    for i in 0..64 {
         let (value, new_offset) = read_terrain_info(&data, offset)?;
         offset = new_offset;
 
-        terrain_info.push(value);
+        terrain_info[i] = value;
     }
 
     let (palettes, offset) = read_palettes(&data, offset)?;
@@ -77,17 +52,11 @@ pub fn read(path: &Path, index: usize) -> Result<Content> {
         );
     }
 
-    return Ok(Content {
-        object_info: object_info
-            .try_into()
-            .map_err(|_| ())
-            .expect("internal error"),
-        terrain_info: terrain_info
-            .try_into()
-            .map_err(|_| ())
-            .expect("internal error"),
+    Ok(Content {
+        object_info,
+        terrain_info,
         palettes,
-    });
+    })
 }
 
 fn read_object_info(buffer: &Vec<u8>, offset: usize) -> Result<(ObjectInfo, usize)> {
@@ -109,7 +78,7 @@ fn read_object_info(buffer: &Vec<u8>, offset: usize) -> Result<(ObjectInfo, usiz
     let offset = offset + 2;
     let (trap_sound_effect, offset) = read_byte(buffer, offset)?;
 
-    return Ok((
+    Ok((
         ObjectInfo {
             animation_loops: (animation_flags & 0x01) > 0,
             animation_start,
@@ -128,7 +97,7 @@ fn read_object_info(buffer: &Vec<u8>, offset: usize) -> Result<(ObjectInfo, usiz
             trap_sound_effect,
         },
         offset,
-    ));
+    ))
 }
 
 fn read_terrain_info(buffer: &Vec<u8>, offset: usize) -> Result<(TerrainInfo, usize)> {
@@ -138,7 +107,7 @@ fn read_terrain_info(buffer: &Vec<u8>, offset: usize) -> Result<(TerrainInfo, us
     let (mask_offset, offset) = read_word(buffer, offset)?;
     let offset = offset + 2;
 
-    return Ok((
+    Ok((
         TerrainInfo {
             width,
             height,
@@ -146,7 +115,7 @@ fn read_terrain_info(buffer: &Vec<u8>, offset: usize) -> Result<(TerrainInfo, us
             mask_offset,
         },
         offset,
-    ));
+    ))
 }
 
 fn read_palette_entry(buffer: &Vec<u8>, offset: usize) -> Result<((usize, usize, usize), usize)> {
@@ -154,10 +123,10 @@ fn read_palette_entry(buffer: &Vec<u8>, offset: usize) -> Result<((usize, usize,
     let (g, offset) = read_byte(buffer, offset)?;
     let (b, offset) = read_byte(buffer, offset)?;
 
-    return Ok(((r << 2, g << 2, b << 2), offset));
+    Ok(((r << 2, g << 2, b << 2), offset))
 }
 fn read_palette(buffer: &Vec<u8>, offset: usize) -> Result<([(usize, usize, usize); 16], usize)> {
-    let mut palette: [(usize, usize, usize); 16] = [(0, 0, 0); 16];
+    let mut palette: [(usize, usize, usize); PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
     let mut offset = offset;
 
     for i in 0..7 {
@@ -173,7 +142,7 @@ fn read_palette(buffer: &Vec<u8>, offset: usize) -> Result<([(usize, usize, usiz
 
     palette[7] = palette[8];
 
-    return Ok((palette, offset));
+    Ok((palette, offset))
 }
 
 fn read_palettes(buffer: &Vec<u8>, offset: usize) -> Result<(Palettes, usize)> {
@@ -182,111 +151,29 @@ fn read_palettes(buffer: &Vec<u8>, offset: usize) -> Result<(Palettes, usize)> {
     let (standard, offset) = read_palette(buffer, offset)?;
     let (preview, offset) = read_palette(buffer, offset)?;
 
-    return Ok((
+    Ok((
         Palettes {
             custom,
             standard,
             preview,
         },
         offset,
-    ));
-}
-
-impl fmt::Display for ObjectInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            r#"animation_loops:          {}
-animation_start:          {}
-animation_end:            {}
-width:                    {}
-height:                   {}
-animation_frame_size:     {}
-mask_offset:              {}
-trigger_left:             {}
-trigger_top:              {}
-trigger_width:            {}
-trigger_height:           {}
-trigger_effect:           {}
-frames_offset:            {}
-preview_frame:            {}
-trap_sound_effect:        {}"#,
-            self.animation_loops,
-            self.animation_start,
-            self.animation_end,
-            self.width,
-            self.height,
-            self.animation_frame_size,
-            self.mask_offset,
-            self.trigger_left,
-            self.trigger_top,
-            self.trigger_width,
-            self.trigger_height,
-            self.trigger_effect,
-            self.frames_offset,
-            self.preview_frame_offset,
-            self.trap_sound_effect,
-        )
-    }
-}
-
-fn format_palette_entry(
-    (r, g, b): (usize, usize, usize),
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    return write!(f, "   ({} {} {})\n", r, g, b);
-}
-
-fn format_palette(
-    palette: [(usize, usize, usize); 16],
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    for entry in palette {
-        format_palette_entry(entry, f)?;
-    }
-
-    return std::fmt::Result::Ok(());
-}
-
-impl fmt::Display for Palettes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "custom:\n")?;
-        format_palette(self.custom, f)?;
-
-        write!(f, "\nstandard:\n")?;
-        format_palette(self.standard, f)?;
-
-        write!(f, "\npreview:\n")?;
-        return format_palette(self.preview, f);
-    }
-}
-
-impl fmt::Display for TerrainInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            r#"width:          {}
-height:         {}
-image_offset:   {}
-mask_offset:    {}"#,
-            self.width, self.height, self.image_offset, self.mask_offset
-        )
-    }
+    ))
 }
 
 fn read_byte(buffer: &Vec<u8>, offset: usize) -> Result<(usize, usize)> {
-    return Ok((
+    Ok((
         *buffer
             .get(offset)
             .ok_or(anyhow!("offset {} out of bounds", offset))? as usize,
         offset + 1,
-    ));
+    ))
 }
 
 fn read_word(buffer: &Vec<u8>, offset: usize) -> Result<(usize, usize)> {
-    return Ok((
+    Ok((
         ((read_byte(buffer, offset)?.0 as u16) | (read_byte(buffer, offset + 1)?.0 as u16) << 8)
             as usize,
         offset + 2,
-    ));
+    ))
 }
