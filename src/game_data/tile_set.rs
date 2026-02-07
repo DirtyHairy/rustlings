@@ -41,6 +41,7 @@ pub struct Palettes {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct TileSet {
     pub object_info: [ObjectInfo; OBJECTS_PER_TILESET],
     pub terrain_info: [TerrainInfo; TILES_PER_TILESET],

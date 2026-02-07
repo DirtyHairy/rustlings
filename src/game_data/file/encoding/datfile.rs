@@ -10,6 +10,7 @@ pub struct Header {
     pub compressed_data_size: usize,
 }
 
+#[allow(dead_code)]
 pub struct Section {
     pub header: Header,
     pub data: Vec<u8>,

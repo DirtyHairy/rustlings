@@ -377,7 +377,7 @@ fn transform_x_for_zoom(x: u32, old_zoom: u32, zoom: u32) -> u32 {
     )
 }
 
-fn create_canvas_texture<T>(texture_creator: &TextureCreator<T>) -> Result<Texture> {
+fn create_canvas_texture<'a, T>(texture_creator: &'a TextureCreator<T>) -> Result<Texture<'a>> {
     texture_creator
         .create_texture_target(PixelFormatEnum::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)
         .map_err(|e| anyhow!(e))

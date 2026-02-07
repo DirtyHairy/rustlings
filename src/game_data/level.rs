@@ -37,6 +37,7 @@ pub struct Level {
     pub objects: Vec<Object>,
 }
 
+#[allow(dead_code)]
 pub trait LevelStructure {
     fn get_id(&self) -> u32;
     fn get_x(&self) -> i32;
