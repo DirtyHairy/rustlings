@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
 
-pub struct Bitstream {
-    buffer: Vec<u8>,
+pub struct Bitstream<'a> {
+    buffer: &'a [u8],
     bit_index: usize,
     byte_index: usize,
     bits_in_first_byte: usize,
 }
 
-impl Bitstream {
-    pub fn create(buffer: Vec<u8>, bits_in_first_byte: usize) -> Self {
+impl<'a> Bitstream<'a> {
+    pub fn create(buffer: &'a [u8], bits_in_first_byte: usize) -> Self {
         Bitstream {
             buffer,
             bit_index: 0,
@@ -51,7 +51,7 @@ impl Bitstream {
         }
 
         Self::create(
-            buffer,
+            Box::leak(buffer.into_boxed_slice()),
             if current_bit_count == 0 {
                 8
             } else {
@@ -111,7 +111,7 @@ mod test {
 
     #[test]
     fn bitstream_example_3() {
-        let mut bitstream = Bitstream::create(vec![0x57, 0xa3], 6);
+        let mut bitstream = Bitstream::create(&[0x57, 0xa3], 6);
 
         assert_eq!(bitstream.remaining(), 14);
 
@@ -124,7 +124,7 @@ mod test {
 
     #[test]
     fn bitstream_example_3_parts() {
-        let mut bitstream = Bitstream::create(vec![0x57, 0xa3], 6);
+        let mut bitstream = Bitstream::create(&[0x57, 0xa3], 6);
 
         assert_eq!(bitstream.remaining(), 14);
 

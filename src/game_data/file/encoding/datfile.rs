@@ -36,8 +36,7 @@ pub fn parse(data: &[u8]) -> Result<Content> {
         decompress_section(
             &mut bitstream::Bitstream::create(
                 data.get(o..o + header.compressed_data_size - 10)
-                    .ok_or(anyhow!("out of bounds decompressing section"))?
-                    .to_vec(),
+                    .ok_or(anyhow!("out of bounds decompressing section"))?,
                 header.num_bits_in_first_byte,
             ),
             &mut section_data,
@@ -105,21 +104,10 @@ fn read_header(buffer: &[u8], offset: usize) -> Result<(Header, usize)> {
 }
 
 fn calculate_checksum(header: &Header, buffer: &[u8], offset: usize) -> Result<u8> {
-    let mut checksum: u8 = 0;
-
-    if offset + header.compressed_data_size - 10 > buffer.len() {
-        bail!("not enough data in buffer");
-    }
-
-    let compressed_section = buffer
+    buffer
         .get(offset..header.compressed_data_size - 10 + offset)
-        .ok_or(anyhow!("not enough data in buffer"))?;
-
-    for value in compressed_section {
-        checksum ^= value;
-    }
-
-    Ok(checksum)
+        .ok_or(anyhow!("not enough data in buffer"))
+        .map(|slice| slice.iter().fold(0u8, |acc, x| acc ^ x))
 }
 
 fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>) -> Result<()> {

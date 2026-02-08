@@ -29,8 +29,8 @@ pub fn bitmap_read_planar(
     for iplane in 0..bpp {
         let base = plane_size * iplane;
 
-        for x in 0..width {
-            for y in 0..height {
+        for y in 0..height {
+            for x in 0..width {
                 let ipixel = (y * width) + x;
 
                 let byte = *data.get(base + ipixel / 8).ok_or(anyhow!(
@@ -55,16 +55,16 @@ pub fn bitmap_read_planar(
 
     match effective_transparency_encoding {
         TransparencyEncoding::Black => {
-            for x in 0..width {
-                for y in 0..height {
+            for y in 0..height {
+                for x in 0..width {
                     let ipixel = (y * width) + x;
                     bitmap.transparency[ipixel] = bitmap.data[ipixel] == 0;
                 }
             }
         }
         TransparencyEncoding::PlanarAt(transparency_data) => {
-            for x in 0..width {
-                for y in 0..height {
+            for y in 0..height {
+                for x in 0..width {
                     let ipixel = (y * width) + x;
 
                     let byte = *transparency_data
