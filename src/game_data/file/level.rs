@@ -92,14 +92,12 @@ fn read_terrain_tile(data: &[u8], index: usize) -> Result<Option<TerrainTile>> {
     }
     let flags = x_and_flags >> 12;
 
-    let y0 = read8(data, 0x122 + 4 * index)? as u32;
-    let y1 = read8(data, 0x123 + 4 * index)? as u32;
+    let y = read16(data, 0x122 + 4 * index)? as i32;
 
     Ok(Option::Some(TerrainTile {
         x: (x_and_flags & 0x0fff) as i32 - 16,
-        // sign extend 9 bits and shift zero
-        y: (((((y0 << 1) | (y1 >> 7)) ^ 0x0100).wrapping_add(0xffffff00)) as i32) - 4,
-        id: (y1) & 0x3f,
+        y: ((y << 16) >> 23) - 4,
+        id: (y & 0x3f) as u32,
         do_not_overwrite: (flags & 0x08) != 0,
         flip_y: (flags & 0x04) != 0,
         remove_terrain: (flags & 0x02) != 0,
