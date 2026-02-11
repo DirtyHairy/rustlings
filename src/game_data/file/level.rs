@@ -2,9 +2,13 @@ use std::{fs, path::Path};
 
 use anyhow::{bail, Context, Result};
 
-use crate::game_data::{Level, Object, TerrainTile, NUM_SKILLS};
+use crate::game_data::{Level, LevelParamters, Object, TerrainTile, NUM_SKILLS};
 
 use super::encoding::datfile;
+
+const ODDTABLE_ENTRIES: usize = 80;
+const ODDTABLE_ENTRY_SIZE: usize = 0x38;
+const ODDTABLE_FILENAME: &str = "oddtable.dat";
 
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
@@ -21,6 +25,25 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     }
 
     Ok(levels)
+}
+
+pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParamters>> {
+    println!("reading {}", ODDTABLE_FILENAME);
+
+    let oddtable_data = fs::read(path.join(ODDTABLE_FILENAME).as_os_str())?;
+
+    if oddtable_data.len() != ODDTABLE_ENTRY_SIZE * ODDTABLE_ENTRIES {
+        bail!("invalid {}", ODDTABLE_FILENAME);
+    }
+
+    let mut oddtable: Vec<LevelParamters> = Vec::with_capacity(ODDTABLE_ENTRIES);
+    for i in 0..80 {
+        oddtable.push(decode_oddtable_entry(
+            &oddtable_data[i * ODDTABLE_ENTRY_SIZE..(i + 1) * ODDTABLE_ENTRY_SIZE],
+        )?);
+    }
+
+    Ok(oddtable)
 }
 
 fn decode_level(data: &[u8]) -> Result<Level> {
@@ -48,17 +71,35 @@ fn decode_level(data: &[u8]) -> Result<Level> {
     }
 
     Ok(Level {
+        parameters: LevelParamters {
+            release_rate: read16(data, 0)? as u32,
+            released: read16(data, 0x02)? as u32,
+            required: read16(data, 0x04)? as u32,
+            time_limit: read16(data, 0x06)? as u32,
+            skills,
+            name: read_name(data, 0x07e0)?,
+        },
+        start_x: read16(data, 0x18)? as u32,
+        graphics_set: read16(data, 0x1a)? as u32,
+        extended_graphics_set: read16(data, 0x1c)? as u32,
+        terrain_tiles,
+        objects,
+    })
+}
+
+fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParamters> {
+    let mut skills = [0 as u32; NUM_SKILLS];
+    for i in 0..NUM_SKILLS {
+        skills[i] = read16(data, 0x08 + 2 * i)? as u32;
+    }
+
+    Ok(LevelParamters {
         release_rate: read16(data, 0)? as u32,
         released: read16(data, 0x02)? as u32,
         required: read16(data, 0x04)? as u32,
         time_limit: read16(data, 0x06)? as u32,
-        start_x: read16(data, 0x18)? as u32,
-        graphics_set: read16(data, 0x1a)? as u32,
         skills,
-        extended_graphics_set: read16(data, 0x1c)? as u32,
-        name: read_name(data)?,
-        terrain_tiles,
-        objects,
+        name: read_name(data, 0x18)?,
     })
 }
 
@@ -70,11 +111,11 @@ fn read16(data: &[u8], offset: usize) -> Result<u16> {
     Ok(((read8(data, offset)? as u16) << 8) | read8(data, offset + 1)? as u16)
 }
 
-fn read_name(data: &[u8]) -> Result<String> {
+fn read_name(data: &[u8], offset: usize) -> Result<String> {
     let mut name = String::new();
 
     for i in 0..32 {
-        let charcode = read8(data, 0x07e0 + i)?;
+        let charcode = read8(data, offset + i)?;
         name.push(char::from_u32(charcode as u32).context("invalid level name")?);
     }
 

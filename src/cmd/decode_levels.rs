@@ -24,7 +24,7 @@ pub fn main(path: &Path, destination: &str) -> Result<()> {
     let game_data = read_game_data(path)?;
 
     for level in game_data.levels {
-        let file_name = format!("{}.level.txt", level.name);
+        let file_name = format!("{}.level.txt", level.parameters.name);
         let file_path = Path::new(destination).join(Path::new(&file_name));
 
         let mut file = fs::File::create(file_path)?;

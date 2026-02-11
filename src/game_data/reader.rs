@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use crate::game_data::file::level::read_oddtable;
+
 use super::{
     file::{self, level::read_level_file},
     GameData, Level, SpecialBackground, TileSet, PALETTE_SIZE,
@@ -38,6 +40,8 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         levels.append(&mut read_level_file(path, i)?)
     }
 
+    let oddtable = read_oddtable(path)?;
+
     let mut tilesets: Vec<TileSet> = Vec::with_capacity(NUM_TILESETS);
 
     for i in 0..NUM_TILESETS {
@@ -70,6 +74,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
 
     Ok(GameData {
         levels,
+        oddtable,
         tilesets,
         special_backgrounds,
         static_palette: STATIC_PALETTE,

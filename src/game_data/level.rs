@@ -2,6 +2,8 @@ use std::fmt;
 
 use super::skill::{NUM_SKILLS, SKILLS};
 
+pub const DIFFICULTY_RATINGS: [&str; 4] = ["Fun", "Tricky", "Taxing", "Mayhem"];
+
 #[derive(Clone)]
 pub struct TerrainTile {
     pub x: i32,
@@ -23,16 +25,21 @@ pub struct Object {
 }
 
 #[derive(Clone)]
-pub struct Level {
+pub struct LevelParamters {
     pub release_rate: u32,
     pub released: u32,
     pub required: u32,
     pub time_limit: u32,
     pub skills: [u32; NUM_SKILLS],
+    pub name: String,
+}
+
+#[derive(Clone)]
+pub struct Level {
+    pub parameters: LevelParamters,
     pub start_x: u32,
     pub graphics_set: u32,
     pub extended_graphics_set: u32,
-    pub name: String,
     pub terrain_tiles: Vec<TerrainTile>,
     pub objects: Vec<Object>,
 }
@@ -86,11 +93,11 @@ start_x: {}
 graphics_set: {}
 extended_graphics_set: {}
 Skills"#,
-            self.name,
-            self.release_rate,
-            self.released,
-            self.required,
-            self.time_limit,
+            self.parameters.name,
+            self.parameters.release_rate,
+            self.parameters.released,
+            self.parameters.required,
+            self.parameters.time_limit,
             self.start_x,
             self.graphics_set,
             self.extended_graphics_set,
@@ -101,7 +108,7 @@ Skills"#,
                 f,
                 "  {}: {}",
                 skill.to_string(),
-                self.skills[skill as usize]
+                self.parameters.skills[skill as usize]
             )?;
         }
 

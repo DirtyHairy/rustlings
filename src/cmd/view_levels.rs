@@ -1,10 +1,10 @@
 use crate::game_data::{
-    read_game_data, Bitmap, GameData, Level, Object, TerrainTile, OBJECTS_PER_TILESET, PALETTE_SIZE,
+    read_game_data, Bitmap, GameData, Level, Object, TerrainTile, DIFFICULTY_RATINGS,
+    OBJECTS_PER_TILESET, PALETTE_SIZE,
 };
 use crate::sdl_display::SDLSprite;
 
 use super::util::{create_pixel_format, create_window, timestamp};
-use anyhow::Context;
 use anyhow::{anyhow, Result};
 use sdl2::{
     event::Event,
@@ -20,6 +20,7 @@ use std::{
     time::Duration,
 };
 
+const LEVELS_TOTAL: usize = 120;
 const LEVEL_WIDTH: u32 = 1600;
 const LEVEL_HEIGHT: u32 = 160;
 const TICK_TIME_MSEC: u32 = 1000 / 15;
@@ -36,7 +37,13 @@ struct DrawState<'a> {
     object_sprites: ObjectSprites<'a>,
 }
 
-fn dump_level(level: &Level) -> () {
+fn dump_level(level_index: usize, level: &Level) -> () {
+    println!(
+        "{} {}:",
+        DIFFICULTY_RATINGS[level_index / 30],
+        level_index % 30 + 1
+    );
+
     println!("{}", level);
     println!();
 }
@@ -70,12 +77,7 @@ fn prepare_palette_spec(
         .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
 }
 
-fn prepare_palette(data: &GameData, level_index: usize) -> Result<[u32; PALETTE_SIZE]> {
-    let level = data
-        .levels
-        .get(level_index)
-        .ok_or(anyhow!("invalid level"))?;
-
+fn prepare_palette(data: &GameData, level: &Level) -> Result<[u32; PALETTE_SIZE]> {
     Ok(if level.extended_graphics_set > 0 {
         prepare_palette_spec(data, level.extended_graphics_set as usize - 1)?
     } else {
@@ -142,13 +144,11 @@ fn update_texture(texture: &mut Texture, data: &[u32], dest: Rect, pitch: usize)
 
 fn compose_level(
     data: &GameData,
-    index: usize,
+    level: &Level,
     palette: &[u32; PALETTE_SIZE],
     background_texture: &mut sdl2::render::Texture,
     mask_texture: &mut sdl2::render::Texture,
 ) -> Result<()> {
-    let level = data.levels.get(index).context("invalid level ID")?;
-
     let mut background_data: Vec<u8> = vec![255; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
     if level.extended_graphics_set > 0 {
@@ -386,15 +386,15 @@ fn create_canvas_texture<'a, T>(texture_creator: &'a TextureCreator<T>) -> Resul
 fn switch_level<'a, T>(
     draw_state: &mut DrawState<'a>,
     data: &GameData,
-    level_index: usize,
+    level: &Level,
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<()> {
-    let palette = prepare_palette(data, level_index)?;
+    let palette = prepare_palette(data, level)?;
 
     draw_state.object_sprites = build_object_sprites(data, &palette, texture_creator)?;
     compose_level(
         data,
-        level_index,
+        level,
         &palette,
         &mut draw_state.background,
         &mut draw_state.mask,
@@ -423,9 +423,10 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
     let mut frame: u64 = 0;
     let now = timestamp();
     let mut game_time = 0;
-    let mut i_level = start_level;
+    let mut level_index = start_level;
     let mut zoom = 4;
-    let mut x: u32 = clamp_x(data.levels[i_level].start_x as i32, zoom);
+    let mut level = data.resolve_level(level_index).unwrap();
+    let mut x: u32 = clamp_x(level.start_x as i32, zoom);
 
     let mut left = false;
     let mut right = false;
@@ -444,14 +445,18 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
                     Keycode::Left => left = true,
                     Keycode::Right => right = true,
                     Keycode::Up => {
-                        i_level = (i_level + 1) % data.levels.len();
-                        x = clamp_x(data.levels[i_level].start_x as i32, zoom);
+                        level_index = (level_index + 1) % LEVELS_TOTAL;
+                        level = data.resolve_level(level_index).unwrap();
+
+                        x = clamp_x(level.start_x as i32, zoom);
 
                         level_changed = true;
                     }
                     Keycode::Down => {
-                        i_level = ((i_level + data.levels.len()) - 1) % data.levels.len();
-                        x = clamp_x(data.levels[i_level].start_x as i32, zoom);
+                        level_index = ((level_index + LEVELS_TOTAL) - 1) % LEVELS_TOTAL;
+                        level = data.resolve_level(level_index).unwrap();
+
+                        x = clamp_x(level.start_x as i32, zoom);
 
                         level_changed = true;
                     }
@@ -513,8 +518,8 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
         }
 
         if level_changed {
-            switch_level(&mut draw_state, data, i_level, &texture_creator)?;
-            dump_level(&data.levels[i_level]);
+            switch_level(&mut draw_state, data, &level, &texture_creator)?;
+            dump_level(level_index, &level);
 
             screen_dirty = true;
             level_changed = false;
@@ -522,14 +527,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
         }
 
         if screen_dirty {
-            render(
-                x,
-                zoom,
-                frame,
-                &data.levels[i_level],
-                &mut draw_state,
-                &mut canvas,
-            )?;
+            render(x, zoom, frame, &level, &mut draw_state, &mut canvas)?;
 
             screen_dirty = false;
         }
@@ -548,6 +546,7 @@ pub fn main(path: &Path, start_level: Option<&String>) -> Result<()> {
     if let Some(pattern) = start_level {
         for (index, level) in data.levels.iter().enumerate() {
             if level
+                .parameters
                 .name
                 .to_lowercase()
                 .contains(pattern.to_lowercase().as_str())
