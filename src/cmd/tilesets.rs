@@ -13,7 +13,7 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
 
-    let window = create_window(&sdl_video)?;
+    let window = create_window(&sdl_video, false)?;
 
     let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
     canvas.clear();

@@ -5,6 +5,8 @@ use std::{
 
 use anyhow::{anyhow, Error, Result};
 
+pub const SDL_WINDOW_ALLOW_HIGHDPI: u32 = 0x00002000;
+
 pub fn timestamp() -> u32 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -12,9 +14,14 @@ pub fn timestamp() -> u32 {
         .as_millis() as u32
 }
 
-pub fn create_window(sdl_video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Window> {
-    sdl_video
-        .window("Rustlings", 1280, 800)
+pub fn create_window(sdl_video: &sdl2::VideoSubsystem, hidpi: bool) -> Result<sdl2::video::Window> {
+    let mut builder = sdl_video.window("Rustlings", 1280, 800);
+
+    if hidpi {
+        builder.set_window_flags(SDL_WINDOW_ALLOW_HIGHDPI);
+    }
+
+    builder
         .position_centered()
         .build()
         .map_err(|e| Error::from(e))

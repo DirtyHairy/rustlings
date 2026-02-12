@@ -344,6 +344,8 @@ fn render<'a>(
 
     canvas.clear();
 
+    let (window_width, window_height) = canvas.window().drawable_size();
+
     compose_target.set_blend_mode(BlendMode::None);
     canvas
         .copy(
@@ -351,9 +353,10 @@ fn render<'a>(
             Rect::new(x as i32, 0, 320 * 4 / zoom, LEVEL_HEIGHT),
             Rect::new(
                 0,
-                800 - (800 + LEVEL_HEIGHT as i32 * zoom as i32) / 2,
-                1280,
-                LEVEL_HEIGHT * zoom,
+                (window_height - (window_height + (LEVEL_HEIGHT * zoom * window_height) / 800) / 2)
+                    as i32,
+                window_width,
+                LEVEL_HEIGHT * zoom * window_height / 800,
             ),
         )
         .map_err(|s| anyhow!(s))?;
@@ -407,7 +410,7 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
     let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
-    let window = create_window(&sdl_video)?;
+    let window = create_window(&sdl_video, true)?;
     let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
     let texture_creator = canvas.texture_creator();
 
