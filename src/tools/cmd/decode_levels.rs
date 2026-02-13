@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fs, io::Write, path::Path};
 
 use anyhow::Result;
 
-use crate::game_data::{read_game_data, LevelStructure};
+use rustlings::game_data::{read_game_data, LevelStructure};
 
 fn comparator<T: LevelStructure>(o1: &T, o2: &T) -> Ordering {
     if o1.get_id() == o2.get_id() {

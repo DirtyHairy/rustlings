@@ -1,7 +1,7 @@
 use anyhow::*;
 use sdl2::{pixels::PixelFormatEnum, rect::Rect, render::*};
 
-use crate::game_data::{Bitmap, Sprite};
+use rustlings::game_data::{Bitmap, Sprite};
 
 pub struct SDLSprite<'a> {
     pub width: usize,

@@ -1,10 +1,8 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use super::util::{create_pixel_format, create_window, timestamp};
-use crate::{
-    game_data::{read_game_data, GameData},
-    sdl_display::SDLSprite,
-};
+use crate::sdl_display::SDLSprite;
+use rustlings::game_data::{read_game_data, GameData};
 use anyhow::{anyhow, Result};
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 

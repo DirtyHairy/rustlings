@@ -1,9 +1,7 @@
 use std::{path::Path, thread::sleep, time::Duration};
 
-use crate::{
-    game_data::{read_game_data, GameData},
-    sdl_display::SDLSprite,
-};
+use crate::sdl_display::SDLSprite;
+use rustlings::game_data::{read_game_data, GameData};
 
 use super::util;
 use anyhow::{anyhow, Result};

@@ -1,8 +1,8 @@
-use crate::game_data::{
+use crate::sdl_display::SDLSprite;
+use rustlings::game_data::{
     read_game_data, Bitmap, GameData, Level, Object, TerrainTile, DIFFICULTY_RATINGS,
     OBJECTS_PER_TILESET, PALETTE_SIZE,
 };
-use crate::sdl_display::SDLSprite;
 
 use super::util::{create_pixel_format, create_window, timestamp};
 use anyhow::{anyhow, Result};

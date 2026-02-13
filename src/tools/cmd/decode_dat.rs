@@ -1,7 +1,7 @@
 use anyhow::{Context, Ok, Result};
 use std::{fs, path::Path};
 
-use crate::game_data::file::encoding::datfile;
+use rustlings::game_data::file::encoding::datfile;
 
 pub fn main(path_name: &str) -> Result<()> {
     let path = Path::new(path_name);
