@@ -1,5 +1,5 @@
 use anyhow::*;
-use sdl2::{pixels::PixelFormatEnum, rect::Rect, render::*};
+use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
 
 use rustlings::game_data::{Bitmap, Sprite};
 
@@ -17,11 +17,12 @@ impl<'a> SDLSprite<'a> {
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<SDLSprite<'a>> {
         let mut texture = texture_creator.create_texture(
-            PixelFormatEnum::RGBA8888,
+            PixelFormat::RGBA8888,
             TextureAccess::Static,
             (sprite.width * sprite.frames.len()) as u32,
             sprite.height as u32,
         )?;
+        texture.set_scale_mode(ScaleMode::Nearest);
 
         let mut bitmap_data = vec![0u32; sprite.width * sprite.height];
 
@@ -74,11 +75,12 @@ impl<'a> SDLSprite<'a> {
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<SDLSprite<'a>> {
         let mut texture = texture_creator.create_texture(
-            PixelFormatEnum::RGBA8888,
+            PixelFormat::RGBA8888,
             TextureAccess::Static,
             bitmap.width as u32,
             bitmap.height as u32,
         )?;
+        texture.set_scale_mode(ScaleMode::Nearest);
 
         let mut bitmap_data = vec![0u32; bitmap.width * bitmap.height];
 
@@ -124,7 +126,7 @@ impl<'a> SDLSprite<'a> {
         scale: usize,
         flip_y: bool,
     ) -> Result<()> {
-        return canvas
+        canvas
             .copy_ex(
                 &self.texture,
                 Rect::new(
@@ -144,6 +146,6 @@ impl<'a> SDLSprite<'a> {
                 false,
                 flip_y,
             )
-            .map_err(|s| anyhow!(s));
+            .map_err(anyhow::Error::from)
     }
 }

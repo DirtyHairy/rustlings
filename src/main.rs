@@ -14,6 +14,9 @@ fn event_is_quit(event: &Event) -> bool {
 
 fn main() -> Result<()> {
     let sdl_context = sdl3::init().expect("unable to initialize SDL3");
+    sdl3::hint::set("SDL_RENDER_VSYNC", "1");
+    sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
+
     let sdl_video = sdl_context.video().expect("failed to initialize video");
 
     let mut window = sdl_video

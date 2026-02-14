@@ -1,15 +1,15 @@
 use crate::sdl_display::SDLSprite;
 use rustlings::game_data::{
-    read_game_data, Bitmap, GameData, Level, Object, TerrainTile, DIFFICULTY_RATINGS,
-    OBJECTS_PER_TILESET, PALETTE_SIZE,
+    Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
+    TerrainTile, read_game_data,
 };
 
-use super::util::{create_pixel_format, create_window, timestamp};
-use anyhow::{anyhow, Result};
-use sdl2::{
+use super::util::{create_window, timestamp};
+use anyhow::{Result, anyhow};
+use sdl3::{
     event::Event,
     keyboard::Keycode,
-    pixels::{Color, PixelFormatEnum},
+    pixels::{Color, PixelFormat},
     rect::Rect,
     render::{BlendMode, Canvas, RenderTarget, Texture, TextureCreator},
 };
@@ -49,23 +49,21 @@ fn dump_level(level_index: usize, level: &Level) -> () {
 }
 
 fn prepare_palette_tiled(data: &GameData, tileset_index: usize) -> Result<[u32; PALETTE_SIZE]> {
-    let pixel_format = create_pixel_format()?;
-
     Ok(data
         .tilesets
         .get(tileset_index)
         .ok_or(anyhow!("invalid tileset index {}", tileset_index))?
         .palettes
         .custom
-        .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
+        .map(|(r, g, b)| {
+            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
+        }))
 }
 
 fn prepare_palette_spec(
     data: &GameData,
     special_background_index: usize,
 ) -> Result<[u32; PALETTE_SIZE]> {
-    let pixel_format = create_pixel_format()?;
-
     Ok(data
         .special_backgrounds
         .get(special_background_index)
@@ -74,7 +72,9 @@ fn prepare_palette_spec(
             special_background_index
         ))?
         .palette
-        .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format)))
+        .map(|(r, g, b)| {
+            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
+        }))
 }
 
 fn prepare_palette(data: &GameData, level: &Level) -> Result<[u32; PALETTE_SIZE]> {
@@ -146,8 +146,8 @@ fn compose_level(
     data: &GameData,
     level: &Level,
     palette: &[u32; PALETTE_SIZE],
-    background_texture: &mut sdl2::render::Texture,
-    mask_texture: &mut sdl2::render::Texture,
+    background_texture: &mut Texture,
+    mask_texture: &mut Texture,
 ) -> Result<()> {
     let mut background_data: Vec<u8> = vec![255; LEVEL_WIDTH as usize * LEVEL_HEIGHT as usize];
 
@@ -290,13 +290,13 @@ fn draw<T: RenderTarget>(
 ) -> Result<()> {
     texture.set_blend_mode(blend_mode);
 
-    canvas
-        .copy(
-            texture,
-            Rect::new(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT),
-            Rect::new(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT),
-        )
-        .map_err(|s| anyhow!(s))
+    canvas.copy(
+        texture,
+        Rect::new(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT),
+        Rect::new(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT),
+    )?;
+
+    Ok(())
 }
 
 fn render<'a>(
@@ -305,7 +305,7 @@ fn render<'a>(
     frame: u64,
     level: &Level,
     draw_state: &mut DrawState<'a>,
-    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    canvas: &mut Canvas<sdl3::video::Window>,
 ) -> Result<()> {
     let DrawState {
         compose_target,
@@ -344,22 +344,20 @@ fn render<'a>(
 
     canvas.clear();
 
-    let (window_width, window_height) = canvas.window().drawable_size();
+    let (window_width, window_height) = canvas.output_size()?;
 
     compose_target.set_blend_mode(BlendMode::None);
-    canvas
-        .copy(
-            &draw_state.compose_target,
-            Rect::new(x as i32, 0, 320 * 4 / zoom, LEVEL_HEIGHT),
-            Rect::new(
-                0,
-                (window_height - (window_height + (LEVEL_HEIGHT * zoom * window_height) / 800) / 2)
-                    as i32,
-                window_width,
-                LEVEL_HEIGHT * zoom * window_height / 800,
-            ),
-        )
-        .map_err(|s| anyhow!(s))?;
+    canvas.copy(
+        &draw_state.compose_target,
+        Rect::new(x as i32, 0, 320 * 4 / zoom, LEVEL_HEIGHT),
+        Rect::new(
+            0,
+            (window_height - (window_height + (LEVEL_HEIGHT * zoom * window_height) / 800) / 2)
+                as i32,
+            window_width,
+            LEVEL_HEIGHT * zoom * window_height / 800,
+        ),
+    )?;
 
     canvas.present();
 
@@ -381,9 +379,13 @@ fn transform_x_for_zoom(x: u32, old_zoom: u32, zoom: u32) -> u32 {
 }
 
 fn create_canvas_texture<'a, T>(texture_creator: &'a TextureCreator<T>) -> Result<Texture<'a>> {
-    texture_creator
-        .create_texture_target(PixelFormatEnum::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)
-        .map_err(|e| anyhow!(e))
+    let mut texture = texture_creator
+        .create_texture_target(PixelFormat::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)
+        .map_err(|e| anyhow!(e))?;
+
+    texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
+
+    Ok(texture)
 }
 
 fn switch_level<'a, T>(
@@ -407,11 +409,15 @@ fn switch_level<'a, T>(
 }
 
 fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
-    let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    sdl3::hint::set("SDL_RENDER_VSYNC", "1");
+    sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
+
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
     let window = create_window(&sdl_video, true)?;
-    let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
+
+    let mut canvas = window.into_canvas();
     let texture_creator = canvas.texture_creator();
 
     let mut draw_state = DrawState {

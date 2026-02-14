@@ -1,33 +1,38 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
-use super::util::{create_pixel_format, create_window, timestamp};
+use super::util::{create_window, timestamp};
 use crate::sdl_display::SDLSprite;
-use rustlings::game_data::{read_game_data, GameData};
-use anyhow::{anyhow, Result};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+use anyhow::{Result, anyhow};
+use rustlings::game_data::{GameData, read_game_data};
+use sdl3::{
+    event::Event,
+    keyboard::Keycode,
+    pixels::{Color, PixelFormat},
+};
 
 fn display_tileset(game_data: &GameData) -> Result<()> {
-    let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    sdl3::hint::set("SDL_RENDER_VSYNC", "1");
+    sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
+
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
 
     let window = create_window(&sdl_video, false)?;
 
-    let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
+    let mut canvas = window.into_canvas();
     canvas.clear();
 
     let texture_creator = canvas.texture_creator();
-    let pixel_format = create_pixel_format()?;
 
     let mut spritesets: Vec<Vec<SDLSprite>> = Vec::new();
 
     for i in 0..game_data.tilesets.len() {
         let mut sprites: Vec<SDLSprite> = Vec::new();
 
-        let palette = game_data.tilesets[i]
-            .palettes
-            .custom
-            .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
+        let palette = game_data.tilesets[i].palettes.custom.map(|(r, g, b)| {
+            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
+        });
 
         for object_sprite in &game_data.tilesets[i].object_sprites {
             object_sprite

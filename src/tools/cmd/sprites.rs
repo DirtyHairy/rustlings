@@ -1,28 +1,34 @@
 use std::{path::Path, thread::sleep, time::Duration};
 
 use crate::sdl_display::SDLSprite;
-use rustlings::game_data::{read_game_data, GameData};
+use rustlings::game_data::{GameData, read_game_data};
 
 use super::util;
-use anyhow::{anyhow, Result};
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+use anyhow::{Result, anyhow};
+use sdl3::{
+    event::Event,
+    keyboard::Keycode,
+    pixels::{Color, PixelFormat},
+};
 
 fn display_sprites(game_data: &GameData) -> Result<()> {
-    let sdl_context = sdl2::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    sdl3::hint::set("SDL_RENDER_VSYNC", "1");
+    sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
+
     let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
     let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
 
     let window = util::create_window(&sdl_video, false)?;
 
-    let mut canvas = window.into_canvas().accelerated().present_vsync().build()?;
+    let mut canvas = window.into_canvas();
     canvas.clear();
 
     let texture_creator = canvas.texture_creator();
-    let pixel_format = util::create_pixel_format()?;
 
-    let palette = game_data
-        .static_palette
-        .map(|(r, g, b)| Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&pixel_format));
+    let palette = game_data.static_palette.map(|(r, g, b)| {
+        Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
+    });
 
     let mut sdl_sprites: Vec<SDLSprite> = game_data
         .lemming_sprites
