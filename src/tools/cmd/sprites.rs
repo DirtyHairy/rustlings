@@ -47,7 +47,7 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
 
         canvas.clear();
 
-        if now - last_draw > 1000 / 10 {
+        if now - last_draw > 1000 / 15 {
             for (isprite, sprite) in sdl_sprites.iter_mut().enumerate() {
                 sprite.blit(
                     &mut canvas,

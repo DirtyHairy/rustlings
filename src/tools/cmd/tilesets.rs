@@ -58,7 +58,7 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
     while running {
         let now = timestamp();
 
-        if now - last_draw > 1000 / 10 {
+        if now - last_draw > 1000 / 15 {
             let mut x: i32 = 0;
             let mut y: i32 = 1;
             let mut height: i32 = 0;
