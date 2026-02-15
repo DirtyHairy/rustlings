@@ -1,5 +1,7 @@
 use super::encoding;
-use super::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry};
+use super::palette::{
+    LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, expand_rgb6_to8, read_palette_entry,
+};
 use super::read::read_byte;
 use super::sprite::{Bitmap, TransparencyEncoding};
 use anyhow::{Result, anyhow, bail};
@@ -8,6 +10,7 @@ use std::{fs, path::Path};
 const SECTION_SIZE: usize = 14400;
 const VGASPEC_BITMAP_WIDTH: usize = 960;
 const VGASPEC_BITMAP_HEIGHT: usize = 160;
+const MAGIC_PALETTE_ENTRY: PaletteEntry = expand_rgb6_to8(0x1f, 0x1f, 0);
 
 pub struct Content {
     pub palette: [PaletteEntry; PALETTE_SIZE],
@@ -86,6 +89,7 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
         };
     }
 
+    palette[8] = MAGIC_PALETTE_ENTRY;
     palette[7] = palette[8];
 
     let mut i_source = 40;
