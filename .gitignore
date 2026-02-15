@@ -1,6 +1,7 @@
 /target
 *.dat
-levels/*
+levels
+sections
 *.txt
 
 .claude

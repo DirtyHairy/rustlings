@@ -12,7 +12,19 @@ fn event_is_quit(event: &Event) -> bool {
     }
 }
 
-fn main() -> Result<()> {
+fn run_event_loop(sdl_context: &sdl3::Sdl) {
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    loop {
+        while let Some(event) = event_pump.wait_event_timeout(50) {
+            if event_is_quit(&event) {
+                return;
+            }
+        }
+    }
+}
+
+pub fn run() -> Result<()> {
     let sdl_context = sdl3::init().expect("unable to initialize SDL3");
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
@@ -28,12 +40,7 @@ fn main() -> Result<()> {
         .unwrap();
     let _ = window.set_minimum_size(640, 400);
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    for event in event_pump.wait_iter() {
-        if event_is_quit(&event) {
-            break;
-        }
-    }
+    run_event_loop(&sdl_context);
 
     Ok(())
 }
