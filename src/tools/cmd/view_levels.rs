@@ -3,6 +3,7 @@ use rustlings::game_data::{
     Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
     TerrainTile, read_game_data,
 };
+use rustlings::sdl3_aux::get_canvas_vsync;
 
 use super::util::{create_window, timestamp};
 use anyhow::{Result, anyhow};
@@ -418,6 +419,12 @@ fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
     let window = create_window(&sdl_video, true)?;
 
     let mut canvas = window.into_canvas();
+    println!(
+        "canvas initialized; vsync: {}, driver: {}",
+        get_canvas_vsync(&canvas),
+        canvas.renderer_name
+    );
+
     let texture_creator = canvas.texture_creator();
 
     let mut draw_state = DrawState {
