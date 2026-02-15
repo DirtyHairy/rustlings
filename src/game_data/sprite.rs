@@ -8,7 +8,7 @@ pub struct Bitmap {
     pub transparency: Vec<bool>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum TransparencyEncoding<'a> {
     Black,
     PlanarAt(&'a [u8]),

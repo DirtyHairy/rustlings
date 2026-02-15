@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use crate::game_data::{Bitmap, Sprite, TransparencyEncoding};
 
@@ -106,7 +106,7 @@ pub fn sprite_read_planar(
             bpp,
             data.get(base..base + frame_size)
                 .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
-            transparency_encoding.clone(),
+            transparency_encoding,
         )?);
     }
 
