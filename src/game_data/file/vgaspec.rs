@@ -1,16 +1,16 @@
+use super::encoding;
+use super::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry};
+use super::read::read_byte;
+use super::sprite::{Bitmap, TransparencyEncoding};
+use anyhow::{Result, anyhow, bail};
 use std::{fs, path::Path};
-
-use crate::game_data::{Bitmap, TransparencyEncoding, PALETTE_SIZE};
-
-use super::{encoding, palette::PALETTE_FIXED, sprite_helper::bitmap_read_planar};
-use anyhow::{anyhow, bail, Context, Result};
 
 const SECTION_SIZE: usize = 14400;
 const VGASPEC_BITMAP_WIDTH: usize = 960;
 const VGASPEC_BITMAP_HEIGHT: usize = 160;
 
 pub struct Content {
-    pub palette: [(usize, usize, usize); PALETTE_SIZE],
+    pub palette: [PaletteEntry; PALETTE_SIZE],
     pub bitmap: Bitmap,
 }
 
@@ -24,7 +24,7 @@ pub fn read_vgaspec(path: &Path, index: usize) -> Result<Content> {
 }
 
 fn read8(data: &[u8], offset: usize) -> Result<u8> {
-    Ok(*data.get(offset).context("invalid level data")? as u8)
+    Ok(read_byte(data, offset)?.0)
 }
 
 fn read_bitmap_section(src: &[u8], index: usize, dest: &mut [u8]) -> Result<usize> {
@@ -77,16 +77,12 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
 
     let data = &decompressed_sections.sections[0].data;
 
-    let mut palette: [(usize, usize, usize); 16] = [(0, 0, 0); 16];
+    let mut palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); 16];
 
     for i in 0..8 {
-        let r = read8(data, 3 * i)? as usize * 4;
-        let g = read8(data, 3 * i + 1)? as usize * 4;
-        let b = read8(data, 3 * i + 2)? as usize * 4;
-
-        palette[8 + i] = (r, g, b);
+        palette[8 + i] = read_palette_entry(data, 3 * i)?.0;
         if i != 7 {
-            palette[i] = PALETTE_FIXED[i]
+            palette[i] = LOWER_PALETTE_FIXED[i];
         };
     }
 
@@ -99,7 +95,7 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
     for _i in 0..4 {
         i_source = read_bitmap_section(data, i_source, &mut bitmap_data)?;
 
-        section_bitmaps.push(bitmap_read_planar(
+        section_bitmaps.push(Bitmap::read_planar(
             VGASPEC_BITMAP_WIDTH,
             VGASPEC_BITMAP_HEIGHT / 4,
             3,

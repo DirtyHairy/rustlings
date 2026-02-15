@@ -1,7 +1,7 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use super::util::{create_window, timestamp};
-use crate::sdl_display::SDLSprite;
+use crate::sdl_sprite::SDLSprite;
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{GameData, read_game_data};
 use sdl3::{

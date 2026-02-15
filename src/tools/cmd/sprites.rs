@@ -1,6 +1,6 @@
 use std::{path::Path, thread::sleep, time::Duration};
 
-use crate::sdl_display::SDLSprite;
+use crate::sdl_sprite::SDLSprite;
 use rustlings::game_data::{GameData, read_game_data};
 
 use super::util;

@@ -1,4 +1,4 @@
-use crate::sdl_display::SDLSprite;
+use crate::sdl_sprite::SDLSprite;
 use rustlings::game_data::{
     Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
     TerrainTile, read_game_data,

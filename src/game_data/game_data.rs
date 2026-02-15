@@ -1,6 +1,10 @@
-use crate::game_data::LevelParamters;
-
-use super::{Level, SpecialBackground, Sprite, TileSet, NUM_LEMMING_SPRITES, PALETTE_SIZE};
+pub use super::file::ground::{
+    OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
+};
+pub use super::file::level::{Level, LevelParamters, LevelStructure, Object, TerrainTile};
+pub use super::file::main::NUM_LEMMING_SPRITES;
+pub use super::file::palette::{PALETTE_SIZE, PaletteEntry};
+pub use super::file::sprite::{Bitmap, Sprite};
 
 const LEVEL_TABLE: [u8; 120] = [
     0x93, 0x9b, 0x9d, 0x95, 0x97, 0x99, 0x9f, 0x0e, 0x16, 0x36, 0x46, 0x10, 0x1d, 0x20, 0x26, 0x2a,
@@ -13,6 +17,24 @@ const LEVEL_TABLE: [u8; 120] = [
     0x83, 0x85, 0x87, 0x89, 0x8b, 0x8d, 0x8f, 0x91,
 ];
 
+pub const DIFFICULTY_RATINGS: [&str; 4] = ["Fun", "Tricky", "Taxing", "Mayhem"];
+
+#[derive(Clone)]
+pub struct SpecialBackground {
+    pub palette: [PaletteEntry; PALETTE_SIZE],
+    pub bitmap: Bitmap,
+}
+
+#[derive(Clone)]
+#[allow(dead_code)]
+pub struct TileSet {
+    pub object_info: [ObjectInfo; OBJECTS_PER_TILESET],
+    pub terrain_info: [TerrainInfo; TILES_PER_TILESET],
+    pub palettes: Palettes,
+    pub object_sprites: [Option<Sprite>; OBJECTS_PER_TILESET],
+    pub tiles: [Option<Bitmap>; TILES_PER_TILESET],
+}
+
 #[derive(Clone)]
 pub struct GameData {
     pub levels: Vec<Level>,
@@ -20,7 +42,7 @@ pub struct GameData {
     pub tilesets: Vec<TileSet>,
     pub special_backgrounds: Vec<SpecialBackground>,
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
-    pub static_palette: [(usize, usize, usize); PALETTE_SIZE],
+    pub static_palette: [PaletteEntry; PALETTE_SIZE],
 }
 
 impl GameData {

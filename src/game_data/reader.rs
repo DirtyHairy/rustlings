@@ -1,37 +1,17 @@
-use std::path::Path;
-
-use crate::game_data::file::level::read_oddtable;
-
-use super::{
-    file::{self, level::read_level_file},
-    GameData, Level, SpecialBackground, TileSet, PALETTE_SIZE,
-};
-
+use super::file::ground::read_ground;
+use super::file::level::{Level, read_level_file, read_oddtable};
+use super::file::main::read_main;
+use super::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
+use super::file::vgagr::read_vgagr;
+use super::file::vgaspec::read_vgaspec;
+use super::game_data::{GameData, SpecialBackground, TileSet};
 use anyhow::Result;
+use std::path::Path;
 
 const NUM_LEVELS_FILES: usize = 10;
 const LEVELS_PER_FILE: usize = 8;
 const NUM_TILESETS: usize = 5;
 const NUM_SPECIAL_BACKGROUND: usize = 4;
-
-const STATIC_PALETTE: [(usize, usize, usize); PALETTE_SIZE] = [
-    (0, 0, 0),
-    (64, 64, 224),
-    (0, 176, 0),
-    (240, 208, 208),
-    (176, 176, 0),
-    (240, 32, 32),
-    (128, 128, 128),
-    (0, 0, 0),
-    (64, 64, 224),
-    (0, 176, 0),
-    (240, 208, 208),
-    (176, 176, 0),
-    (240, 32, 32),
-    (128, 128, 128),
-    (0, 0, 0),
-    (64, 64, 224),
-];
 
 pub fn read_game_data(path: &Path) -> Result<GameData> {
     let mut levels: Vec<Level> = Vec::with_capacity(LEVELS_PER_FILE * NUM_LEVELS_FILES);
@@ -45,9 +25,8 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
     let mut tilesets: Vec<TileSet> = Vec::with_capacity(NUM_TILESETS);
 
     for i in 0..NUM_TILESETS {
-        let ground_dat = file::ground::read_ground(path, i)?;
-        let vgagr =
-            file::vgagr::read_vgagr(path, i, &ground_dat.object_info, &ground_dat.terrain_info)?;
+        let ground_dat = read_ground(path, i)?;
+        let vgagr = read_vgagr(path, i, &ground_dat.object_info, &ground_dat.terrain_info)?;
 
         tilesets.push(TileSet {
             object_info: ground_dat.object_info,
@@ -62,7 +41,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         Vec::with_capacity(NUM_SPECIAL_BACKGROUND);
 
     for i in 0..NUM_SPECIAL_BACKGROUND {
-        let vgaspec = file::vgaspec::read_vgaspec(path, i)?;
+        let vgaspec = read_vgaspec(path, i)?;
 
         special_backgrounds.push(SpecialBackground {
             palette: vgaspec.palette,
@@ -70,14 +49,19 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         });
     }
 
-    let main = file::main::read_main(path)?;
+    let main = read_main(path)?;
+
+    let mut static_palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
+    for i in 0..PALETTE_SIZE {
+        static_palette[i] = LOWER_PALETTE_FIXED[i % LOWER_PALETTE_FIXED.len()];
+    }
 
     Ok(GameData {
         levels,
         oddtable,
         tilesets,
         special_backgrounds,
-        static_palette: STATIC_PALETTE,
+        static_palette,
         lemming_sprites: main.lemming_sprites,
     })
 }

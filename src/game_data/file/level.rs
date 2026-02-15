@@ -1,14 +1,60 @@
-use std::{fs, path::Path};
-
-use anyhow::{bail, Context, Result};
-
-use crate::game_data::{Level, LevelParamters, Object, TerrainTile, NUM_SKILLS};
-
 use super::encoding::datfile;
+use super::read::{read_byte, read_word_le};
+use crate::game_data::skill::{NUM_SKILLS, SKILLS};
+use anyhow::{Context, Result, bail};
+use std::fmt;
+use std::{fs, path::Path};
 
 const ODDTABLE_ENTRIES: usize = 80;
 const ODDTABLE_ENTRY_SIZE: usize = 0x38;
 const ODDTABLE_FILENAME: &str = "oddtable.dat";
+
+#[derive(Clone)]
+pub struct TerrainTile {
+    pub x: i32,
+    pub y: i32,
+    pub id: u32,
+    pub do_not_overwrite: bool,
+    pub flip_y: bool,
+    pub remove_terrain: bool,
+}
+
+#[derive(Clone)]
+pub struct Object {
+    pub x: i32,
+    pub y: i32,
+    pub id: u32,
+    pub do_not_overwrite: bool,
+    pub flip_y: bool,
+    pub draw_only_over_terrain: bool,
+}
+
+#[derive(Clone)]
+pub struct LevelParamters {
+    pub release_rate: u32,
+    pub released: u32,
+    pub required: u32,
+    pub time_limit: u32,
+    pub skills: [u32; NUM_SKILLS],
+    pub name: String,
+}
+
+#[derive(Clone)]
+pub struct Level {
+    pub parameters: LevelParamters,
+    pub start_x: u32,
+    pub graphics_set: u32,
+    pub extended_graphics_set: u32,
+    pub terrain_tiles: Vec<TerrainTile>,
+    pub objects: Vec<Object>,
+}
+
+#[allow(dead_code)]
+pub trait LevelStructure {
+    fn get_id(&self) -> u32;
+    fn get_x(&self) -> i32;
+    fn get_y(&self) -> i32;
+}
 
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
@@ -104,11 +150,11 @@ fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParamters> {
 }
 
 fn read8(data: &[u8], offset: usize) -> Result<u8> {
-    Ok(*data.get(offset).context("invalid level data")? as u8)
+    Ok(read_byte(data, offset)?.0)
 }
 
 fn read16(data: &[u8], offset: usize) -> Result<u16> {
-    Ok(((read8(data, offset)? as u16) << 8) | read8(data, offset + 1)? as u16)
+    Ok(read_word_le(data, offset)?.0)
 }
 
 fn read_name(data: &[u8], offset: usize) -> Result<String> {
@@ -168,4 +214,104 @@ fn read_object(data: &[u8], index: usize) -> Result<Option<Object>> {
         draw_only_over_terrain: (flags & 0x40) != 0,
         flip_y: (flip & 0x80) != 0,
     }))
+}
+
+impl LevelStructure for Object {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+
+    fn get_x(&self) -> i32 {
+        self.x
+    }
+
+    fn get_y(&self) -> i32 {
+        self.y
+    }
+}
+
+impl LevelStructure for TerrainTile {
+    fn get_id(&self) -> u32 {
+        self.id
+    }
+
+    fn get_x(&self) -> i32 {
+        self.x
+    }
+
+    fn get_y(&self) -> i32 {
+        self.y
+    }
+}
+
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"{}
+*****
+release_rate: {}
+released: {}
+required: {}
+time_limit: {}
+start_x: {}
+graphics_set: {}
+extended_graphics_set: {}
+Skills"#,
+            self.parameters.name,
+            self.parameters.release_rate,
+            self.parameters.released,
+            self.parameters.required,
+            self.parameters.time_limit,
+            self.start_x,
+            self.graphics_set,
+            self.extended_graphics_set,
+        )?;
+
+        for skill in SKILLS {
+            writeln!(
+                f,
+                "  {}: {}",
+                skill.to_string(),
+                self.parameters.skills[skill as usize]
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for TerrainTile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"x: {}
+y: {}
+id: {}
+do_not_overwrite: {}
+flip_y: {}
+remove_terrain: {}"#,
+            self.x, self.y, self.id, self.do_not_overwrite, self.flip_y, self.remove_terrain,
+        )
+    }
+}
+
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            r#"x: {}
+y: {}
+id: {}
+do_not_overwrite: {}
+flip_y: {}
+draw_only_over_terrain: {}"#,
+            self.x,
+            self.y,
+            self.id,
+            self.do_not_overwrite,
+            self.flip_y,
+            self.draw_only_over_terrain,
+        )
+    }
 }

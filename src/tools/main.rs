@@ -1,5 +1,5 @@
 mod cmd;
-mod sdl_display;
+mod sdl_sprite;
 
 use anyhow::Result;
 use clap::{Arg, ArgMatches, Command};

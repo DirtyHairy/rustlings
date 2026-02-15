@@ -1,10 +1,9 @@
-use anyhow::{bail, Result};
+use super::encoding::datfile;
+use super::sprite::{Sprite, TransparencyEncoding};
+use anyhow::{Result, bail};
 use std::{convert::TryInto, fs, path::Path};
 
-use super::encoding::datfile;
-use super::sprite_helper::sprite_read_planar;
-
-use crate::game_data::{Sprite, TransparencyEncoding, NUM_LEMMING_SPRITES};
+pub const NUM_LEMMING_SPRITES: usize = 30;
 
 const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
     (8, 16, 10, 2),
@@ -56,7 +55,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let mut offset = 0;
 
     for (frame_count, width, height, bpp) in LEMMING_SPRITES {
-        lemming_sprites.push(sprite_read_planar(
+        lemming_sprites.push(Sprite::read_planar(
             frame_count,
             width,
             height,

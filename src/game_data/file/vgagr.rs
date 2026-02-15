@@ -1,14 +1,8 @@
-use std::{fs, path::Path};
-
-use anyhow::{anyhow, bail, Result};
-
-use super::sprite_helper::{bitmap_read_planar, sprite_read_planar};
-use crate::game_data::{
-    Bitmap, ObjectInfo, Sprite, TerrainInfo, TransparencyEncoding, OBJECTS_PER_TILESET,
-    TILES_PER_TILESET,
-};
-
 use super::encoding::datfile;
+use super::ground::{OBJECTS_PER_TILESET, ObjectInfo, TILES_PER_TILESET, TerrainInfo};
+use super::sprite::{Bitmap, Sprite, TransparencyEncoding};
+use anyhow::{Result, anyhow, bail};
+use std::{fs, path::Path};
 
 pub struct Content {
     pub object_sprites: [Option<Sprite>; OBJECTS_PER_TILESET],
@@ -45,7 +39,7 @@ pub fn read_vgagr(
         }
 
         let mut offset = info.frames_offset;
-        object_sprites[i] = Some(sprite_read_planar(
+        object_sprites[i] = Some(Sprite::read_planar(
             info.animation_end,
             info.width,
             info.height,
@@ -69,7 +63,7 @@ pub fn read_vgagr(
             continue;
         }
 
-        tiles[i] = Some(bitmap_read_planar(
+        tiles[i] = Some(Bitmap::read_planar(
             info.width,
             info.height,
             4,
