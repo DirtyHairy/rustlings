@@ -1,3 +1,5 @@
+use crate::game_data::Bitmap;
+
 use super::encoding::datfile;
 use super::sprite::{Sprite, TransparencyEncoding};
 use anyhow::{Result, bail};
@@ -40,6 +42,7 @@ const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
 
 pub struct Content {
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
+    pub skill_panel: Bitmap,
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
@@ -47,7 +50,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let maindata = fs::read(path.join("main.dat").as_os_str())?;
 
     let datfile::Content { sections } = datfile::parse(&maindata)?;
-    if sections.len() < 1 {
+    if sections.len() < 3 {
         bail!("invalid main.dat");
     }
 
@@ -72,5 +75,12 @@ pub fn read_main(path: &Path) -> Result<Content> {
             .try_into()
             .map_err(|_| ())
             .expect("internal error"),
+        skill_panel: Bitmap::read_planar(
+            320,
+            40,
+            4,
+            &sections[2].data,
+            TransparencyEncoding::Black,
+        )?,
     })
 }

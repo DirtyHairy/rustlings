@@ -4,7 +4,7 @@ use super::file::main::read_main;
 use super::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
 use super::file::vgagr::read_vgagr;
 use super::file::vgaspec::read_vgaspec;
-use super::game_data::{GameData, SpecialBackground, TileSet};
+use super::game_data::{GameData, Image, TileSet};
 use anyhow::Result;
 use std::path::Path;
 
@@ -37,13 +37,12 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         })
     }
 
-    let mut special_backgrounds: Vec<SpecialBackground> =
-        Vec::with_capacity(NUM_SPECIAL_BACKGROUND);
+    let mut special_backgrounds: Vec<Image> = Vec::with_capacity(NUM_SPECIAL_BACKGROUND);
 
     for i in 0..NUM_SPECIAL_BACKGROUND {
         let vgaspec = read_vgaspec(path, i)?;
 
-        special_backgrounds.push(SpecialBackground {
+        special_backgrounds.push(Image {
             palette: vgaspec.palette,
             bitmap: vgaspec.bitmap,
         });
@@ -62,6 +61,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         tilesets,
         special_backgrounds,
         static_palette,
+        skill_panel: main.skill_panel,
         lemming_sprites: main.lemming_sprites,
     })
 }

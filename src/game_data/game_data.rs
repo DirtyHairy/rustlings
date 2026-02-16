@@ -1,3 +1,5 @@
+use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
+
 pub use super::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
@@ -20,7 +22,7 @@ const LEVEL_TABLE: [u8; 120] = [
 pub const DIFFICULTY_RATINGS: [&str; 4] = ["Fun", "Tricky", "Taxing", "Mayhem"];
 
 #[derive(Clone)]
-pub struct SpecialBackground {
+pub struct Image {
     pub palette: [PaletteEntry; PALETTE_SIZE],
     pub bitmap: Bitmap,
 }
@@ -40,7 +42,8 @@ pub struct GameData {
     pub levels: Vec<Level>,
     pub oddtable: Vec<LevelParamters>,
     pub tilesets: Vec<TileSet>,
-    pub special_backgrounds: Vec<SpecialBackground>,
+    pub special_backgrounds: Vec<Image>,
+    pub skill_panel: Bitmap,
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
     pub static_palette: [PaletteEntry; PALETTE_SIZE],
 }
@@ -66,5 +69,23 @@ impl GameData {
                 ..level.clone()
             });
         }
+    }
+
+    pub fn resolve_skill_panel_palette(&self, tileset: usize) -> [PaletteEntry; PALETTE_SIZE] {
+        let mut palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
+
+        for i in 0..PALETTE_SIZE {
+            palette[i] = match i {
+                0..7 => LOWER_PALETTE_FIXED[i],
+                7 => self
+                    .tilesets
+                    .get(tileset)
+                    .map(|tileset| tileset.palettes.custom[i])
+                    .unwrap_or((0, 0, 0)),
+                8.. => UPPER_PALETTE_SKILL_PANEL[i - 8],
+            };
+        }
+
+        palette
     }
 }
