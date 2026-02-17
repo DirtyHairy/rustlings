@@ -1,8 +1,8 @@
-use crate::sdl_sprite::SDLSprite;
 use rustlings::game_data::{
     Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
-    TerrainTile, read_game_data,
+    PaletteEntry, TerrainTile, read_game_data,
 };
+use rustlings::sdl_sprite::SDLSprite;
 use rustlings::sdl3_aux::get_canvas_vsync;
 
 use super::util::{create_window, timestamp};
@@ -25,7 +25,6 @@ const LEVELS_TOTAL: usize = 120;
 const LEVEL_WIDTH: u32 = 1600;
 const LEVEL_HEIGHT: u32 = 160;
 const TICK_TIME_MSEC: u32 = 1000 / 15;
-const VGASPEC_PALETTE_MAP: [u8; 8] = [0, 9, 10, 11, 12, 13, 14, 15];
 const VGASPEC_POSITION: usize = 304;
 
 type ObjectSprites<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
@@ -49,41 +48,21 @@ fn dump_level(level_index: usize, level: &Level) -> () {
     println!();
 }
 
-fn prepare_palette_tiled(data: &GameData, tileset_index: usize) -> Result<[u32; PALETTE_SIZE]> {
-    Ok(data
-        .tilesets
-        .get(tileset_index)
-        .ok_or(anyhow!("invalid tileset index {}", tileset_index))?
-        .palettes
-        .custom
-        .map(|(r, g, b)| {
-            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
-        }))
-}
-
-fn prepare_palette_spec(
-    data: &GameData,
-    special_background_index: usize,
-) -> Result<[u32; PALETTE_SIZE]> {
-    Ok(data
-        .special_backgrounds
-        .get(special_background_index)
-        .ok_or(anyhow!(
-            "invalid vgaspec index {}",
-            special_background_index
-        ))?
-        .palette
-        .map(|(r, g, b)| {
-            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
-        }))
-}
-
-fn prepare_palette(data: &GameData, level: &Level) -> Result<[u32; PALETTE_SIZE]> {
-    Ok(if level.extended_graphics_set > 0 {
-        prepare_palette_spec(data, level.extended_graphics_set as usize - 1)?
+fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_SIZE]> {
+    if level.extended_graphics_set > 0 {
+        data.special_backgrounds
+            .get(level.extended_graphics_set as usize - 1)
+            .ok_or(anyhow!(
+                "invalid extended graphics set {}",
+                level.extended_graphics_set
+            ))
+            .map(|x| x.palette)
     } else {
-        prepare_palette_tiled(data, level.graphics_set as usize)?
-    })
+        data.tilesets
+            .get(level.graphics_set as usize)
+            .ok_or(anyhow!("invlid graphics set {}", level.graphics_set))
+            .map(|x| x.palettes.custom)
+    }
 }
 
 fn compose_tile_onto_background(
@@ -146,7 +125,7 @@ fn update_texture(texture: &mut Texture, data: &[u32], dest: Rect, pitch: usize)
 fn compose_level(
     data: &GameData,
     level: &Level,
-    palette: &[u32; PALETTE_SIZE],
+    palette: &[PaletteEntry; PALETTE_SIZE],
     background_texture: &mut Texture,
     mask_texture: &mut Texture,
 ) -> Result<()> {
@@ -166,7 +145,7 @@ fn compose_level(
                 background_data[i_dest] = if special_background.bitmap.transparency[i_src] {
                     255
                 } else {
-                    VGASPEC_PALETTE_MAP[special_background.bitmap.data[i_src] as usize]
+                    special_background.bitmap.data[i_src]
                 };
             }
         }
@@ -199,7 +178,8 @@ fn compose_level(
             texture_data[index as usize] = if background_data[index as usize] == 255 {
                 0
             } else {
-                palette[background_data[index as usize] as usize]
+                let (r, g, b) = palette[background_data[index as usize] as usize];
+                Color::RGBA(r, g, b, 0xff).to_u32(&PixelFormat::RGBA8888)
             };
 
             mask_data[index as usize] = if background_data[index as usize] == 255 {
@@ -229,7 +209,7 @@ fn compose_level(
 
 fn build_object_sprites<'a, T>(
     data: &GameData,
-    palette: &[u32; PALETTE_SIZE],
+    palette: &[PaletteEntry; PALETTE_SIZE],
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<ObjectSprites<'a>> {
     let mut sprites: ObjectSprites = Vec::with_capacity(data.tilesets.len());
@@ -395,7 +375,7 @@ fn switch_level<'a, T>(
     level: &Level,
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<()> {
-    let palette = prepare_palette(data, level)?;
+    let palette = get_palette(data, level)?;
 
     draw_state.object_sprites = build_object_sprites(data, &palette, texture_creator)?;
     compose_level(

@@ -1,15 +1,11 @@
 use std::{path::Path, thread::sleep, time::Duration};
 
-use crate::sdl_sprite::SDLSprite;
 use rustlings::game_data::{GameData, read_game_data};
+use rustlings::sdl_sprite::SDLSprite;
 
 use super::util;
 use anyhow::{Result, anyhow};
-use sdl3::{
-    event::Event,
-    keyboard::Keycode,
-    pixels::{Color, PixelFormat},
-};
+use sdl3::{event::Event, keyboard::Keycode};
 
 fn display_sprites(game_data: &GameData) -> Result<()> {
     let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
@@ -26,14 +22,10 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
 
     let texture_creator = canvas.texture_creator();
 
-    let palette = game_data.static_palette.map(|(r, g, b)| {
-        Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
-    });
-
     let mut sdl_sprites: Vec<SDLSprite> = game_data
         .lemming_sprites
         .iter()
-        .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
+        .map(|s| SDLSprite::from_sprite(s, &game_data.static_palette, &texture_creator))
         .filter(|x| x.is_ok())
         .map(|x| x.expect(""))
         .collect();

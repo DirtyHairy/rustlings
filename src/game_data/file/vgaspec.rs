@@ -10,6 +10,7 @@ use std::{fs, path::Path};
 const SECTION_SIZE: usize = 14400;
 const VGASPEC_BITMAP_WIDTH: usize = 960;
 const VGASPEC_BITMAP_HEIGHT: usize = 160;
+const PALETTE_MAP: [u8; 8] = [0, 9, 10, 11, 12, 13, 14, 15];
 const MAGIC_PALETTE_ENTRY: PaletteEntry = expand_rgb6_to8(0x1f, 0x1f, 0);
 
 pub struct Content {
@@ -116,6 +117,14 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
         bitmap[i * chunk_size..(i + 1) * chunk_size].copy_from_slice(&section_bitmaps[i].data);
         transparency[i * chunk_size..(i + 1) * chunk_size]
             .copy_from_slice(&section_bitmaps[i].transparency);
+    }
+
+    let mut i: usize = 0;
+    for _ in 0..VGASPEC_BITMAP_HEIGHT {
+        for _ in 0..VGASPEC_BITMAP_WIDTH {
+            bitmap[i] = PALETTE_MAP[bitmap[i] as usize];
+            i += 1;
+        }
     }
 
     let bitmap = Bitmap {

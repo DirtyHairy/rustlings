@@ -1,14 +1,10 @@
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use super::util::{create_window, timestamp};
-use crate::sdl_sprite::SDLSprite;
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{GameData, read_game_data};
-use sdl3::{
-    event::Event,
-    keyboard::Keycode,
-    pixels::{Color, PixelFormat},
-};
+use rustlings::sdl_sprite::SDLSprite;
+use sdl3::{event::Event, keyboard::Keycode};
 
 fn display_tileset(game_data: &GameData) -> Result<()> {
     let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
@@ -29,15 +25,12 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
 
     for i in 0..game_data.tilesets.len() {
         let mut sprites: Vec<SDLSprite> = Vec::new();
-
-        let palette = game_data.tilesets[i].palettes.custom.map(|(r, g, b)| {
-            Color::RGBA(r as u8, g as u8, b as u8, 0xff).to_u32(&PixelFormat::RGBA8888)
-        });
+        let palette = &game_data.tilesets[i].palettes.custom;
 
         for object_sprite in &game_data.tilesets[i].object_sprites {
             object_sprite
                 .as_ref()
-                .and_then(|sprite| SDLSprite::from_sprite(&sprite, &palette, &texture_creator).ok())
+                .and_then(|sprite| SDLSprite::from_sprite(&sprite, palette, &texture_creator).ok())
                 .map(|sdl_sprite| sprites.push(sdl_sprite));
         }
 

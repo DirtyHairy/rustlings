@@ -1,7 +1,11 @@
 use anyhow::*;
-use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
+use sdl3::{
+    pixels::{Color, PixelFormat},
+    rect::Rect,
+    render::*,
+};
 
-use rustlings::game_data::{Bitmap, Sprite};
+use super::game_data::{Bitmap, PaletteEntry, Sprite};
 
 pub struct SDLSprite<'a> {
     pub width: usize,
@@ -13,7 +17,7 @@ pub struct SDLSprite<'a> {
 impl<'a> SDLSprite<'a> {
     pub fn from_sprite<T>(
         sprite: &Sprite,
-        palette: &[u32; 16],
+        palette: &[PaletteEntry; 16],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<SDLSprite<'a>> {
         let mut texture = texture_creator.create_texture(
@@ -27,15 +31,18 @@ impl<'a> SDLSprite<'a> {
         let mut bitmap_data = vec![0u32; sprite.width * sprite.height];
 
         for iframe in 0..sprite.frames.len() {
-            for x in 0..sprite.width {
-                for y in 0..sprite.height {
-                    let ipixel = (y * sprite.width) + x;
-                    bitmap_data[(y * sprite.width) + x] =
-                        if sprite.frames[iframe].transparency[ipixel] {
-                            0
-                        } else {
-                            palette[sprite.frames[iframe].data[ipixel] as usize]
-                        };
+            let mut i: usize = 0;
+
+            for _ in 0..sprite.width {
+                for _ in 0..sprite.height {
+                    bitmap_data[i] = if sprite.frames[iframe].transparency[i] {
+                        0
+                    } else {
+                        let (r, g, b) = palette[sprite.frames[iframe].data[i] as usize];
+                        Color::RGBA(r, g, b, 0xff).to_u32(&PixelFormat::RGBA8888)
+                    };
+
+                    i += 1;
                 }
             }
 
@@ -71,7 +78,7 @@ impl<'a> SDLSprite<'a> {
 
     pub fn from_bitmap<T>(
         bitmap: &Bitmap,
-        palette: &[u32; 16],
+        palette: &[PaletteEntry; 16],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<SDLSprite<'a>> {
         let mut texture = texture_creator.create_texture(
@@ -84,14 +91,17 @@ impl<'a> SDLSprite<'a> {
 
         let mut bitmap_data = vec![0u32; bitmap.width * bitmap.height];
 
-        for x in 0..bitmap.width {
-            for y in 0..bitmap.height {
-                let ipixel = (y * bitmap.width) + x;
-                bitmap_data[ipixel] = if bitmap.transparency[ipixel] {
+        let mut i = 0;
+        for _ in 0..bitmap.width {
+            for _ in 0..bitmap.height {
+                bitmap_data[i] = if bitmap.transparency[i] {
                     0
                 } else {
-                    palette[bitmap.data[ipixel] as usize]
+                    let (r, g, b) = palette[bitmap.data[i] as usize];
+                    Color::RGBA(r, g, b, 0xff).to_u32(&PixelFormat::RGBA8888)
                 };
+
+                i += 1;
             }
         }
 

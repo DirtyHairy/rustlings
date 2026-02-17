@@ -51,19 +51,20 @@ impl Bitmap {
         for iplane in 0..bpp {
             let base = plane_size * iplane;
 
+            let mut i: usize = 0;
             for y in 0..height {
                 for x in 0..width {
-                    let ipixel = (y * width) + x;
-
-                    let byte = *data.get(base + ipixel / 8).ok_or(anyhow!(
+                    let byte = *data.get(base + i / 8).ok_or(anyhow!(
                         "read_planar: out of bounds {} {} {} {}",
                         x,
                         y,
-                        ipixel,
+                        i,
                         data.len()
                     ))?;
 
-                    bitmap.data[ipixel] |= ((byte >> (7 - (ipixel % 8))) & 0x01) << iplane;
+                    bitmap.data[i] |= ((byte >> (7 - (i % 8))) & 0x01) << iplane;
+
+                    i += 1;
                 }
             }
         }
@@ -77,23 +78,24 @@ impl Bitmap {
 
         match effective_transparency_encoding {
             TransparencyEncoding::Black => {
-                for y in 0..height {
-                    for x in 0..width {
-                        let ipixel = (y * width) + x;
-                        bitmap.transparency[ipixel] = bitmap.data[ipixel] == 0;
+                let mut i: usize = 0;
+                for _ in 0..height {
+                    for _ in 0..width {
+                        bitmap.transparency[i] = bitmap.data[i] == 0;
+                        i += 1;
                     }
                 }
             }
             TransparencyEncoding::PlanarAt(transparency_data) => {
-                for y in 0..height {
-                    for x in 0..width {
-                        let ipixel = (y * width) + x;
-
+                let mut i: usize = 0;
+                for _ in 0..height {
+                    for _ in 0..width {
                         let byte = *transparency_data
-                            .get(ipixel / 8)
+                            .get(i / 8)
                             .ok_or(anyhow!("read_planar: transparency: out of bounds"))?;
 
-                        bitmap.transparency[ipixel] = ((byte >> (7 - (ipixel % 8))) & 0x01) == 0x00;
+                        bitmap.transparency[i] = ((byte >> (7 - (i % 8))) & 0x01) == 0x00;
+                        i += 1;
                     }
                 }
             }
@@ -107,15 +109,18 @@ impl Bitmap {
 impl Display for Sprite {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for frame in &self.frames {
-            for y in 0..self.height {
-                for x in 0..self.width {
-                    let pixel = frame.data[(y * self.width) + x];
+            let mut i: usize = 0;
+
+            for _ in 0..self.height {
+                for _ in 0..self.width {
+                    let pixel = frame.data[i];
                     let char = if pixel == 0 {
                         String::from(" ")
                     } else {
                         pixel.to_string()
                     };
 
+                    i += 1;
                     write!(f, "{}{}", char, char)?;
                 }
 
