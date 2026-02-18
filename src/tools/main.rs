@@ -23,8 +23,8 @@ fn main() -> Result<()> {
         .help("path to lemmings data files")
         .index(1);
 
-    let mut command = Command::new("rustlings")
-        .about("rust by rodent")
+    let mut command = Command::new("rustlings-tools")
+        .about("rustlings tools")
         .subcommand(
             Command::new("sprites")
                 .about("display lemming sprites")

@@ -2,7 +2,7 @@ use rustlings::game_data::{
     Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
     PaletteEntry, TerrainTile, read_game_data,
 };
-use rustlings::sdl_sprite::SDLSprite;
+use rustlings::sdl_rendering::SDLSprite;
 use rustlings::sdl3_aux::get_canvas_vsync;
 
 use super::util::{create_window, timestamp};

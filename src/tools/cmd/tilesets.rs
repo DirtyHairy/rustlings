@@ -3,7 +3,7 @@ use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 use super::util::{create_window, timestamp};
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{GameData, read_game_data};
-use rustlings::sdl_sprite::SDLSprite;
+use rustlings::sdl_rendering::SDLSprite;
 use sdl3::{event::Event, keyboard::Keycode};
 
 fn display_tileset(game_data: &GameData) -> Result<()> {
