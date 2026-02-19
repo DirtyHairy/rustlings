@@ -4,6 +4,9 @@ use clap::{Arg, Command};
 use crate::game::Config;
 
 mod game;
+mod scene;
+mod scenes;
+mod stage;
 
 fn main() -> Result<()> {
     let command = Command::new("rustlings")
@@ -24,5 +27,11 @@ fn main() -> Result<()> {
             .clone(),
     };
 
-    game::run(&config)
+    let run_result = game::run(&config);
+
+    if let Err(err) = &run_result {
+        println!("ERROR: {}", err);
+    }
+
+    run_result
 }

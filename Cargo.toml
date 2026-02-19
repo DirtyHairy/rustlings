@@ -14,4 +14,4 @@ path = "src/tools/main.rs"
 [dependencies]
 anyhow = "1.0.101"
 clap = "4.5.57"
-sdl3 = "0.17.3"
+sdl3 = { version = "0.17.3" }
