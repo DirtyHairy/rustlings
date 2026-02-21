@@ -1,8 +1,9 @@
 use crate::geometry;
 use anyhow::Result;
+use rustlings::sdl3_aux::is_main_thread;
 use sdl3::{
-    Sdl,
-    event::{Event, WindowEvent},
+    EventPump, EventSubsystem, Sdl,
+    event::{Event, EventWatchCallback, WindowEvent},
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
 };
@@ -39,20 +40,38 @@ struct Layout {
 struct RenderState<'texture, 'creator> {
     layers: Vec<Layer<'texture, 'creator>>,
     layout: Layout,
+
+    scene_width: usize,
+    scene_height: usize,
+    scene_aspect: f32,
+}
+
+struct PixelSizeChangedWatch {
+    stage: *mut Stage<'static>,
+    render_state: *mut RenderState<'static, 'static>,
 }
 
 impl<'texture, 'creator> RenderState<'texture, 'creator> {
-    pub fn update_layout(&mut self, width: usize, height: usize, scene: &dyn Scene) {
+    pub fn new(scene: &dyn Scene) -> Self {
+        RenderState {
+            scene_width: scene.get_width(),
+            scene_height: scene.get_height(),
+            scene_aspect: scene.get_aspect(),
+            ..Default::default()
+        }
+    }
+}
+
+impl<'texture, 'creator> RenderState<'texture, 'creator> {
+    pub fn update_layout(&mut self, width: usize, height: usize) {
         if self.layout.width == width && self.layout.height == height {
             return;
         }
 
-        let scene_width = scene.get_width();
-        let scene_height = scene.get_height();
         let w = width as f32;
         let h = height as f32;
-        let w_scene = scene_width as f32;
-        let h_scene = scene_height as f32 * scene.get_aspect();
+        let w_scene = self.scene_width as f32;
+        let h_scene = self.scene_height as f32 * self.scene_aspect;
 
         let mut dest_scene: geometry::Rect = Default::default();
 
@@ -76,10 +95,10 @@ impl<'texture, 'creator> RenderState<'texture, 'creator> {
             .layers
             .iter()
             .map(|layer| geometry::Rect {
-                x: dest_scene.x + (layer.destination.x * dest_scene.width) / scene_width,
-                y: dest_scene.y + (layer.destination.y * dest_scene.height) / scene_height,
-                width: (layer.destination.width * dest_scene.width) / scene_width,
-                height: (layer.destination.height * dest_scene.height) / scene_height,
+                x: dest_scene.x + (layer.destination.x * dest_scene.width) / self.scene_width,
+                y: dest_scene.y + (layer.destination.y * dest_scene.height) / self.scene_height,
+                width: (layer.destination.width * dest_scene.width) / self.scene_width,
+                height: (layer.destination.height * dest_scene.height) / self.scene_height,
             })
             .collect();
 
@@ -105,6 +124,38 @@ impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture
     }
 }
 
+unsafe impl Send for PixelSizeChangedWatch {}
+
+impl EventWatchCallback for PixelSizeChangedWatch {
+    fn callback(&mut self, event: Event) {
+        if !is_main_thread() {
+            return;
+        }
+
+        match event {
+            Event::Window {
+                win_event: WindowEvent::PixelSizeChanged(_, _),
+                ..
+            } => (),
+            _ => return,
+        }
+
+        unsafe {
+            let _ = (*self.stage).render(&mut *self.render_state);
+        }
+    }
+}
+
+impl PixelSizeChangedWatch {
+    pub fn new(stage: &mut Stage, render_state: &mut RenderState) -> Self {
+        PixelSizeChangedWatch {
+            stage: (stage as *mut Stage<'_>) as *mut Stage<'static>,
+            render_state: (render_state as *mut RenderState<'_, '_>)
+                as *mut RenderState<'static, 'static>,
+        }
+    }
+}
+
 impl<'sdl> Stage<'sdl> {
     pub fn new(
         sdl_context: &'sdl Sdl,
@@ -119,34 +170,21 @@ impl<'sdl> Stage<'sdl> {
     }
 
     pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<()> {
-        let mut render_state: RenderState<'scene, 'sdl> = Default::default();
+        let mut render_state: RenderState<'scene, 'sdl> = RenderState::new(scene);
 
         scene.register_layers(&mut render_state);
         scene.draw(&mut self.canvas)?;
 
         loop {
-            let (canvas_width, canvas_height) = self.canvas.output_size()?;
-            render_state.update_layout(canvas_width as usize, canvas_height as usize, scene);
+            self.render(&mut render_state)?;
 
-            self.canvas.clear();
+            let pixel_size_change_watch = PixelSizeChangedWatch::new(self, &mut render_state);
+            let _event_watch = self
+                .sdl_context
+                .event()?
+                .add_event_watch(pixel_size_change_watch);
 
-            for i in 0..render_state.layers.len() {
-                let layer = &render_state.layers[i];
-                let dest = &render_state.layout.layers[i];
-
-                layer
-                    .texture
-                    .borrow_mut()
-                    .set_scale_mode(sdl3::render::ScaleMode::Nearest);
-
-                let _ = self
-                    .canvas
-                    .copy(&*layer.texture.borrow(), None, Some(dest.into()))?;
-            }
-
-            self.canvas.present();
-
-            let handle_events_result = self.handle_events()?;
+            let handle_events_result = handle_events(&mut self.sdl_context.event_pump()?)?;
 
             if let HandleEventsResult::Quit = handle_events_result {
                 break;
@@ -156,17 +194,40 @@ impl<'sdl> Stage<'sdl> {
         Ok(())
     }
 
-    fn handle_events(&mut self) -> Result<HandleEventsResult> {
-        let mut event_pump = self.sdl_context.event_pump()?;
-        loop {
-            while let Some(event) = event_pump.wait_event_timeout(50) {
-                if event_is_quit(&event) {
-                    return Ok(HandleEventsResult::Quit);
-                }
+    fn render(&mut self, render_state: &mut RenderState) -> Result<()> {
+        let (canvas_width, canvas_height) = self.canvas.output_size()?;
+        render_state.update_layout(canvas_width as usize, canvas_height as usize);
 
-                if event_is_redraw(&event) {
-                    return Ok(HandleEventsResult::Redraw);
-                }
+        self.canvas.clear();
+
+        for i in 0..render_state.layers.len() {
+            let layer = &render_state.layers[i];
+            let dest = &render_state.layout.layers[i];
+
+            layer
+                .texture
+                .borrow_mut()
+                .set_scale_mode(sdl3::render::ScaleMode::Nearest);
+
+            let _ = self
+                .canvas
+                .copy(&*layer.texture.borrow(), None, Some(dest.into()))?;
+        }
+
+        self.canvas.present();
+        Ok(())
+    }
+}
+
+fn handle_events(event_pump: &mut EventPump) -> Result<HandleEventsResult> {
+    loop {
+        while let Some(event) = event_pump.wait_event_timeout(50) {
+            if event_is_quit(&event) {
+                return Ok(HandleEventsResult::Quit);
+            }
+
+            if event_is_redraw(&event) {
+                return Ok(HandleEventsResult::Redraw);
             }
         }
     }

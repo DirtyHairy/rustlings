@@ -11,3 +11,9 @@ pub fn get_canvas_vsync(canvas: &Canvas<impl RenderTarget>) -> bool {
 
     vsync != 0
 }
+
+pub fn is_main_thread() -> bool {
+    unsafe {
+        return sdl3::sys::init::SDL_IsMainThread();
+    }
+}
