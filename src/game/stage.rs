@@ -1,13 +1,13 @@
-use std::cell::RefCell;
-
+use crate::geometry;
 use anyhow::Result;
 use sdl3::{
     Sdl,
     event::Event,
-    rect::Rect,
+    rect::Rect as SdlRect,
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
 };
+use std::cell::RefCell;
 
 use crate::scene::{Compositor, Scene};
 
@@ -19,15 +19,20 @@ pub struct Stage<'sdl> {
 
 struct Layer<'texture, 'creator> {
     texture: &'texture RefCell<Texture<'creator>>,
-    destination: Rect,
+    destination: geometry::Rect,
 }
 
+#[derive(Default)]
 struct Stack<'texture, 'creator> {
     layers: Vec<Layer<'texture, 'creator>>,
 }
 
 impl<'texture, 'creator> Compositor<'texture, 'creator> for Stack<'texture, 'creator> {
-    fn add_layer(&mut self, texture: &'texture RefCell<Texture<'creator>>, destination: Rect) {
+    fn add_layer(
+        &mut self,
+        texture: &'texture RefCell<Texture<'creator>>,
+        destination: geometry::Rect,
+    ) {
         self.layers.push(Layer {
             texture,
             destination,
@@ -49,7 +54,7 @@ impl<'sdl> Stage<'sdl> {
     }
 
     pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<()> {
-        let mut stack: Stack<'scene, 'sdl> = Stack { layers: vec![] };
+        let mut stack: Stack<'scene, 'sdl> = Default::default();
 
         scene.register_layers(&mut stack);
         scene.draw(&mut self.canvas)?;
@@ -70,11 +75,11 @@ impl<'sdl> Stage<'sdl> {
             let _ = self.canvas.copy(
                 &*layer.texture.borrow(),
                 None,
-                Rect::new(
-                    scale_x as i32 * layer.destination.x,
-                    ((scale_y as i32 * layer.destination.y) as f32 * aspect) as i32,
-                    scale_x * layer.destination.w as u32,
-                    ((scale_y as i32 * layer.destination.h) as f32 * aspect) as u32,
+                SdlRect::new(
+                    scale_x as i32 * layer.destination.x as i32,
+                    (scale_y as f32 * layer.destination.y as f32 * aspect) as i32,
+                    scale_x * layer.destination.width as u32,
+                    (scale_y as f32 * layer.destination.height as f32 as f32 * aspect) as u32,
                 ),
             )?;
         }

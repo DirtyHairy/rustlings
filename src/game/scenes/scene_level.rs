@@ -1,13 +1,12 @@
-use std::cell::RefCell;
-
+use crate::geometry::Rect;
 use anyhow::Result;
 use rustlings::{game_data::GameData, sdl_rendering::texture_from_bitmap};
 use sdl3::{
     pixels::PixelFormat,
-    rect::Rect,
     render::{Canvas, Texture, TextureCreator},
     video::Window,
 };
+use std::cell::RefCell;
 
 use crate::scene::Scene;
 
@@ -59,7 +58,11 @@ impl<'data, 'texture_creator> Scene<'texture_creator> for SceneLevel<'data, 'tex
     fn draw(&self, canvas: &mut Canvas<Window>) -> Result<()> {
         canvas
             .with_texture_canvas(&mut *self.texture_screen.borrow_mut(), |canvas| {
-                let _ = canvas.copy(&self.texture_skill_panel, None, Rect::new(0, 160, 320, 40));
+                let _ = canvas.copy(
+                    &self.texture_skill_panel,
+                    None,
+                    sdl3::rect::Rect::new(0, 160, 320, 40),
+                );
             })
             .map_err(anyhow::Error::from)
     }

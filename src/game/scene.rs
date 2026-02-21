@@ -1,11 +1,10 @@
-use std::cell::RefCell;
-
+use crate::geometry::Rect;
 use anyhow::Result;
 use sdl3::{
-    rect::Rect,
     render::{Canvas, Texture},
     video::Window,
 };
+use std::cell::RefCell;
 
 pub trait Compositor<'texture, 'creator> {
     fn add_layer(&mut self, texture: &'texture RefCell<Texture<'creator>>, destination: Rect);

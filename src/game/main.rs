@@ -4,6 +4,7 @@ use clap::{Arg, Command};
 use crate::game::Config;
 
 mod game;
+mod geometry;
 mod scene;
 mod scenes;
 mod stage;
