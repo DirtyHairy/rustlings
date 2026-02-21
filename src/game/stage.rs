@@ -2,7 +2,7 @@ use crate::geometry;
 use anyhow::Result;
 use rustlings::sdl3_aux::is_main_thread;
 use sdl3::{
-    EventPump, EventSubsystem, Sdl,
+    Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
@@ -184,7 +184,7 @@ impl<'sdl> Stage<'sdl> {
                 .event()?
                 .add_event_watch(pixel_size_change_watch);
 
-            let handle_events_result = handle_events(&mut self.sdl_context.event_pump()?)?;
+            let handle_events_result = self.handle_events()?;
 
             if let HandleEventsResult::Quit = handle_events_result {
                 break;
@@ -217,17 +217,17 @@ impl<'sdl> Stage<'sdl> {
         self.canvas.present();
         Ok(())
     }
-}
 
-fn handle_events(event_pump: &mut EventPump) -> Result<HandleEventsResult> {
-    loop {
-        while let Some(event) = event_pump.wait_event_timeout(50) {
-            if event_is_quit(&event) {
-                return Ok(HandleEventsResult::Quit);
-            }
+    fn handle_events(&mut self) -> Result<HandleEventsResult> {
+        loop {
+            while let Some(event) = self.sdl_context.event_pump()?.wait_event_timeout(50) {
+                if event_is_quit(&event) {
+                    return Ok(HandleEventsResult::Quit);
+                }
 
-            if event_is_redraw(&event) {
-                return Ok(HandleEventsResult::Redraw);
+                if event_is_redraw(&event) {
+                    return Ok(HandleEventsResult::Redraw);
+                }
             }
         }
     }
