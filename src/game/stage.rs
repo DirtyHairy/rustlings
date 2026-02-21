@@ -39,11 +39,8 @@ impl<'sdl> Stage<'sdl> {
         loop {
             self.render(&mut render_state)?;
 
-            let pixel_size_change_watch = PixelSizeChangedWatch::new(self, &mut render_state);
-            let _event_watch = self
-                .sdl_context
-                .event()?
-                .add_event_watch(pixel_size_change_watch);
+            let expose_watch = ExposeWatch::new(self, &mut render_state);
+            let _event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
 
             let handle_events_result = self.handle_events()?;
 
@@ -108,8 +105,7 @@ fn event_is_quit(event: &Event) -> bool {
 fn event_is_redraw(event: &Event) -> bool {
     match event {
         Event::Window { win_event, .. } => match win_event {
-            WindowEvent::Resized(_, _) => true,
-            WindowEvent::Exposed => true,
+            WindowEvent::PixelSizeChanged(_, _) => true,
             _ => false,
         },
         _ => false,
@@ -216,21 +212,23 @@ impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture
     }
 }
 
-struct PixelSizeChangedWatch {
+struct ExposeWatch {
     stage: *mut Stage<'static>,
     render_state: *mut RenderState<'static, 'static>,
 }
-unsafe impl Send for PixelSizeChangedWatch {}
+unsafe impl Send for ExposeWatch {}
 
-impl EventWatchCallback for PixelSizeChangedWatch {
+impl EventWatchCallback for ExposeWatch {
     fn callback(&mut self, event: Event) {
+        // https://wiki.libsdl.org/SDL3/SDL_SetEventFilter states EXPOSE is guranteed
+        // to be dispatched on the main thread, but making this explicit doesn't hurt
         if !is_main_thread() {
             return;
         }
 
         match event {
             Event::Window {
-                win_event: WindowEvent::PixelSizeChanged(_, _),
+                win_event: WindowEvent::Exposed,
                 ..
             } => (),
             _ => return,
@@ -242,9 +240,9 @@ impl EventWatchCallback for PixelSizeChangedWatch {
     }
 }
 
-impl PixelSizeChangedWatch {
+impl ExposeWatch {
     pub fn new(stage: &mut Stage, render_state: &mut RenderState) -> Self {
-        PixelSizeChangedWatch {
+        ExposeWatch {
             stage: (stage as *mut Stage<'_>) as *mut Stage<'static>,
             render_state: (render_state as *mut RenderState<'_, '_>)
                 as *mut RenderState<'static, 'static>,
