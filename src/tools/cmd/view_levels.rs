@@ -5,7 +5,7 @@ use rustlings::game_data::{
 use rustlings::sdl_rendering::SDLSprite;
 use rustlings::sdl3_aux::get_canvas_vsync;
 
-use super::util::{create_window, timestamp};
+use crate::cmd::util::{create_window, timestamp};
 use anyhow::{Result, anyhow};
 use sdl3::{
     event::Event,

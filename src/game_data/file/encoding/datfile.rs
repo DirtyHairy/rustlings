@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use std::{cmp::Ordering, fmt};
 
-use super::bitstream;
+use crate::game_data::file::encoding::bitstream;
 
 pub struct Header {
     pub num_bits_in_first_byte: usize,
@@ -195,8 +195,8 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
 
 #[cfg(test)]
 mod test_decompress_section {
-    use super::bitstream::Bitstream;
-    use super::decompress_section;
+    use crate::game_data::file::encoding::bitstream::Bitstream;
+    use crate::game_data::file::encoding::datfile::decompress_section;
 
     #[test]
     fn test_op7() {

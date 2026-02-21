@@ -107,7 +107,7 @@ impl<'a> Bitstream<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::Bitstream;
+    use crate::game_data::file::encoding::bitstream::Bitstream;
 
     #[test]
     fn bitstream_example_3() {

@@ -7,7 +7,7 @@ use sdl3::{
 
 use crate::game_data::PALETTE_SIZE;
 
-use super::game_data::{Bitmap, PaletteEntry, Sprite};
+use crate::game_data::{Bitmap, PaletteEntry, Sprite};
 
 fn copy_bitmap_to_texture_data(
     bitmap: &Bitmap,
@@ -80,7 +80,7 @@ impl<'a> SDLSprite<'a> {
         sprite: &Sprite,
         palette: &[PaletteEntry; PALETTE_SIZE],
         texture_creator: &'a TextureCreator<T>,
-    ) -> Result<SDLSprite<'a>> {
+    ) -> Result<Self> {
         let mut texture = texture_creator.create_texture(
             PixelFormat::RGBA8888,
             TextureAccess::Static,
@@ -120,7 +120,7 @@ impl<'a> SDLSprite<'a> {
         bitmap: &Bitmap,
         palette: &[PaletteEntry; PALETTE_SIZE],
         texture_creator: &'a TextureCreator<T>,
-    ) -> Result<SDLSprite<'a>> {
+    ) -> Result<Self> {
         let texture = texture_from_bitmap(bitmap, palette, texture_creator)?;
 
         Ok(SDLSprite {

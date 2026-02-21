@@ -1,12 +1,12 @@
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 
-pub use super::file::ground::{
+pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
-pub use super::file::level::{Level, LevelParamters, LevelStructure, Object, TerrainTile};
-pub use super::file::main::NUM_LEMMING_SPRITES;
-pub use super::file::palette::{PALETTE_SIZE, PaletteEntry};
-pub use super::file::sprite::{Bitmap, Sprite};
+pub use crate::game_data::file::level::{Level, LevelParamters, LevelStructure, Object, TerrainTile};
+pub use crate::game_data::file::main::NUM_LEMMING_SPRITES;
+pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
+pub use crate::game_data::file::sprite::{Bitmap, Sprite};
 
 const LEVEL_TABLE: [u8; 120] = [
     0x93, 0x9b, 0x9d, 0x95, 0x97, 0x99, 0x9f, 0x0e, 0x16, 0x36, 0x46, 0x10, 0x1d, 0x20, 0x26, 0x2a,

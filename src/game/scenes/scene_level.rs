@@ -21,7 +21,7 @@ impl<'data, 'sdl> SceneLevel<'data, 'sdl> {
     pub fn new<T>(
         game_data: &'data GameData,
         texture_creator: &'sdl TextureCreator<T>,
-    ) -> Result<SceneLevel<'data, 'sdl>> {
+    ) -> Result<Self> {
         let texture_screen =
             RefCell::new(texture_creator.create_texture_target(PixelFormat::RGBA8888, 320, 200)?);
 

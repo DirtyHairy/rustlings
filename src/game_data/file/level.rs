@@ -1,5 +1,5 @@
-use super::encoding::datfile;
-use super::read::{read_byte, read_word_le};
+use crate::game_data::file::encoding::datfile;
+use crate::game_data::file::read::{read_byte, read_word_le};
 use crate::game_data::skill::{NUM_SKILLS, SKILLS};
 use anyhow::{Context, Result, bail};
 use std::fmt;

@@ -1,10 +1,10 @@
-use super::file::ground::read_ground;
-use super::file::level::{Level, read_level_file, read_oddtable};
-use super::file::main::read_main;
-use super::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
-use super::file::vgagr::read_vgagr;
-use super::file::vgaspec::read_vgaspec;
-use super::game_data::{GameData, Image, TileSet};
+use crate::game_data::file::ground::read_ground;
+use crate::game_data::file::level::{Level, read_level_file, read_oddtable};
+use crate::game_data::file::main::read_main;
+use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
+use crate::game_data::file::vgagr::read_vgagr;
+use crate::game_data::file::vgaspec::read_vgaspec;
+use crate::game_data::game_data::{GameData, Image, TileSet};
 use anyhow::Result;
 use std::path::Path;
 

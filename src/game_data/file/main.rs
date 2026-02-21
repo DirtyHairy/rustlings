@@ -1,7 +1,7 @@
 use crate::game_data::Bitmap;
 
-use super::encoding::datfile;
-use super::sprite::{Sprite, TransparencyEncoding};
+use crate::game_data::file::encoding::datfile;
+use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
 use anyhow::{Result, bail};
 use std::{convert::TryInto, fs, path::Path};
 

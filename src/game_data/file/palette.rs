@@ -1,4 +1,4 @@
-use super::read::read_byte;
+use crate::game_data::file::read::read_byte;
 use anyhow::Result;
 
 pub const PALETTE_SIZE: usize = 16;

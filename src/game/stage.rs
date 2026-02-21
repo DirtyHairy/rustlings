@@ -45,7 +45,7 @@ impl<'sdl> Stage<'sdl> {
         sdl_context: &'sdl Sdl,
         canvas: &'sdl mut Canvas<Window>,
         texture_creator: &'sdl TextureCreator<WindowContext>,
-    ) -> Result<Stage<'sdl>> {
+    ) -> Result<Self> {
         Ok(Stage {
             sdl_context,
             canvas,

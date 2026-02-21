@@ -1,9 +1,9 @@
-use super::encoding;
-use super::palette::{
+use crate::game_data::file::encoding;
+use crate::game_data::file::palette::{
     LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, expand_rgb6_to8, read_palette_entry,
 };
-use super::read::read_byte;
-use super::sprite::{Bitmap, TransparencyEncoding};
+use crate::game_data::file::read::read_byte;
+use crate::game_data::file::sprite::{Bitmap, TransparencyEncoding};
 use anyhow::{Result, anyhow, bail};
 use std::{fs, path::Path};
 

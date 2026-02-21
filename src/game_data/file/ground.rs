@@ -1,5 +1,5 @@
-use super::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry};
-use super::read::{read_byte, read_word_be};
+use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry};
+use crate::game_data::file::read::{read_byte, read_word_be};
 use anyhow::*;
 use std::fmt;
 use std::{fs, path::Path};
