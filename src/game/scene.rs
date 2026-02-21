@@ -11,7 +11,8 @@ pub trait Compositor<'texture, 'creator> {
 }
 
 pub trait Scene<'texture_creator> {
-    fn get_dimensions(&self) -> (usize, usize);
+    fn get_width(&self) -> usize;
+    fn get_height(&self) -> usize;
 
     fn get_aspect(&self) -> f32;
 

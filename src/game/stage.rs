@@ -2,8 +2,7 @@ use crate::geometry;
 use anyhow::Result;
 use sdl3::{
     Sdl,
-    event::Event,
-    rect::Rect as SdlRect,
+    event::{Event, WindowEvent},
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
 };
@@ -17,17 +16,83 @@ pub struct Stage<'sdl> {
     texture_creator: &'sdl TextureCreator<WindowContext>,
 }
 
+pub enum HandleEventsResult {
+    Quit,
+    Redraw,
+}
+
 struct Layer<'texture, 'creator> {
     texture: &'texture RefCell<Texture<'creator>>,
     destination: geometry::Rect,
 }
 
 #[derive(Default)]
-struct Stack<'texture, 'creator> {
-    layers: Vec<Layer<'texture, 'creator>>,
+struct Layout {
+    width: usize,
+    height: usize,
+
+    pub scene: geometry::Rect,
+    pub layers: Vec<geometry::Rect>,
 }
 
-impl<'texture, 'creator> Compositor<'texture, 'creator> for Stack<'texture, 'creator> {
+#[derive(Default)]
+struct RenderState<'texture, 'creator> {
+    layers: Vec<Layer<'texture, 'creator>>,
+    layout: Layout,
+}
+
+impl<'texture, 'creator> RenderState<'texture, 'creator> {
+    pub fn update_layout(&mut self, width: usize, height: usize, scene: &dyn Scene) {
+        if self.layout.width == width && self.layout.height == height {
+            return;
+        }
+
+        let scene_width = scene.get_width();
+        let scene_height = scene.get_height();
+        let w = width as f32;
+        let h = height as f32;
+        let w_scene = scene_width as f32;
+        let h_scene = scene_height as f32 * scene.get_aspect();
+
+        let mut dest_scene: geometry::Rect = Default::default();
+
+        if w_scene * h / h_scene <= w {
+            let width = w_scene * h / h_scene;
+
+            dest_scene.height = height;
+            dest_scene.width = width as usize;
+            dest_scene.y = 0;
+            dest_scene.x = ((w - width) / 2.) as usize;
+        } else {
+            let height = h_scene * w / w_scene;
+
+            dest_scene.width = width;
+            dest_scene.height = height as usize;
+            dest_scene.x = 0;
+            dest_scene.y = ((h - height) / 2.) as usize;
+        }
+
+        let dest_layers = self
+            .layers
+            .iter()
+            .map(|layer| geometry::Rect {
+                x: dest_scene.x + (layer.destination.x * dest_scene.width) / scene_width,
+                y: dest_scene.y + (layer.destination.y * dest_scene.height) / scene_height,
+                width: (layer.destination.width * dest_scene.width) / scene_width,
+                height: (layer.destination.height * dest_scene.height) / scene_height,
+            })
+            .collect();
+
+        self.layout = Layout {
+            width,
+            height,
+            scene: dest_scene,
+            layers: dest_layers,
+        };
+    }
+}
+
+impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture, 'creator> {
     fn add_layer(
         &mut self,
         texture: &'texture RefCell<Texture<'creator>>,
@@ -54,43 +119,53 @@ impl<'sdl> Stage<'sdl> {
     }
 
     pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<()> {
-        let mut stack: Stack<'scene, 'sdl> = Default::default();
+        let mut render_state: RenderState<'scene, 'sdl> = Default::default();
 
-        scene.register_layers(&mut stack);
+        scene.register_layers(&mut render_state);
         scene.draw(&mut self.canvas)?;
 
-        self.canvas.clear();
-        let aspect = scene.get_aspect();
-
-        for layer in &stack.layers {
-            layer
-                .texture
-                .borrow_mut()
-                .set_scale_mode(sdl3::render::ScaleMode::Nearest);
-
+        loop {
             let (canvas_width, canvas_height) = self.canvas.output_size()?;
-            let scale_x = canvas_width / layer.texture.borrow().width();
-            let scale_y = canvas_height / layer.texture.borrow().height();
+            render_state.update_layout(canvas_width as usize, canvas_height as usize, scene);
 
-            let _ = self.canvas.copy(
-                &*layer.texture.borrow(),
-                None,
-                SdlRect::new(
-                    scale_x as i32 * layer.destination.x as i32,
-                    (scale_y as f32 * layer.destination.y as f32 * aspect) as i32,
-                    scale_x * layer.destination.width as u32,
-                    (scale_y as f32 * layer.destination.height as f32 as f32 * aspect) as u32,
-                ),
-            )?;
+            self.canvas.clear();
+
+            for i in 0..render_state.layers.len() {
+                let layer = &render_state.layers[i];
+                let dest = &render_state.layout.layers[i];
+
+                layer
+                    .texture
+                    .borrow_mut()
+                    .set_scale_mode(sdl3::render::ScaleMode::Nearest);
+
+                let _ = self
+                    .canvas
+                    .copy(&*layer.texture.borrow(), None, Some(dest.into()))?;
+            }
+
+            self.canvas.present();
+
+            let handle_events_result = self.handle_events()?;
+
+            if let HandleEventsResult::Quit = handle_events_result {
+                break;
+            }
         }
 
-        self.canvas.present();
+        Ok(())
+    }
 
+    fn handle_events(&mut self) -> Result<HandleEventsResult> {
         let mut event_pump = self.sdl_context.event_pump()?;
         loop {
             while let Some(event) = event_pump.wait_event_timeout(50) {
                 if event_is_quit(&event) {
-                    return Ok(());
+                    return Ok(HandleEventsResult::Quit);
+                }
+
+                if event_is_redraw(&event) {
+                    return Ok(HandleEventsResult::Redraw);
                 }
             }
         }
@@ -104,6 +179,18 @@ fn event_is_quit(event: &Event) -> bool {
             keycode: Some(code),
             ..
         } => *code == sdl3::keyboard::Keycode::Escape,
+        _ => false,
+    }
+}
+
+fn event_is_redraw(event: &Event) -> bool {
+    match event {
+        Event::Window { win_event, .. } => match win_event {
+            WindowEvent::Resized(_, _) => true,
+            WindowEvent::PixelSizeChanged(_, _) => true,
+            WindowEvent::Exposed => true,
+            _ => false,
+        },
         _ => false,
     }
 }

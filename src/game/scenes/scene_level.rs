@@ -40,8 +40,12 @@ impl<'data, 'sdl> SceneLevel<'data, 'sdl> {
 }
 
 impl<'data, 'texture_creator> Scene<'texture_creator> for SceneLevel<'data, 'texture_creator> {
-    fn get_dimensions(&self) -> (usize, usize) {
-        (320, 200)
+    fn get_width(&self) -> usize {
+        320
+    }
+
+    fn get_height(&self) -> usize {
+        200
     }
 
     fn get_aspect(&self) -> f32 {

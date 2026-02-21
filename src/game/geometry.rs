@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Default, Clone, Copy)]
 pub struct Rect {
     pub x: usize,
@@ -17,24 +19,19 @@ impl Rect {
     }
 }
 
-impl From<sdl3::rect::Rect> for Rect {
-    fn from(value: sdl3::rect::Rect) -> Self {
-        Rect {
-            x: value.x as usize,
-            y: value.y as usize,
-            width: value.w as usize,
-            height: value.h as usize,
-        }
+impl Into<sdl3::render::FRect> for &Rect {
+    fn into(self) -> sdl3::render::FRect {
+        sdl3::render::FRect::new(
+            self.x as f32,
+            self.y as f32,
+            self.width as f32,
+            self.height as f32,
+        )
     }
 }
 
-impl From<Rect> for sdl3::rect::Rect {
-    fn from(value: Rect) -> Self {
-        sdl3::rect::Rect::new(
-            value.x as i32,
-            value.y as i32,
-            value.width as u32,
-            value.height as u32,
-        )
+impl Display for Rect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}@{},{}", self.width, self.height, self.x, self.y)
     }
 }
