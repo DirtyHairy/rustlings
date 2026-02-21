@@ -17,145 +17,6 @@ pub struct Stage<'sdl> {
     texture_creator: &'sdl TextureCreator<WindowContext>,
 }
 
-pub enum HandleEventsResult {
-    Quit,
-    Redraw,
-}
-
-struct Layer<'texture, 'creator> {
-    texture: &'texture RefCell<Texture<'creator>>,
-    destination: geometry::Rect,
-}
-
-#[derive(Default)]
-struct Layout {
-    width: usize,
-    height: usize,
-
-    pub scene: geometry::Rect,
-    pub layers: Vec<geometry::Rect>,
-}
-
-#[derive(Default)]
-struct RenderState<'texture, 'creator> {
-    layers: Vec<Layer<'texture, 'creator>>,
-    layout: Layout,
-
-    scene_width: usize,
-    scene_height: usize,
-    scene_aspect: f32,
-}
-
-struct PixelSizeChangedWatch {
-    stage: *mut Stage<'static>,
-    render_state: *mut RenderState<'static, 'static>,
-}
-
-impl<'texture, 'creator> RenderState<'texture, 'creator> {
-    pub fn new(scene: &dyn Scene) -> Self {
-        RenderState {
-            scene_width: scene.get_width(),
-            scene_height: scene.get_height(),
-            scene_aspect: scene.get_aspect(),
-            ..Default::default()
-        }
-    }
-}
-
-impl<'texture, 'creator> RenderState<'texture, 'creator> {
-    pub fn update_layout(&mut self, width: usize, height: usize) {
-        if self.layout.width == width && self.layout.height == height {
-            return;
-        }
-
-        let w = width as f32;
-        let h = height as f32;
-        let w_scene = self.scene_width as f32;
-        let h_scene = self.scene_height as f32 * self.scene_aspect;
-
-        let mut dest_scene: geometry::Rect = Default::default();
-
-        if w_scene * h / h_scene <= w {
-            let width = w_scene * h / h_scene;
-
-            dest_scene.height = height;
-            dest_scene.width = width as usize;
-            dest_scene.y = 0;
-            dest_scene.x = ((w - width) / 2.) as usize;
-        } else {
-            let height = h_scene * w / w_scene;
-
-            dest_scene.width = width;
-            dest_scene.height = height as usize;
-            dest_scene.x = 0;
-            dest_scene.y = ((h - height) / 2.) as usize;
-        }
-
-        let dest_layers = self
-            .layers
-            .iter()
-            .map(|layer| geometry::Rect {
-                x: dest_scene.x + (layer.destination.x * dest_scene.width) / self.scene_width,
-                y: dest_scene.y + (layer.destination.y * dest_scene.height) / self.scene_height,
-                width: (layer.destination.width * dest_scene.width) / self.scene_width,
-                height: (layer.destination.height * dest_scene.height) / self.scene_height,
-            })
-            .collect();
-
-        self.layout = Layout {
-            width,
-            height,
-            scene: dest_scene,
-            layers: dest_layers,
-        };
-    }
-}
-
-impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture, 'creator> {
-    fn add_layer(
-        &mut self,
-        texture: &'texture RefCell<Texture<'creator>>,
-        destination: geometry::Rect,
-    ) {
-        self.layers.push(Layer {
-            texture,
-            destination,
-        });
-    }
-}
-
-unsafe impl Send for PixelSizeChangedWatch {}
-
-impl EventWatchCallback for PixelSizeChangedWatch {
-    fn callback(&mut self, event: Event) {
-        if !is_main_thread() {
-            return;
-        }
-
-        match event {
-            Event::Window {
-                win_event: WindowEvent::PixelSizeChanged(_, _),
-                ..
-            } => (),
-            _ => return,
-        }
-
-        unsafe {
-            let _ = (*self.stage).render(&mut *self.render_state);
-        }
-    }
-}
-
-impl PixelSizeChangedWatch {
-    pub fn new(stage: &mut Stage, render_state: &mut RenderState) -> Self {
-        PixelSizeChangedWatch {
-            stage: (stage as *mut Stage<'_>) as *mut Stage<'static>,
-            render_state: (render_state as *mut RenderState<'_, '_>)
-                as *mut RenderState<'static, 'static>,
-        }
-    }
-}
-
 impl<'sdl> Stage<'sdl> {
     pub fn new(
         sdl_context: &'sdl Sdl,
@@ -248,10 +109,145 @@ fn event_is_redraw(event: &Event) -> bool {
     match event {
         Event::Window { win_event, .. } => match win_event {
             WindowEvent::Resized(_, _) => true,
-            WindowEvent::PixelSizeChanged(_, _) => true,
             WindowEvent::Exposed => true,
             _ => false,
         },
         _ => false,
+    }
+}
+
+enum HandleEventsResult {
+    Quit,
+    Redraw,
+}
+
+struct Layer<'texture, 'creator> {
+    texture: &'texture RefCell<Texture<'creator>>,
+    destination: geometry::Rect,
+}
+
+#[derive(Default)]
+struct Layout {
+    width: usize,
+    height: usize,
+
+    pub scene: geometry::Rect,
+    pub layers: Vec<geometry::Rect>,
+}
+
+#[derive(Default)]
+struct RenderState<'texture, 'creator> {
+    layers: Vec<Layer<'texture, 'creator>>,
+    layout: Layout,
+
+    scene_width: usize,
+    scene_height: usize,
+    scene_aspect: f32,
+}
+
+impl<'texture, 'creator> RenderState<'texture, 'creator> {
+    pub fn new(scene: &dyn Scene) -> Self {
+        RenderState {
+            scene_width: scene.get_width(),
+            scene_height: scene.get_height(),
+            scene_aspect: scene.get_aspect(),
+            ..Default::default()
+        }
+    }
+
+    pub fn update_layout(&mut self, width: usize, height: usize) {
+        if self.layout.width == width && self.layout.height == height {
+            return;
+        }
+
+        let w = width as f32;
+        let h = height as f32;
+        let w_scene = self.scene_width as f32;
+        let h_scene = self.scene_height as f32 * self.scene_aspect;
+
+        let mut dest_scene: geometry::Rect = Default::default();
+
+        if w_scene * h / h_scene <= w {
+            let width = w_scene * h / h_scene;
+
+            dest_scene.height = height;
+            dest_scene.width = width as usize;
+            dest_scene.y = 0;
+            dest_scene.x = ((w - width) / 2.) as usize;
+        } else {
+            let height = h_scene * w / w_scene;
+
+            dest_scene.width = width;
+            dest_scene.height = height as usize;
+            dest_scene.x = 0;
+            dest_scene.y = ((h - height) / 2.) as usize;
+        }
+
+        let dest_layers = self
+            .layers
+            .iter()
+            .map(|layer| geometry::Rect {
+                x: dest_scene.x + (layer.destination.x * dest_scene.width) / self.scene_width,
+                y: dest_scene.y + (layer.destination.y * dest_scene.height) / self.scene_height,
+                width: (layer.destination.width * dest_scene.width) / self.scene_width,
+                height: (layer.destination.height * dest_scene.height) / self.scene_height,
+            })
+            .collect();
+
+        self.layout = Layout {
+            width,
+            height,
+            scene: dest_scene,
+            layers: dest_layers,
+        };
+    }
+}
+
+impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture, 'creator> {
+    fn add_layer(
+        &mut self,
+        texture: &'texture RefCell<Texture<'creator>>,
+        destination: geometry::Rect,
+    ) {
+        self.layers.push(Layer {
+            texture,
+            destination,
+        });
+    }
+}
+
+struct PixelSizeChangedWatch {
+    stage: *mut Stage<'static>,
+    render_state: *mut RenderState<'static, 'static>,
+}
+unsafe impl Send for PixelSizeChangedWatch {}
+
+impl EventWatchCallback for PixelSizeChangedWatch {
+    fn callback(&mut self, event: Event) {
+        if !is_main_thread() {
+            return;
+        }
+
+        match event {
+            Event::Window {
+                win_event: WindowEvent::PixelSizeChanged(_, _),
+                ..
+            } => (),
+            _ => return,
+        }
+
+        unsafe {
+            let _ = (*self.stage).render(&mut *self.render_state);
+        }
+    }
+}
+
+impl PixelSizeChangedWatch {
+    pub fn new(stage: &mut Stage, render_state: &mut RenderState) -> Self {
+        PixelSizeChangedWatch {
+            stage: (stage as *mut Stage<'_>) as *mut Stage<'static>,
+            render_state: (render_state as *mut RenderState<'_, '_>)
+                as *mut RenderState<'static, 'static>,
+        }
     }
 }
