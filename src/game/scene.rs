@@ -20,5 +20,5 @@ pub trait Scene<'texture_creator> {
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()>;
 
-    fn finish(&self) -> (GameState, SceneState);
+    fn finish(self: Box<Self>) -> (GameState, SceneState);
 }

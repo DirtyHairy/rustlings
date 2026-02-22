@@ -55,11 +55,8 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
-    fn finish(&self) -> (GameState, SceneState) {
-        (
-            self.game_state.clone(),
-            SceneState::Level(self.state.clone()),
-        )
+    fn finish(self: Box<Self>) -> (GameState, SceneState) {
+        (self.game_state, SceneState::Level(self.state))
     }
 
     fn width(&self) -> usize {
