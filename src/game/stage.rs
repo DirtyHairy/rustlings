@@ -1,15 +1,21 @@
 use crate::geometry;
 use anyhow::Result;
-use rustlings::sdl3_aux::is_main_thread;
+use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
+    keyboard::{Keycode, Mod},
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
 };
 use std::cell::RefCell;
 
 use crate::scene::{Compositor, Scene};
+
+pub enum RunResult {
+    Quit,
+    Resume,
+}
 
 pub struct Stage<'sdl> {
     sdl_context: &'sdl Sdl,
@@ -30,26 +36,34 @@ impl<'sdl> Stage<'sdl> {
         })
     }
 
-    pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<()> {
+    pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<RunResult> {
         let mut render_state: RenderState<'scene, 'sdl> = RenderState::new(scene);
 
         scene.register_layers(&mut render_state);
         scene.draw(&mut self.canvas)?;
 
+        let mut redraw = true;
         loop {
-            self.render(&mut render_state)?;
+            if redraw {
+                self.render(&mut render_state)?;
+                redraw = false;
+            }
 
             let expose_watch = ExposeWatch::new(self, &mut render_state);
             let _event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
 
             let handle_events_result = self.handle_events()?;
 
-            if let HandleEventsResult::Quit = handle_events_result {
-                break;
+            match handle_events_result {
+                HandleEventsResult::Quit => return Ok(RunResult::Quit),
+                HandleEventsResult::RenderReset => {
+                    println!("render reset!");
+                    return Ok(RunResult::Resume);
+                }
+                HandleEventsResult::Redraw => redraw = true,
+                HandleEventsResult::Nop => (),
             }
         }
-
-        Ok(())
     }
 
     fn render(&mut self, render_state: &mut RenderState) -> Result<()> {
@@ -78,43 +92,50 @@ impl<'sdl> Stage<'sdl> {
 
     fn handle_events(&mut self) -> Result<HandleEventsResult> {
         loop {
-            while let Some(event) = self.sdl_context.event_pump()?.wait_event_timeout(50) {
-                if event_is_quit(&event) {
-                    return Ok(HandleEventsResult::Quit);
-                }
-
-                if event_is_redraw(&event) {
-                    return Ok(HandleEventsResult::Redraw);
-                }
+            if let Some(handle_event_result) = self
+                .sdl_context
+                .event_pump()?
+                .wait_event_timeout(50)
+                .and_then(handle_event)
+            {
+                return Ok(handle_event_result);
             }
         }
     }
 }
 
-fn event_is_quit(event: &Event) -> bool {
+fn handle_event(event: Event) -> Option<HandleEventsResult> {
     match event {
-        Event::Quit { .. } => true,
+        Event::Quit { .. } => Some(HandleEventsResult::Quit),
+        Event::Window { win_event, .. } => match win_event {
+            WindowEvent::PixelSizeChanged(_, _) => Some(HandleEventsResult::Redraw),
+            _ => None,
+        },
+        Event::RenderDeviceReset { .. } => Some(HandleEventsResult::RenderReset),
+        Event::RenderTargetsReset { .. } => Some(HandleEventsResult::RenderReset),
         Event::KeyDown {
             keycode: Some(code),
+            keymod,
+            repeat: false,
             ..
-        } => *code == sdl3::keyboard::Keycode::Escape,
-        _ => false,
-    }
-}
-
-fn event_is_redraw(event: &Event) -> bool {
-    match event {
-        Event::Window { win_event, .. } => match win_event {
-            WindowEvent::PixelSizeChanged(_, _) => true,
-            _ => false,
+        } => match (code, keymod) {
+            (Keycode::Escape, Mod::NOMOD) => Some(HandleEventsResult::Quit),
+            (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(HandleEventsResult::RenderReset),
+            _ => None,
         },
-        _ => false,
+        Event::Unknown {
+            type_: SDL_EVENT_RENDER_DEVICE_LOST,
+            ..
+        } => Some(HandleEventsResult::RenderReset),
+        _ => None,
     }
 }
 
 enum HandleEventsResult {
     Quit,
     Redraw,
+    RenderReset,
+    Nop,
 }
 
 struct Layer<'texture, 'creator> {

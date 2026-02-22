@@ -2,7 +2,7 @@ use crate::{scenes::SceneLevel, stage::Stage};
 use anyhow::Result;
 use rustlings::{game_data::read_game_data, sdl3_aux::get_canvas_vsync};
 use sdl3::{Sdl, render::Canvas, video::Window};
-use std::path::Path;
+use std::{path::Path, rc::Rc};
 
 pub struct Config {
     pub data_dir: String,
@@ -35,13 +35,15 @@ fn init_sdl() -> Result<(Sdl, Canvas<Window>)> {
 }
 
 pub fn run(config: &Config) -> Result<()> {
-    let game_data = read_game_data(Path::new(&config.data_dir))?;
+    let game_data = Rc::from(read_game_data(Path::new(&config.data_dir))?);
 
     let (sdl_context, mut canvas) = init_sdl()?;
     let texture_creator = canvas.texture_creator();
 
     let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator)?;
-    let scene_level = SceneLevel::new(&game_data, &texture_creator)?;
+    let scene_level = SceneLevel::new(game_data, &texture_creator)?;
 
-    stage.run(&scene_level)
+    let _ = stage.run(&scene_level)?;
+
+    Ok(())
 }

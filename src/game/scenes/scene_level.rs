@@ -6,20 +6,20 @@ use sdl3::{
     render::{Canvas, Texture, TextureCreator},
     video::Window,
 };
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::scene::Scene;
 
-pub struct SceneLevel<'data, 'sdl> {
-    game_data: &'data GameData,
+pub struct SceneLevel<'sdl> {
+    game_data: Rc<GameData>,
 
     texture_screen: RefCell<Texture<'sdl>>,
     texture_skill_panel: Texture<'sdl>,
 }
 
-impl<'data, 'sdl> SceneLevel<'data, 'sdl> {
+impl<'sdl> SceneLevel<'sdl> {
     pub fn new<T>(
-        game_data: &'data GameData,
+        game_data: Rc<GameData>,
         texture_creator: &'sdl TextureCreator<T>,
     ) -> Result<Self> {
         let texture_screen =
@@ -39,7 +39,7 @@ impl<'data, 'sdl> SceneLevel<'data, 'sdl> {
     }
 }
 
-impl<'data, 'texture_creator> Scene<'texture_creator> for SceneLevel<'data, 'texture_creator> {
+impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
     fn get_width(&self) -> usize {
         320
     }
