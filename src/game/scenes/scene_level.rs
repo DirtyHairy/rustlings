@@ -13,19 +13,19 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::scene::Scene;
 
-pub struct SceneLevel<'game_state, 'texture_creator> {
+pub struct SceneLevel<'texture_creator> {
     game_data: Rc<GameData>,
-    game_state: &'game_state mut GameState,
+    game_state: GameState,
     state: SceneStateLevel,
 
     texture_screen: RefCell<Texture<'texture_creator>>,
     texture_skill_panel: Texture<'texture_creator>,
 }
 
-impl<'game_state, 'texture_creator> SceneLevel<'game_state, 'texture_creator> {
+impl<'texture_creator> SceneLevel<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
-        game_state: &'game_state mut GameState,
+        game_state: &GameState,
         scene_state: &SceneState,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
@@ -45,7 +45,7 @@ impl<'game_state, 'texture_creator> SceneLevel<'game_state, 'texture_creator> {
 
         Ok(SceneLevel {
             game_data,
-            game_state,
+            game_state: game_state.clone(),
             state,
             texture_screen,
             texture_skill_panel,
@@ -53,11 +53,12 @@ impl<'game_state, 'texture_creator> SceneLevel<'game_state, 'texture_creator> {
     }
 }
 
-impl<'game_state, 'texture_creator> Scene<'texture_creator>
-    for SceneLevel<'game_state, 'texture_creator>
-{
-    fn finalize(&self) -> SceneState {
-        SceneState::Level(self.state.clone())
+impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
+    fn finish(&self) -> (GameState, SceneState) {
+        (
+            self.game_state.clone(),
+            SceneState::Level(self.state.clone()),
+        )
     }
 
     fn get_width(&self) -> usize {

@@ -72,7 +72,7 @@ pub fn run(config: &Config) -> Result<()> {
             )?;
 
             run_result = stage.run(&*scene)?;
-            scene_state = scene.finalize();
+            (game_state, scene_state) = scene.finish();
         }
 
         match run_result {

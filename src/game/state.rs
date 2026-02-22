@@ -1,10 +1,10 @@
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum Screen {
     #[default]
     Level,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GameState {
     pub screen: Screen,
 }
@@ -12,7 +12,7 @@ pub struct GameState {
 #[derive(Default, Clone)]
 pub struct SceneStateLevel {}
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum SceneState {
     #[default]
     None,
