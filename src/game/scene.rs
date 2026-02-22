@@ -3,28 +3,22 @@ use crate::{
     state::{GameState, SceneState},
 };
 use anyhow::Result;
-use sdl3::{
-    render::{Canvas, Texture},
-    video::Window,
-};
-use std::cell::RefCell;
+use sdl3::{render::Canvas, render::Texture, video::Window};
 
-pub trait Compositor<'texture, 'creator> {
-    fn add_layer(&mut self, texture: &'texture RefCell<Texture<'creator>>, destination: Rect);
+pub trait Compositor {
+    fn add_layer(&mut self, texture_id: usize, destination: Rect);
 }
 
 pub trait Scene<'texture_creator> {
-    fn get_width(&self) -> usize;
-    fn get_height(&self) -> usize;
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
+    fn aspect(&self) -> f32;
 
-    fn get_aspect(&self) -> f32;
+    fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>>;
 
-    fn register_layers<'scene>(
-        &'scene self,
-        compositor: &mut dyn Compositor<'scene, 'texture_creator>,
-    );
+    fn register_layers(&self, compositor: &mut dyn Compositor);
 
-    fn draw(&self, canvas: &mut Canvas<Window>) -> Result<()>;
+    fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()>;
 
     fn finish(&self) -> (GameState, SceneState);
 }

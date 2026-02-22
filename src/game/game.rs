@@ -64,14 +64,14 @@ pub fn run(config: &Config) -> Result<()> {
 
         {
             let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator)?;
-            let scene = create_scene(
+            let mut scene = create_scene(
                 game_data.clone(),
                 &mut game_state,
                 &scene_state,
                 &texture_creator,
             )?;
 
-            run_result = stage.run(&*scene)?;
+            run_result = stage.run(&mut *scene)?;
             (game_state, scene_state) = scene.finish();
         }
 

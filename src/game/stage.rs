@@ -1,16 +1,15 @@
 use crate::geometry;
+use crate::scene::{Compositor, Scene};
 use anyhow::Result;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
     keyboard::{Keycode, Mod},
-    render::{Canvas, Texture, TextureCreator},
+    render::{Canvas, TextureCreator},
     video::{Window, WindowContext},
 };
-use std::cell::RefCell;
-
-use crate::scene::{Compositor, Scene};
+use std::mem::transmute;
 
 pub enum RunResult {
     Quit,
@@ -36,8 +35,8 @@ impl<'sdl> Stage<'sdl> {
         })
     }
 
-    pub fn run<'scene>(&mut self, scene: &'scene dyn Scene<'sdl>) -> Result<RunResult> {
-        let mut render_state: RenderState<'scene, 'sdl> = RenderState::new(scene);
+    pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<RunResult> {
+        let mut render_state = RenderState::new(scene);
 
         scene.register_layers(&mut render_state);
         scene.draw(&mut self.canvas)?;
@@ -45,11 +44,11 @@ impl<'sdl> Stage<'sdl> {
         let mut redraw = true;
         loop {
             if redraw {
-                self.render(&mut render_state)?;
+                self.render(&mut render_state, scene)?;
                 redraw = false;
             }
 
-            let expose_watch = ExposeWatch::new(self, &mut render_state);
+            let expose_watch = ExposeWatch::new(self, &mut render_state, scene);
             let _event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
 
             let handle_events_result = self.handle_events()?;
@@ -62,7 +61,7 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn render(&mut self, render_state: &mut RenderState) -> Result<()> {
+    fn render(&mut self, render_state: &mut RenderState, scene: &mut dyn Scene) -> Result<()> {
         let (canvas_width, canvas_height) = self.canvas.output_size()?;
         render_state.update_layout(canvas_width as usize, canvas_height as usize);
 
@@ -72,14 +71,10 @@ impl<'sdl> Stage<'sdl> {
             let layer = &render_state.layers[i];
             let dest = &render_state.layout.layers[i];
 
-            layer
-                .texture
-                .borrow_mut()
-                .set_scale_mode(sdl3::render::ScaleMode::Nearest);
+            let texture = scene.texture(layer.texture_id)?;
+            texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
 
-            let _ = self
-                .canvas
-                .copy(&*layer.texture.borrow(), None, Some(dest.into()))?;
+            let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
         self.canvas.present();
@@ -133,8 +128,8 @@ enum HandleEventsResult {
     RenderReset,
 }
 
-struct Layer<'texture, 'creator> {
-    texture: &'texture RefCell<Texture<'creator>>,
+struct Layer {
+    texture_id: usize,
     destination: geometry::Rect,
 }
 
@@ -148,8 +143,8 @@ struct Layout {
 }
 
 #[derive(Default)]
-struct RenderState<'texture, 'creator> {
-    layers: Vec<Layer<'texture, 'creator>>,
+struct RenderState {
+    layers: Vec<Layer>,
     layout: Layout,
 
     scene_width: usize,
@@ -157,12 +152,12 @@ struct RenderState<'texture, 'creator> {
     scene_aspect: f32,
 }
 
-impl<'texture, 'creator> RenderState<'texture, 'creator> {
+impl RenderState {
     pub fn new(scene: &dyn Scene) -> Self {
         RenderState {
-            scene_width: scene.get_width(),
-            scene_height: scene.get_height(),
-            scene_aspect: scene.get_aspect(),
+            scene_width: scene.width(),
+            scene_height: scene.height(),
+            scene_aspect: scene.aspect(),
             ..Default::default()
         }
     }
@@ -215,14 +210,10 @@ impl<'texture, 'creator> RenderState<'texture, 'creator> {
     }
 }
 
-impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture, 'creator> {
-    fn add_layer(
-        &mut self,
-        texture: &'texture RefCell<Texture<'creator>>,
-        destination: geometry::Rect,
-    ) {
+impl Compositor for RenderState {
+    fn add_layer(&mut self, texture_id: usize, destination: geometry::Rect) {
         self.layers.push(Layer {
-            texture,
+            texture_id,
             destination,
         });
     }
@@ -230,7 +221,8 @@ impl<'texture, 'creator> Compositor<'texture, 'creator> for RenderState<'texture
 
 struct ExposeWatch {
     stage: *mut Stage<'static>,
-    render_state: *mut RenderState<'static, 'static>,
+    render_state: *mut RenderState,
+    scene: *mut dyn Scene<'static>,
 }
 unsafe impl Send for ExposeWatch {}
 
@@ -251,17 +243,19 @@ impl EventWatchCallback for ExposeWatch {
         }
 
         unsafe {
-            let _ = (*self.stage).render(&mut *self.render_state);
+            let _ = (*self.stage).render(&mut *self.render_state, &mut *self.scene);
         }
     }
 }
 
 impl ExposeWatch {
-    pub fn new(stage: &mut Stage, render_state: &mut RenderState) -> Self {
+    pub fn new(stage: &mut Stage, render_state: &mut RenderState, scene: &mut dyn Scene) -> Self {
         ExposeWatch {
-            stage: (stage as *mut Stage<'_>) as *mut Stage<'static>,
-            render_state: (render_state as *mut RenderState<'_, '_>)
-                as *mut RenderState<'static, 'static>,
+            stage: (stage as *mut _) as *mut Stage<'static>,
+            render_state: render_state as *mut _,
+            scene: unsafe {
+                transmute::<*mut dyn Scene<'_>, *mut dyn Scene<'static>>(scene as *mut _)
+            },
         }
     }
 }
