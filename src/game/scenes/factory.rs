@@ -10,8 +10,8 @@ use std::rc::Rc;
 
 pub fn create_scene<'texture_creator, T>(
     game_data: Rc<GameData>,
-    game_state: &GameState,
-    scene_state: &SceneState,
+    game_state: GameState,
+    scene_state: SceneState,
     texture_creator: &'texture_creator TextureCreator<T>,
 ) -> Result<Box<dyn Scene<'texture_creator> + 'texture_creator>> {
     match game_state.screen {

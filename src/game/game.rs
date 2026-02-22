@@ -1,7 +1,7 @@
 use crate::{
     scenes::create_scene,
     stage::{RunResult, Stage},
-    state::GameState,
+    state::{GameState, SceneState},
 };
 use anyhow::Result;
 use rustlings::{
@@ -54,7 +54,7 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
 pub fn run(config: &Config) -> Result<()> {
     let game_data: Rc<GameData> = read_game_data(Path::new(&config.data_dir))?.into();
     let mut game_state: GameState = Default::default();
-    let mut scene_state = Default::default();
+    let mut scene_state: SceneState = Default::default();
 
     let (sdl_context, window) = init_sdl()?;
     let (mut canvas, mut texture_creator) = init_canvas(window.clone())?;
@@ -64,12 +64,8 @@ pub fn run(config: &Config) -> Result<()> {
 
         {
             let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator)?;
-            let mut scene = create_scene(
-                game_data.clone(),
-                &mut game_state,
-                &scene_state,
-                &texture_creator,
-            )?;
+            let mut scene =
+                create_scene(game_data.clone(), game_state, scene_state, &texture_creator)?;
 
             run_result = stage.run(&mut *scene)?;
             (game_state, scene_state) = scene.finish();

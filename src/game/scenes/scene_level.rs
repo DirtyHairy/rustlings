@@ -26,8 +26,8 @@ const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 impl<'texture_creator> SceneLevel<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
-        game_state: &GameState,
-        scene_state: &SceneState,
+        game_state: GameState,
+        scene_state: SceneState,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let texture_screen =
@@ -40,13 +40,13 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         )?;
 
         let state = match scene_state {
-            SceneState::Level(state_level) => state_level.clone(),
+            SceneState::Level(state_level) => state_level,
             _ => Default::default(),
         };
 
         Ok(SceneLevel {
             game_data,
-            game_state: game_state.clone(),
+            game_state,
             state,
             texture_screen,
             texture_skill_panel,

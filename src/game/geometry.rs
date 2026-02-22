@@ -19,13 +19,13 @@ impl Rect {
     }
 }
 
-impl Into<sdl3::render::FRect> for &Rect {
-    fn into(self) -> sdl3::render::FRect {
+impl From<&Rect> for sdl3::render::FRect {
+    fn from(value: &Rect) -> Self {
         sdl3::render::FRect::new(
-            self.x as f32,
-            self.y as f32,
-            self.width as f32,
-            self.height as f32,
+            value.x as f32,
+            value.y as f32,
+            value.width as f32,
+            value.height as f32,
         )
     }
 }
