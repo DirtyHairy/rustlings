@@ -14,7 +14,7 @@ use crate::scene::{Compositor, Scene};
 
 pub enum RunResult {
     Quit,
-    Resume,
+    RenderReset,
 }
 
 pub struct Stage<'sdl> {
@@ -56,12 +56,8 @@ impl<'sdl> Stage<'sdl> {
 
             match handle_events_result {
                 HandleEventsResult::Quit => return Ok(RunResult::Quit),
-                HandleEventsResult::RenderReset => {
-                    println!("render reset!");
-                    return Ok(RunResult::Resume);
-                }
+                HandleEventsResult::RenderReset => return Ok(RunResult::RenderReset),
                 HandleEventsResult::Redraw => redraw = true,
-                HandleEventsResult::Nop => (),
             }
         }
     }
@@ -135,7 +131,6 @@ enum HandleEventsResult {
     Quit,
     Redraw,
     RenderReset,
-    Nop,
 }
 
 struct Layer<'texture, 'creator> {

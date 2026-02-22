@@ -8,6 +8,7 @@ mod geometry;
 mod scene;
 mod scenes;
 mod stage;
+mod state;
 
 fn main() -> Result<()> {
     let command = Command::new("rustlings")

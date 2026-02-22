@@ -1,4 +1,7 @@
-use crate::geometry::Rect;
+use crate::{
+    geometry::Rect,
+    state::{GameState, SceneState, SceneStateLevel},
+};
 use anyhow::Result;
 use rustlings::{game_data::GameData, sdl_rendering::texture_from_bitmap};
 use sdl3::{
@@ -10,17 +13,21 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::scene::Scene;
 
-pub struct SceneLevel<'sdl> {
+pub struct SceneLevel<'game_state, 'texture_creator> {
     game_data: Rc<GameData>,
+    game_state: &'game_state mut GameState,
+    state: SceneStateLevel,
 
-    texture_screen: RefCell<Texture<'sdl>>,
-    texture_skill_panel: Texture<'sdl>,
+    texture_screen: RefCell<Texture<'texture_creator>>,
+    texture_skill_panel: Texture<'texture_creator>,
 }
 
-impl<'sdl> SceneLevel<'sdl> {
+impl<'game_state, 'texture_creator> SceneLevel<'game_state, 'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
-        texture_creator: &'sdl TextureCreator<T>,
+        game_state: &'game_state mut GameState,
+        scene_state: &SceneState,
+        texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let texture_screen =
             RefCell::new(texture_creator.create_texture_target(PixelFormat::RGBA8888, 320, 200)?);
@@ -31,15 +38,28 @@ impl<'sdl> SceneLevel<'sdl> {
             texture_creator,
         )?;
 
+        let state = match scene_state {
+            SceneState::Level(state_level) => state_level.clone(),
+            _ => Default::default(),
+        };
+
         Ok(SceneLevel {
             game_data,
+            game_state,
+            state,
             texture_screen,
             texture_skill_panel,
         })
     }
 }
 
-impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
+impl<'game_state, 'texture_creator> Scene<'texture_creator>
+    for SceneLevel<'game_state, 'texture_creator>
+{
+    fn get_scene_state(&self) -> SceneState {
+        SceneState::Level(self.state.clone())
+    }
+
     fn get_width(&self) -> usize {
         320
     }

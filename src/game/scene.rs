@@ -1,4 +1,4 @@
-use crate::geometry::Rect;
+use crate::{geometry::Rect, state::SceneState};
 use anyhow::Result;
 use sdl3::{
     render::{Canvas, Texture},
@@ -22,4 +22,6 @@ pub trait Scene<'texture_creator> {
     );
 
     fn draw(&self, canvas: &mut Canvas<Window>) -> Result<()>;
+
+    fn get_scene_state(&self) -> SceneState;
 }
