@@ -56,7 +56,7 @@ impl<'game_state, 'texture_creator> SceneLevel<'game_state, 'texture_creator> {
 impl<'game_state, 'texture_creator> Scene<'texture_creator>
     for SceneLevel<'game_state, 'texture_creator>
 {
-    fn get_scene_state(&self) -> SceneState {
+    fn finalize(&self) -> SceneState {
         SceneState::Level(self.state.clone())
     }
 
