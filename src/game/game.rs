@@ -24,6 +24,7 @@ fn init_sdl() -> Result<(Sdl, Window)> {
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
     sdl3::hint::set("SDL_VIDEO_MAC_FULLSCREEN_SPACES", "1");
+    sdl3::hint::set("SDL_VIDEO_MAC_FULLSCREEN_MENU_VISIBILITY", "1");
 
     let sdl_video = sdl_context.video()?;
 
@@ -33,7 +34,9 @@ fn init_sdl() -> Result<(Sdl, Window)> {
         .set_flags(sdl3::video::WindowFlags::HIGH_PIXEL_DENSITY)
         .resizable()
         .build()?;
+
     let _ = window.set_minimum_size(640, 480);
+    let _ = window.raise();
 
     Ok((sdl_context, window))
 }

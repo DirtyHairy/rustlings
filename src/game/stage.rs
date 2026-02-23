@@ -2,6 +2,7 @@ use crate::geometry;
 use crate::scene::{Compositor, Scene};
 use anyhow::Result;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
+use sdl3::sys::video::SDL_WindowFlags;
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
@@ -57,6 +58,15 @@ impl<'sdl> Stage<'sdl> {
                 HandleEventsResult::Quit => return Ok(RunResult::Quit),
                 HandleEventsResult::RenderReset => return Ok(RunResult::RenderReset),
                 HandleEventsResult::Redraw => redraw = true,
+                HandleEventsResult::ToggleFullscreen => {
+                    let is_fullscreen =
+                        self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
+
+                    self.canvas
+                        .window()
+                        .clone()
+                        .set_fullscreen(!is_fullscreen)?;
+                }
             }
         }
     }
@@ -110,8 +120,13 @@ fn handle_event(event: Event) -> Option<HandleEventsResult> {
             repeat: false,
             ..
         } => match (code, keymod) {
-            (Keycode::Escape, Mod::NOMOD) => Some(HandleEventsResult::Quit),
             (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(HandleEventsResult::RenderReset),
+            (Keycode::Q, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
+                Some(HandleEventsResult::Quit)
+            }
+            (Keycode::Return, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
+                Some(HandleEventsResult::ToggleFullscreen)
+            }
             _ => None,
         },
         Event::Unknown {
@@ -126,6 +141,7 @@ enum HandleEventsResult {
     Quit,
     Redraw,
     RenderReset,
+    ToggleFullscreen,
 }
 
 struct Layer {
