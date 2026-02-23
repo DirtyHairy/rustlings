@@ -112,8 +112,10 @@ impl<'sdl> Stage<'sdl> {
     ) -> Result<&'layer mut Texture<'sdl>> {
         let source_texture = scene.texture(layer.texture_id)?;
 
-        let mut integer_scale_x = dest.width as u32 / source_texture.width();
-        let mut integer_scale_y = dest.height as u32 / source_texture.height();
+        let mut integer_scale_x =
+            (dest.width as f32 / source_texture.width() as f32).round() as u32;
+        let mut integer_scale_y =
+            (dest.height as f32 / source_texture.height() as f32).round() as u32;
 
         if (integer_scale_x == 0 && integer_scale_y <= 1)
             || (integer_scale_y == 0 && integer_scale_x <= 1)
