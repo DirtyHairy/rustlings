@@ -6,7 +6,7 @@ use anyhow::Result;
 use sdl3::{render::Canvas, render::Texture, video::Window};
 
 pub trait Compositor {
-    fn add_layer(&mut self, texture_id: usize, destination: Rect);
+    fn add_layer(&mut self, texture_id: usize, width: usize, height: usize, destination: Rect);
 }
 
 pub trait Scene<'texture_creator> {

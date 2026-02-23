@@ -72,7 +72,12 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {
-        compositor.add_layer(TEXTURE_ID_MAIN_SCREEN as usize, Rect::new(0, 0, 320, 200));
+        compositor.add_layer(
+            TEXTURE_ID_MAIN_SCREEN as usize,
+            320,
+            200,
+            Rect::new(0, 0, 320, 200),
+        );
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {

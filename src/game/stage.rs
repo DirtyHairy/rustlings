@@ -88,7 +88,7 @@ impl<'sdl> Stage<'sdl> {
             let layer = render_state
                 .layers
                 .get_mut(i)
-                .ok_or(anyhow::format_err!("invlid layer {}", i))?;
+                .ok_or(anyhow::format_err!("invalid layer {}", i))?;
 
             let dest = render_state
                 .layout
@@ -96,7 +96,7 @@ impl<'sdl> Stage<'sdl> {
                 .get(i)
                 .ok_or(anyhow::format_err!("no layout for layer {}", i))?;
 
-            let texture = self.prescale_layer(scene, layer, dest)?;
+            let texture = self.prescale_layer(scene, layer)?;
             let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
@@ -108,49 +108,18 @@ impl<'sdl> Stage<'sdl> {
         &mut self,
         scene: &'scene mut dyn Scene<'sdl>,
         layer: &'layer mut Layer<'sdl>,
-        dest: &geometry::Rect,
     ) -> Result<&'layer mut Texture<'sdl>> {
         let source_texture = scene.texture(layer.texture_id)?;
 
-        let mut integer_scale_x =
-            (dest.width as f32 / source_texture.width() as f32).round() as u32;
-        let mut integer_scale_y =
-            (dest.height as f32 / source_texture.height() as f32).round() as u32;
+        let (integer_scaled_width, integer_scaled_height) = match layer.prescaling_mode {
+            PrescalingMode::None(scaling_mode) => {
+                source_texture.set_scale_mode(scaling_mode);
+                return Ok(source_texture);
+            }
+            PrescalingMode::Quis(width, height) => (width as u32, height as u32),
+        };
 
-        if (integer_scale_x == 0 && integer_scale_y <= 1)
-            || (integer_scale_y == 0 && integer_scale_x <= 1)
-        {
-            // At least one axis is downscaled, and the other is not nontrivially
-            // integer scaled -> use the original texture and use linear scaling
-            source_texture.set_scale_mode(sdl3::render::ScaleMode::Linear);
-            return Ok(source_texture);
-        }
-
-        // We are integer scaling along at least one axis, so make sure we keep
-        // the other finite.
-        integer_scale_x = std::cmp::max(1, integer_scale_x);
-        integer_scale_y = std::cmp::max(1, integer_scale_y);
-
-        let integer_scaled_width = source_texture.width() * integer_scale_x;
-        let integer_scaled_height = source_texture.height() * integer_scale_y;
-
-        if integer_scaled_width as usize == dest.width
-            && integer_scaled_height as usize == dest.height
-        {
-            // Integer scaling step is sufficient -> use the original texture and use
-            // nearest-neighbour scaling.
-            source_texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
-            return Ok(source_texture);
-        }
-
-        if integer_scale_x == 1 && integer_scale_y == 1 {
-            // The integer scaling step is trivial -> use the original texture
-            // and use linear scaling
-            source_texture.set_scale_mode(sdl3::render::ScaleMode::Linear);
-            return Ok(source_texture);
-        }
-
-        let intermediate_texture = match layer.intemediate_texture.as_mut() {
+        let intermediate_texture = match layer.intermediate_texture.as_mut() {
             Some(texture)
                 if texture.width() == integer_scaled_width
                     && texture.height() == integer_scaled_height =>
@@ -158,12 +127,12 @@ impl<'sdl> Stage<'sdl> {
                 texture
             }
             _ => {
-                layer.intemediate_texture = Some(self.texture_creator.create_texture_target(
+                layer.intermediate_texture = Some(self.texture_creator.create_texture_target(
                     PixelFormat::RGBA8888,
                     integer_scaled_width,
                     integer_scaled_height,
                 )?);
-                layer.intemediate_texture.as_mut().unwrap()
+                layer.intermediate_texture.as_mut().unwrap()
             }
         };
 
@@ -181,7 +150,7 @@ impl<'sdl> Stage<'sdl> {
             })?;
         blit_result?;
 
-        Ok(layer.intemediate_texture.as_mut().unwrap())
+        Ok(layer.intermediate_texture.as_mut().unwrap())
     }
 
     fn handle_events(&mut self) -> Result<HandleEventsResult> {
@@ -237,10 +206,27 @@ enum HandleEventsResult {
     ToggleFullscreen,
 }
 
+#[derive(Debug, PartialEq)]
+enum PrescalingMode {
+    None(ScaleMode),
+    Quis(usize, usize),
+}
+
+impl Default for PrescalingMode {
+    fn default() -> Self {
+        PrescalingMode::None(ScaleMode::Nearest)
+    }
+}
+
 struct Layer<'texture_creator> {
     texture_id: usize,
+
+    texture_width: usize,
+    texture_height: usize,
     destination: geometry::Rect,
-    intemediate_texture: Option<Texture<'texture_creator>>,
+
+    prescaling_mode: PrescalingMode,
+    intermediate_texture: Option<Texture<'texture_creator>>,
 }
 
 #[derive(Default)]
@@ -300,16 +286,19 @@ impl RenderState<'_> {
             dest_scene.y = ((h - height) / 2.) as usize;
         }
 
-        let dest_layers = self
-            .layers
-            .iter()
-            .map(|layer| geometry::Rect {
+        let mut dest_layers: Vec<geometry::Rect> = Vec::with_capacity(self.layers.len());
+        for layer in &mut self.layers {
+            let dest = geometry::Rect {
                 x: dest_scene.x + (layer.destination.x * dest_scene.width) / self.scene_width,
                 y: dest_scene.y + (layer.destination.y * dest_scene.height) / self.scene_height,
                 width: (layer.destination.width * dest_scene.width) / self.scene_width,
                 height: (layer.destination.height * dest_scene.height) / self.scene_height,
-            })
-            .collect();
+            };
+
+            dest_layers.push(dest);
+            layer.prescaling_mode =
+                calculate_prescaling_mode(layer.texture_width, layer.texture_height, &dest);
+        }
 
         self.layout = Layout {
             width,
@@ -320,12 +309,59 @@ impl RenderState<'_> {
     }
 }
 
+fn calculate_prescaling_mode(width: usize, height: usize, dest: &geometry::Rect) -> PrescalingMode {
+    if width == 0 || height == 0 {
+        return Default::default();
+    }
+    let mut integer_scale_x = (dest.width as f32 / width as f32).round() as usize;
+    let mut integer_scale_y = (dest.height as f32 / height as f32).round() as usize;
+
+    if (integer_scale_x == 0 && integer_scale_y <= 1)
+        || (integer_scale_y == 0 && integer_scale_x <= 1)
+    {
+        // At least one axis is downscaled, and the other is not nontrivially
+        // integer scaled -> use the original texture and use linear scaling
+        return PrescalingMode::None(ScaleMode::Linear);
+    }
+
+    // We are integer scaling along at least one axis, so make sure we keep
+    // the other finite.
+    integer_scale_x = std::cmp::max(1, integer_scale_x);
+    integer_scale_y = std::cmp::max(1, integer_scale_y);
+
+    let integer_scaled_width = width * integer_scale_x;
+    let integer_scaled_height = height * integer_scale_y;
+
+    if integer_scaled_width == dest.width && integer_scaled_height == dest.height {
+        // Integer scaling step is sufficient -> use the original texture and use
+        // nearest-neighbour scaling.
+        return PrescalingMode::None(ScaleMode::Nearest);
+    }
+
+    if integer_scale_x == 1 && integer_scale_y == 1 {
+        // The integer scaling step is trivial -> use the original texture
+        // and use linear scaling
+        return PrescalingMode::None(ScaleMode::Linear);
+    }
+
+    PrescalingMode::Quis(integer_scaled_width, integer_scaled_height)
+}
+
 impl Compositor for RenderState<'_> {
-    fn add_layer(&mut self, texture_id: usize, destination: geometry::Rect) {
+    fn add_layer(
+        &mut self,
+        texture_id: usize,
+        width: usize,
+        height: usize,
+        destination: geometry::Rect,
+    ) {
         self.layers.push(Layer {
             texture_id,
+            texture_width: width,
+            texture_height: height,
             destination,
-            intemediate_texture: None,
+            intermediate_texture: None,
+            prescaling_mode: Default::default(),
         });
     }
 }
@@ -368,5 +404,94 @@ impl ExposeWatch {
                 transmute::<*mut dyn Scene<'_>, *mut dyn Scene<'static>>(scene as *mut _)
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        geometry,
+        stage::{PrescalingMode, calculate_prescaling_mode},
+    };
+    use sdl3::render::ScaleMode;
+
+    #[test]
+    fn calculate_prescaling_mode_degenerate_width() {
+        let prescaling_mode =
+            calculate_prescaling_mode(0, 100, &geometry::Rect::new(0, 0, 100, 100));
+
+        assert_eq!(prescaling_mode, Default::default());
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_degenerate_height() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 0, &geometry::Rect::new(0, 0, 100, 100));
+
+        assert_eq!(prescaling_mode, Default::default());
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_downscale_both_1() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 20, 20));
+
+        assert_eq!(prescaling_mode, PrescalingMode::None(ScaleMode::Linear));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_downscale_both_2() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 90, 90));
+
+        assert_eq!(prescaling_mode, PrescalingMode::None(ScaleMode::Linear));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_downscale_one_1() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 90, 190));
+
+        assert_eq!(prescaling_mode, PrescalingMode::Quis(100, 200));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_downscale_one_2() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 90, 110));
+
+        assert_eq!(prescaling_mode, PrescalingMode::None(ScaleMode::Linear));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_upscale_exact() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 200, 300));
+
+        assert_eq!(prescaling_mode, PrescalingMode::None(ScaleMode::Nearest));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_upscale_slighty() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 110, 120));
+
+        assert_eq!(prescaling_mode, PrescalingMode::None(ScaleMode::Linear))
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_upscale_almost() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 110, 190));
+
+        assert_eq!(prescaling_mode, PrescalingMode::Quis(100, 200));
+    }
+
+    #[test]
+    fn calculate_prescaling_mode_upscale() {
+        let prescaling_mode =
+            calculate_prescaling_mode(100, 100, &geometry::Rect::new(0, 0, 610, 890));
+
+        assert_eq!(prescaling_mode, PrescalingMode::Quis(600, 900));
     }
 }
