@@ -76,15 +76,16 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {
-        canvas
-            .with_texture_canvas(&mut self.texture_screen, |canvas| {
-                let _ = canvas.copy(
-                    &self.texture_skill_panel,
-                    None,
-                    sdl3::rect::Rect::new(0, 160, 320, 40),
-                );
-            })
-            .map_err(anyhow::Error::from)
+        let mut blit_result: Result<(), sdl3::Error> = Ok(());
+        canvas.with_texture_canvas(&mut self.texture_screen, |canvas| {
+            blit_result = canvas.copy(
+                &self.texture_skill_panel,
+                None,
+                sdl3::rect::Rect::new(0, 160, 320, 40),
+            );
+        })?;
+
+        blit_result.map_err(anyhow::Error::from)
     }
 
     fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>> {

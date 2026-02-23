@@ -2,11 +2,14 @@ use crate::geometry;
 use crate::scene::{Compositor, Scene};
 use anyhow::Result;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
+use sdl3::pixels::PixelFormat;
+use sdl3::render::{ScaleMode, Texture};
 use sdl3::sys::video::SDL_WindowFlags;
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
     keyboard::{Keycode, Mod},
+    rect::Rect as SdlRect,
     render::{Canvas, TextureCreator},
     video::{Window, WindowContext},
 };
@@ -71,24 +74,112 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn render(&mut self, render_state: &mut RenderState, scene: &mut dyn Scene) -> Result<()> {
+    fn render(
+        &mut self,
+        render_state: &mut RenderState<'sdl>,
+        scene: &mut dyn Scene<'sdl>,
+    ) -> Result<()> {
         let (canvas_width, canvas_height) = self.canvas.output_size()?;
         render_state.update_layout(canvas_width as usize, canvas_height as usize);
 
         self.canvas.clear();
 
         for i in 0..render_state.layers.len() {
-            let layer = &render_state.layers[i];
-            let dest = &render_state.layout.layers[i];
+            let layer = render_state
+                .layers
+                .get_mut(i)
+                .ok_or(anyhow::format_err!("invlid layer {}", i))?;
 
-            let texture = scene.texture(layer.texture_id)?;
-            texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
+            let dest = render_state
+                .layout
+                .layers
+                .get(i)
+                .ok_or(anyhow::format_err!("no layout for layer {}", i))?;
 
+            let texture = self.prescale_layer(scene, layer, dest)?;
             let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
         self.canvas.present();
         Ok(())
+    }
+
+    fn prescale_layer<'scene: 'layer, 'layer>(
+        &mut self,
+        scene: &'scene mut dyn Scene<'sdl>,
+        layer: &'layer mut Layer<'sdl>,
+        dest: &geometry::Rect,
+    ) -> Result<&'layer mut Texture<'sdl>> {
+        let source_texture = scene.texture(layer.texture_id)?;
+
+        let mut integer_scale_x = dest.width as u32 / source_texture.width();
+        let mut integer_scale_y = dest.height as u32 / source_texture.height();
+
+        if (integer_scale_x == 0 && integer_scale_y <= 1)
+            || (integer_scale_y == 0 && integer_scale_x <= 1)
+        {
+            // At least one axis is downscaled, and the other is not nontrivially
+            // integer scaled -> use the original texture and use linear scaling
+            source_texture.set_scale_mode(sdl3::render::ScaleMode::Linear);
+            return Ok(source_texture);
+        }
+
+        // We are integer scaling along at least one axis, so make sure we keep
+        // the other finite.
+        integer_scale_x = std::cmp::max(1, integer_scale_x);
+        integer_scale_y = std::cmp::max(1, integer_scale_y);
+
+        let integer_scaled_width = source_texture.width() * integer_scale_x;
+        let integer_scaled_height = source_texture.height() * integer_scale_y;
+
+        if integer_scaled_width as usize == dest.width
+            && integer_scaled_height as usize == dest.height
+        {
+            // Integer scaling step is sufficient -> use the original texture and use
+            // nearest-neighbour scaling.
+            source_texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
+            return Ok(source_texture);
+        }
+
+        if integer_scale_x == 1 && integer_scale_y == 1 {
+            // The integer scaling step is trivial -> use the original texture
+            // and use linear scaling
+            source_texture.set_scale_mode(sdl3::render::ScaleMode::Linear);
+            return Ok(source_texture);
+        }
+
+        let intermediate_texture = match layer.intemediate_texture.as_mut() {
+            Some(texture)
+                if texture.width() == integer_scaled_width
+                    && texture.height() == integer_scaled_height =>
+            {
+                texture
+            }
+            _ => {
+                layer.intemediate_texture = Some(self.texture_creator.create_texture_target(
+                    PixelFormat::RGBA8888,
+                    integer_scaled_width,
+                    integer_scaled_height,
+                )?);
+                layer.intemediate_texture.as_mut().unwrap()
+            }
+        };
+
+        source_texture.set_scale_mode(ScaleMode::Nearest);
+        intermediate_texture.set_scale_mode(ScaleMode::Linear);
+
+        let mut blit_result: Result<(), sdl3::Error> = Ok(());
+        self.canvas
+            .with_texture_canvas(intermediate_texture, |canvas| {
+                blit_result = canvas.copy(
+                    source_texture,
+                    None,
+                    SdlRect::new(0, 0, integer_scaled_width, integer_scaled_height),
+                );
+            })?;
+        blit_result?;
+
+        Ok(layer.intemediate_texture.as_mut().unwrap())
     }
 
     fn handle_events(&mut self) -> Result<HandleEventsResult> {
@@ -144,9 +235,10 @@ enum HandleEventsResult {
     ToggleFullscreen,
 }
 
-struct Layer {
+struct Layer<'texture_creator> {
     texture_id: usize,
     destination: geometry::Rect,
+    intemediate_texture: Option<Texture<'texture_creator>>,
 }
 
 #[derive(Default)]
@@ -159,8 +251,8 @@ struct Layout {
 }
 
 #[derive(Default)]
-struct RenderState {
-    layers: Vec<Layer>,
+struct RenderState<'texture_creator> {
+    layers: Vec<Layer<'texture_creator>>,
     layout: Layout,
 
     scene_width: usize,
@@ -168,7 +260,7 @@ struct RenderState {
     scene_aspect: f32,
 }
 
-impl RenderState {
+impl RenderState<'_> {
     pub fn new(scene: &dyn Scene) -> Self {
         RenderState {
             scene_width: scene.width(),
@@ -226,18 +318,19 @@ impl RenderState {
     }
 }
 
-impl Compositor for RenderState {
+impl Compositor for RenderState<'_> {
     fn add_layer(&mut self, texture_id: usize, destination: geometry::Rect) {
         self.layers.push(Layer {
             texture_id,
             destination,
+            intemediate_texture: None,
         });
     }
 }
 
 struct ExposeWatch {
     stage: *mut Stage<'static>,
-    render_state: *mut RenderState,
+    render_state: *mut RenderState<'static>,
     scene: *mut dyn Scene<'static>,
 }
 unsafe impl Send for ExposeWatch {}
@@ -268,7 +361,7 @@ impl ExposeWatch {
     pub fn new(stage: &mut Stage, render_state: &mut RenderState, scene: &mut dyn Scene) -> Self {
         ExposeWatch {
             stage: (stage as *mut _) as *mut Stage<'static>,
-            render_state: render_state as *mut _,
+            render_state: (render_state as *mut _) as *mut RenderState<'static>,
             scene: unsafe {
                 transmute::<*mut dyn Scene<'_>, *mut dyn Scene<'static>>(scene as *mut _)
             },
