@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::{
-    game_data::{Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, PALETTE_SIZE, PaletteEntry},
+    game_data::{Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level},
     sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
