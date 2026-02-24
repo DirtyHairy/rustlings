@@ -51,10 +51,17 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(21)?;
-        let terrain = game_data.compose_terrain(&level)?;
         let palette = game_data.resolve_palette(&level)?;
 
-        let texture_terrain = texture_from_bitmap(&terrain, &palette, texture_creator)?;
+        let state = match scene_state {
+            SceneState::Level(state_level) => state_level,
+            _ => SceneStateLevel {
+                level_x: level.start_x as usize,
+                terrain: game_data.compose_terrain(&level)?,
+            },
+        };
+
+        let texture_terrain = texture_from_bitmap(&state.terrain, &palette, texture_creator)?;
 
         let texture_skill_panel = texture_from_bitmap(
             &game_data.skill_panel,
@@ -73,14 +80,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
         )?;
-
-        let state = match scene_state {
-            SceneState::Level(state_level) => state_level,
-            _ => SceneStateLevel {
-                level_x: level.start_x as usize,
-                terrain,
-            },
-        };
 
         Ok(SceneLevel {
             game_data,
