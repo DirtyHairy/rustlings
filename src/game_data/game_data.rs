@@ -1,10 +1,11 @@
-use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
-
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
-pub use crate::game_data::file::level::{Level, LevelParamters, LevelStructure, Object, TerrainTile};
+pub use crate::game_data::file::level::{
+    Level, LevelParamters, LevelStructure, Object, TerrainTile,
+};
 pub use crate::game_data::file::main::NUM_LEMMING_SPRITES;
+use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
 

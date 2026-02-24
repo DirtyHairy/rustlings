@@ -1,9 +1,9 @@
 mod cmd;
 
+use std::path::Path;
+
 use anyhow::Result;
 use clap::{Arg, ArgMatches, Command};
-
-use std::path::Path;
 
 const ARG_GAME_DATA_PATH: &str = "GAME_DATA_PATH";
 const ARG_DAT_FILE_PATH: &str = "DAT_FILE";

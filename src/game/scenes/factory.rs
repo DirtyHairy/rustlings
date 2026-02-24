@@ -1,12 +1,14 @@
+use std::rc::Rc;
+
+use anyhow::Result;
+use rustlings::game_data::GameData;
+use sdl3::render::TextureCreator;
+
 use crate::{
     scene::Scene,
     scenes::SceneLevel,
     state::{GameState, SceneState, Screen},
 };
-use anyhow::Result;
-use rustlings::game_data::GameData;
-use sdl3::render::TextureCreator;
-use std::rc::Rc;
 
 pub fn create_scene<'texture_creator, T>(
     game_data: Rc<GameData>,

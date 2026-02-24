@@ -1,5 +1,6 @@
-use anyhow::{anyhow, bail, Result};
 use std::{cmp::Ordering, fmt};
+
+use anyhow::{Result, anyhow, bail};
 
 use crate::game_data::file::encoding::bitstream;
 

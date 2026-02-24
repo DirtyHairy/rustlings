@@ -1,5 +1,5 @@
-use crate::geometry;
-use crate::scene::{Compositor, Scene};
+use std::mem::transmute;
+
 use anyhow::Result;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
 use sdl3::pixels::PixelFormat;
@@ -13,7 +13,9 @@ use sdl3::{
     render::{Canvas, TextureCreator},
     video::{Window, WindowContext},
 };
-use std::mem::transmute;
+
+use crate::geometry;
+use crate::scene::{Compositor, Scene};
 
 pub enum RunResult {
     Quit,
@@ -409,11 +411,12 @@ impl ExposeWatch {
 
 #[cfg(test)]
 mod test {
+    use sdl3::render::ScaleMode;
+
     use crate::{
         geometry,
         stage::{PrescalingMode, calculate_prescaling_mode},
     };
-    use sdl3::render::ScaleMode;
 
     #[test]
     fn calculate_prescaling_mode_degenerate_width() {

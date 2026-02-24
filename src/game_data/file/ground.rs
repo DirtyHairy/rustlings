@@ -1,8 +1,12 @@
-use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry};
-use crate::game_data::file::read::{read_byte, read_word_be};
-use anyhow::*;
 use std::fmt;
 use std::{fs, path::Path};
+
+use anyhow::*;
+
+use crate::game_data::file::palette::{
+    LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry,
+};
+use crate::game_data::file::read::{read_byte, read_word_be};
 
 pub const OBJECTS_PER_TILESET: usize = 16;
 pub const TILES_PER_TILESET: usize = 64;

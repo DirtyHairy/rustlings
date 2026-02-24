@@ -1,9 +1,11 @@
+use std::fmt;
+use std::{fs, path::Path};
+
+use anyhow::{Context, Result, bail};
+
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::read::{read_byte, read_word_le};
 use crate::game_data::skill::{NUM_SKILLS, SKILLS};
-use anyhow::{Context, Result, bail};
-use std::fmt;
-use std::{fs, path::Path};
 
 const ODDTABLE_ENTRIES: usize = 80;
 const ODDTABLE_ENTRY_SIZE: usize = 0x38;

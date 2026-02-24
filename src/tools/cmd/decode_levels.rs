@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, fs, io::Write, path::Path};
 
 use anyhow::Result;
-
 use rustlings::game_data::{LevelStructure, read_game_data};
 
 fn comparator<T: LevelStructure>(o1: &T, o2: &T) -> Ordering {

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 pub struct Bitstream<'a> {
     buffer: &'a [u8],

@@ -1,5 +1,6 @@
-use anyhow::{Result, anyhow, bail};
 use std::fmt::Display;
+
+use anyhow::{Result, anyhow, bail};
 
 #[derive(Clone)]
 pub struct Bitmap {

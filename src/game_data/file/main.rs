@@ -1,9 +1,10 @@
-use crate::game_data::Bitmap;
+use std::{convert::TryInto, fs, path::Path};
 
+use anyhow::{Result, bail};
+
+use crate::game_data::Bitmap;
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
-use anyhow::{Result, bail};
-use std::{convert::TryInto, fs, path::Path};
 
 pub const NUM_LEMMING_SPRITES: usize = 30;
 

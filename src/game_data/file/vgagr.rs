@@ -1,8 +1,12 @@
-use crate::game_data::file::encoding::datfile;
-use crate::game_data::file::ground::{OBJECTS_PER_TILESET, ObjectInfo, TILES_PER_TILESET, TerrainInfo};
-use crate::game_data::file::sprite::{Bitmap, Sprite, TransparencyEncoding};
-use anyhow::{Result, anyhow, bail};
 use std::{fs, path::Path};
+
+use anyhow::{Result, anyhow, bail};
+
+use crate::game_data::file::encoding::datfile;
+use crate::game_data::file::ground::{
+    OBJECTS_PER_TILESET, ObjectInfo, TILES_PER_TILESET, TerrainInfo,
+};
+use crate::game_data::file::sprite::{Bitmap, Sprite, TransparencyEncoding};
 
 pub struct Content {
     pub object_sprites: [Option<Sprite>; OBJECTS_PER_TILESET],

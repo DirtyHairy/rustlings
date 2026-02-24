@@ -1,11 +1,13 @@
+use std::{fs, path::Path};
+
+use anyhow::{Result, anyhow, bail};
+
 use crate::game_data::file::encoding;
 use crate::game_data::file::palette::{
     LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, expand_rgb6_to8, read_palette_entry,
 };
 use crate::game_data::file::read::read_byte;
 use crate::game_data::file::sprite::{Bitmap, TransparencyEncoding};
-use anyhow::{Result, anyhow, bail};
-use std::{fs, path::Path};
 
 const SECTION_SIZE: usize = 14400;
 const VGASPEC_BITMAP_WIDTH: usize = 960;

@@ -1,12 +1,17 @@
+use std::{
+    cmp::{max, min},
+    path::Path,
+    thread::sleep,
+    time::Duration,
+};
+
+use anyhow::{Result, anyhow};
 use rustlings::game_data::{
     Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
     PaletteEntry, TerrainTile, read_game_data,
 };
 use rustlings::sdl_rendering::SDLSprite;
 use rustlings::sdl3_aux::get_canvas_vsync;
-
-use crate::cmd::util::{create_window, timestamp};
-use anyhow::{Result, anyhow};
 use sdl3::{
     event::Event,
     keyboard::Keycode,
@@ -14,12 +19,8 @@ use sdl3::{
     rect::Rect,
     render::{BlendMode, Canvas, RenderTarget, Texture, TextureCreator},
 };
-use std::{
-    cmp::{max, min},
-    path::Path,
-    thread::sleep,
-    time::Duration,
-};
+
+use crate::cmd::util::{create_window, timestamp};
 
 const LEVELS_TOTAL: usize = 120;
 const LEVEL_WIDTH: u32 = 1600;

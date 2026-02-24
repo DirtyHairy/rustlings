@@ -1,8 +1,5 @@
-use crate::{
-    scenes::create_scene,
-    stage::{RunResult, Stage},
-    state::{GameState, SceneState},
-};
+use std::{path::Path, rc::Rc};
+
 use anyhow::Result;
 use rustlings::{
     game_data::{GameData, read_game_data},
@@ -13,7 +10,12 @@ use sdl3::{
     render::{Canvas, TextureCreator},
     video::{Window, WindowContext},
 };
-use std::{path::Path, rc::Rc};
+
+use crate::{
+    scenes::create_scene,
+    stage::{RunResult, Stage},
+    state::{GameState, SceneState},
+};
 
 pub struct Config {
     pub data_dir: String,

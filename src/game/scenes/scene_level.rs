@@ -1,8 +1,5 @@
-use crate::scene::Scene;
-use crate::{
-    geometry::Rect,
-    state::{GameState, SceneState, SceneStateLevel},
-};
+use std::rc::Rc;
+
 use anyhow::Result;
 use rustlings::{game_data::GameData, sdl_rendering::texture_from_bitmap};
 use sdl3::{
@@ -10,7 +7,12 @@ use sdl3::{
     render::{Canvas, Texture, TextureCreator},
     video::Window,
 };
-use std::rc::Rc;
+
+use crate::scene::Scene;
+use crate::{
+    geometry::Rect,
+    state::{GameState, SceneState, SceneStateLevel},
+};
 
 pub struct SceneLevel<'texture_creator> {
     game_data: Rc<GameData>,

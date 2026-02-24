@@ -6,7 +6,6 @@ use sdl3::{
 };
 
 use crate::game_data::PALETTE_SIZE;
-
 use crate::game_data::{Bitmap, PaletteEntry, Sprite};
 
 fn copy_bitmap_to_texture_data(

@@ -1,3 +1,7 @@
+use std::path::Path;
+
+use anyhow::Result;
+
 use crate::game_data::file::ground::read_ground;
 use crate::game_data::file::level::{Level, read_level_file, read_oddtable};
 use crate::game_data::file::main::read_main;
@@ -5,8 +9,6 @@ use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, Palette
 use crate::game_data::file::vgagr::read_vgagr;
 use crate::game_data::file::vgaspec::read_vgaspec;
 use crate::game_data::game_data::{GameData, Image, TileSet};
-use anyhow::Result;
-use std::path::Path;
 
 const NUM_LEVELS_FILES: usize = 10;
 const LEVELS_PER_FILE: usize = 8;
