@@ -1,3 +1,5 @@
+use anyhow::{Result, bail, format_err};
+
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
@@ -8,6 +10,10 @@ pub use crate::game_data::file::main::NUM_LEMMING_SPRITES;
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
+
+pub const LEVEL_WIDTH: usize = 1600;
+pub const LEVEL_HEIGHT: usize = 160;
+pub const VGASPEC_POSITION: usize = 304;
 
 const LEVEL_TABLE: [u8; 120] = [
     0x93, 0x9b, 0x9d, 0x95, 0x97, 0x99, 0x9f, 0x0e, 0x16, 0x36, 0x46, 0x10, 0x1d, 0x20, 0x26, 0x2a,
@@ -20,7 +26,36 @@ const LEVEL_TABLE: [u8; 120] = [
     0x83, 0x85, 0x87, 0x89, 0x8b, 0x8d, 0x8f, 0x91,
 ];
 
-pub const DIFFICULTY_RATINGS: [&str; 4] = ["Fun", "Tricky", "Taxing", "Mayhem"];
+#[derive(Clone, Copy)]
+pub enum DifficultyRating {
+    Fun,
+    Tricky,
+    Taxing,
+    Mayhem,
+}
+
+impl ToString for DifficultyRating {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Fun => "Fun".to_string(),
+            Self::Tricky => "Tricky".to_string(),
+            Self::Taxing => "Taxing".to_string(),
+            Self::Mayhem => "Mayhem".to_string(),
+        }
+    }
+}
+
+impl From<usize> for DifficultyRating {
+    fn from(value: usize) -> Self {
+        match value % 4 {
+            0 => Self::Fun,
+            1 => Self::Tricky,
+            2 => Self::Taxing,
+            3 => Self::Mayhem,
+            _ => unreachable!(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Image {
@@ -50,9 +85,9 @@ pub struct GameData {
 }
 
 impl GameData {
-    pub fn resolve_level(&self, index: usize) -> Option<Level> {
+    pub fn resolve_level(&self, index: usize) -> Result<Level> {
         if index >= LEVEL_TABLE.len() {
-            return None;
+            bail!("no level with index {}", index);
         }
 
         let entry = LEVEL_TABLE[index] - 1;
@@ -60,13 +95,20 @@ impl GameData {
         let level_index = 8 * (entry >> 4) + ((entry >> 1) & 0x07);
         let oddtable_index = entry >> 1;
 
-        let level = self.levels.get(level_index as usize)?;
+        let level = self
+            .levels
+            .get(level_index as usize)
+            .ok_or(format_err!("invalid level_index {}", level_index))?;
 
         if (entry & 0x01) == 0 {
-            return Some(level.clone());
+            return Ok(level.clone());
         } else {
-            return Some(Level {
-                parameters: self.oddtable.get(oddtable_index as usize)?.clone(),
+            return Ok(Level {
+                parameters: self
+                    .oddtable
+                    .get(oddtable_index as usize)
+                    .ok_or(format_err!("invalid oddtable_index {}", oddtable_index))?
+                    .clone(),
                 ..level.clone()
             });
         }
@@ -88,5 +130,122 @@ impl GameData {
         }
 
         palette
+    }
+
+    pub fn resolve_palette(&self, level: &Level) -> Result<[PaletteEntry; PALETTE_SIZE]> {
+        if level.extended_graphics_set > 0 {
+            self.special_backgrounds
+                .get(level.extended_graphics_set as usize - 1)
+                .ok_or(format_err!(
+                    "invalid extended graphics set {}",
+                    level.extended_graphics_set
+                ))
+                .map(|x| x.palette)
+        } else {
+            self.tilesets
+                .get(level.graphics_set as usize)
+                .ok_or(format_err!("invlid graphics set {}", level.graphics_set))
+                .map(|x| x.palettes.custom)
+        }
+    }
+
+    pub fn compose_terrain(&self, level: &Level) -> Result<Bitmap> {
+        let mut data: Vec<u8> = vec![0; LEVEL_HEIGHT * LEVEL_WIDTH];
+        let mut transparency: Vec<bool> = vec![true; LEVEL_HEIGHT * LEVEL_WIDTH];
+
+        if level.extended_graphics_set > 0 {
+            let special_background = self
+                .special_backgrounds
+                .get(level.extended_graphics_set as usize - 1)
+                .ok_or(format_err!(
+                    "bad extended graphics set {}",
+                    level.extended_graphics_set
+                ))?;
+
+            for y in 0..special_background.bitmap.height {
+                for x in 0..special_background.bitmap.width {
+                    let i_src = y * special_background.bitmap.width + x;
+                    let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION + x;
+
+                    data[i_dest] = if special_background.bitmap.transparency[i_src] {
+                        0
+                    } else {
+                        special_background.bitmap.data[i_src]
+                    };
+
+                    transparency[i_dest] = special_background.bitmap.transparency[i_src];
+                }
+            }
+        }
+
+        for tile in &level.terrain_tiles {
+            let bitmap_optional = self
+                .tilesets
+                .get(level.graphics_set as usize)
+                .ok_or(format_err!("bad graphics set {}", level.graphics_set))?
+                .tiles
+                .get(tile.id as usize)
+                .and_then(|x| x.as_ref());
+
+            match bitmap_optional {
+                None => continue,
+                Some(bitmap) => {
+                    compose_tile_onto_background(tile, bitmap, &mut data, &mut transparency);
+                }
+            }
+        }
+
+        Ok(Bitmap {
+            width: LEVEL_WIDTH,
+            height: LEVEL_HEIGHT,
+            data,
+            transparency,
+        })
+    }
+}
+
+fn compose_tile_onto_background(
+    tile: &TerrainTile,
+    bitmap: &Bitmap,
+    data: &mut Vec<u8>,
+    transparency: &mut Vec<bool>,
+) -> () {
+    for y in 0..bitmap.height {
+        for x in 0..bitmap.width {
+            let y_transformed = if tile.flip_y {
+                bitmap.height - 1 - y
+            } else {
+                y
+            };
+
+            let x_dest = tile.x + x as i32;
+            let y_dest = tile.y + y as i32;
+            if x_dest < 0
+                || x_dest >= LEVEL_WIDTH as i32
+                || y_dest < 0
+                || y_dest >= LEVEL_HEIGHT as i32
+            {
+                continue;
+            }
+
+            let src_index = (y_transformed * bitmap.width + x) as usize;
+            let dest_index = (y_dest * LEVEL_WIDTH as i32 + x_dest) as usize;
+
+            if tile.do_not_overwrite {
+                if transparency[dest_index] && !bitmap.transparency[src_index] {
+                    data[dest_index] = bitmap.data[src_index];
+                    transparency[dest_index] = false;
+                }
+            } else if tile.remove_terrain {
+                if !bitmap.transparency[src_index] {
+                    transparency[dest_index] = true;
+                }
+            } else {
+                if !bitmap.transparency[src_index] {
+                    data[dest_index] = bitmap.data[src_index];
+                    transparency[dest_index] = false;
+                }
+            }
+        }
     }
 }

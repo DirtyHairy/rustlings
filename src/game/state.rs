@@ -10,7 +10,9 @@ pub struct GameState {
 }
 
 #[derive(Default, Clone)]
-pub struct SceneStateLevel {}
+pub struct SceneStateLevel {
+    pub level_x: usize,
+}
 
 #[derive(Default, Clone)]
 pub enum SceneState {

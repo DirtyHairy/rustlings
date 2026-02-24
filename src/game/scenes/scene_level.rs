@@ -1,10 +1,14 @@
 use std::rc::Rc;
 
 use anyhow::Result;
-use rustlings::{game_data::GameData, sdl_rendering::texture_from_bitmap};
+use rustlings::{
+    game_data::{Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, PALETTE_SIZE, PaletteEntry},
+    sdl_rendering::texture_from_bitmap,
+};
 use sdl3::{
     pixels::PixelFormat,
-    render::{Canvas, Texture, TextureCreator},
+    rect::Rect as SdlRect,
+    render::{Canvas, ScaleMode, Texture, TextureCreator},
     video::Window,
 };
 
@@ -14,13 +18,25 @@ use crate::{
     state::{GameState, SceneState, SceneStateLevel},
 };
 
+const SCREEN_WIDTH: usize = 320;
+const SCREEN_HEIGHT: usize = 200;
+
+const SKILL_PANEL_HEIGHT: usize = 40;
+
 pub struct SceneLevel<'texture_creator> {
     game_data: Rc<GameData>,
     game_state: GameState,
     state: SceneStateLevel,
 
-    texture_screen: Texture<'texture_creator>,
+    level: Level,
+    terrain: Bitmap,
+    palette: [PaletteEntry; PALETTE_SIZE],
+
+    texture_terrain: Texture<'texture_creator>,
     texture_skill_panel: Texture<'texture_creator>,
+
+    texture_level: Texture<'texture_creator>,
+    texture_screen: Texture<'texture_creator>,
 }
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
@@ -32,8 +48,11 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         scene_state: SceneState,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
-        let texture_screen =
-            texture_creator.create_texture_target(PixelFormat::RGBA8888, 320, 200)?;
+        let level = game_data.resolve_level(0)?;
+        let terrain = game_data.compose_terrain(&level)?;
+        let palette = game_data.resolve_palette(&level)?;
+
+        let texture_terrain = texture_from_bitmap(&terrain, &palette, texture_creator)?;
 
         let texture_skill_panel = texture_from_bitmap(
             &game_data.skill_panel,
@@ -41,17 +60,38 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             texture_creator,
         )?;
 
+        let mut texture_level = texture_creator.create_texture_target(
+            PixelFormat::RGBA8888,
+            LEVEL_WIDTH as u32,
+            LEVEL_HEIGHT as u32,
+        )?;
+        texture_level.set_scale_mode(ScaleMode::Nearest);
+
+        let texture_screen = texture_creator.create_texture_target(
+            PixelFormat::RGBA8888,
+            SCREEN_WIDTH as u32,
+            SCREEN_HEIGHT as u32,
+        )?;
+
         let state = match scene_state {
             SceneState::Level(state_level) => state_level,
-            _ => Default::default(),
+            _ => SceneStateLevel {
+                level_x: level.start_x as usize,
+                ..Default::default()
+            },
         };
 
         Ok(SceneLevel {
             game_data,
             game_state,
             state,
-            texture_screen,
+            level,
+            terrain,
+            palette,
+            texture_terrain,
             texture_skill_panel,
+            texture_level,
+            texture_screen,
         })
     }
 }
@@ -62,11 +102,11 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn width(&self) -> usize {
-        320
+        SCREEN_WIDTH
     }
 
     fn height(&self) -> usize {
-        200
+        SCREEN_HEIGHT
     }
 
     fn aspect(&self) -> f32 {
@@ -78,21 +118,48 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             TEXTURE_ID_MAIN_SCREEN as usize,
             320,
             200,
-            Rect::new(0, 0, 320, 200),
+            Rect::new(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
         );
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {
         let mut blit_result: Result<(), sdl3::Error> = Ok(());
-        canvas.with_texture_canvas(&mut self.texture_screen, |canvas| {
-            blit_result = canvas.copy(
-                &self.texture_skill_panel,
-                None,
-                sdl3::rect::Rect::new(0, 160, 320, 40),
-            );
+        canvas.with_texture_canvas(&mut self.texture_level, |canvas| {
+            blit_result = canvas.copy(&self.texture_terrain, None, None)
         })?;
+        blit_result?;
 
-        blit_result.map_err(anyhow::Error::from)
+        let mut blit_result: Result<(), sdl3::Error> = Ok(());
+        canvas.with_texture_canvas(&mut self.texture_screen, |canvas| {
+            blit_result = (|| -> Result<(), sdl3::Error> {
+                canvas.copy(
+                    &self.texture_skill_panel,
+                    None,
+                    SdlRect::new(
+                        0,
+                        LEVEL_HEIGHT as i32,
+                        SCREEN_WIDTH as u32,
+                        SKILL_PANEL_HEIGHT as u32,
+                    ),
+                )?;
+
+                canvas.copy(
+                    &self.texture_level,
+                    SdlRect::new(
+                        self.state.level_x as i32,
+                        0,
+                        SCREEN_WIDTH as u32,
+                        LEVEL_HEIGHT as u32,
+                    ),
+                    SdlRect::new(0, 0, SCREEN_WIDTH as u32, LEVEL_HEIGHT as u32),
+                )?;
+
+                Ok(())
+            })()
+        })?;
+        blit_result?;
+
+        Ok(())
     }
 
     fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>> {

@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{
-    Bitmap, DIFFICULTY_RATINGS, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
+    Bitmap, DifficultyRating, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
     PaletteEntry, TerrainTile, read_game_data,
 };
 use rustlings::sdl_rendering::SDLSprite;
@@ -41,7 +41,7 @@ struct DrawState<'a> {
 fn dump_level(level_index: usize, level: &Level) -> () {
     println!(
         "{} {}:",
-        DIFFICULTY_RATINGS[level_index / 30],
+        DifficultyRating::from(level_index / 30).to_string(),
         level_index % 30 + 1
     );
 
