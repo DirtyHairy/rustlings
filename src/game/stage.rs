@@ -276,25 +276,28 @@ impl RenderState<'_> {
             let width = w_scene * h / h_scene;
 
             dest_scene.height = height;
-            dest_scene.width = width as usize;
+            dest_scene.width = width.round() as usize;
             dest_scene.y = 0;
-            dest_scene.x = ((w - width) / 2.) as usize;
+            dest_scene.x = ((w - width) / 2.).round() as usize;
         } else {
             let height = h_scene * w / w_scene;
 
             dest_scene.width = width;
-            dest_scene.height = height as usize;
+            dest_scene.height = height.round() as usize;
             dest_scene.x = 0;
-            dest_scene.y = ((h - height) / 2.) as usize;
+            dest_scene.y = ((h - height) / 2.).round() as usize;
         }
 
         let mut dest_layers: Vec<geometry::Rect> = Vec::with_capacity(self.layers.len());
+        let scale_x = dest_scene.width as f32 / self.scene_width as f32;
+        let scale_y = dest_scene.height as f32 / self.scene_height as f32;
+
         for layer in &mut self.layers {
             let dest = geometry::Rect {
-                x: dest_scene.x + (layer.destination.x * dest_scene.width) / self.scene_width,
-                y: dest_scene.y + (layer.destination.y * dest_scene.height) / self.scene_height,
-                width: (layer.destination.width * dest_scene.width) / self.scene_width,
-                height: (layer.destination.height * dest_scene.height) / self.scene_height,
+                x: dest_scene.x + (layer.destination.x as f32 * scale_x).round() as usize,
+                y: dest_scene.y + (layer.destination.y as f32 * scale_y).round() as usize,
+                width: (layer.destination.width as f32 * scale_x).round() as usize,
+                height: (layer.destination.height as f32 * scale_y).round() as usize,
             };
 
             dest_layers.push(dest);
