@@ -1,3 +1,5 @@
+use rustlings::game_data::Bitmap;
+
 #[derive(Default, Clone)]
 pub enum Screen {
     #[default]
@@ -9,9 +11,10 @@ pub struct GameState {
     pub screen: Screen,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct SceneStateLevel {
     pub level_x: usize,
+    pub terrain: Bitmap,
 }
 
 #[derive(Default, Clone)]

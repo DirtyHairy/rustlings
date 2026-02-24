@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::{
-    game_data::{Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level},
+    game_data::{GameData, LEVEL_HEIGHT, LEVEL_WIDTH},
     sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
@@ -35,9 +35,6 @@ pub struct SceneLevel<'texture_creator> {
     game_data: Rc<GameData>,
     game_state: GameState,
     state: SceneStateLevel,
-
-    level: Level,
-    terrain: Bitmap,
 
     texture_terrain: Texture<'texture_creator>,
     texture_skill_panel: Texture<'texture_creator>,
@@ -81,7 +78,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             SceneState::Level(state_level) => state_level,
             _ => SceneStateLevel {
                 level_x: level.start_x as usize,
-                ..Default::default()
+                terrain,
             },
         };
 
@@ -89,8 +86,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             game_data,
             game_state,
             state,
-            level,
-            terrain,
             texture_terrain,
             texture_skill_panel,
             texture_level,
