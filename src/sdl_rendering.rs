@@ -162,3 +162,20 @@ impl<'a> SDLSprite<'a> {
             .map_err(anyhow::Error::from)
     }
 }
+
+pub fn with_texture_canvas<T: RenderTarget, F>(
+    canvas: &mut Canvas<T>,
+    texture: &mut Texture,
+    f: F,
+) -> Result<()>
+where
+    F: FnOnce(&mut Canvas<T>) -> Result<()>,
+{
+    let mut render_result: Result<()> = Ok(());
+
+    canvas.with_texture_canvas(texture, |c| {
+        render_result = f(c);
+    })?;
+
+    render_result.map_err(anyhow::Error::from)
+}

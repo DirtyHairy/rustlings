@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::Result;
 use rustlings::{
     game_data::{Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, PALETTE_SIZE, PaletteEntry},
-    sdl_rendering::texture_from_bitmap,
+    sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
     pixels::PixelFormat,
@@ -123,41 +123,37 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {
-        let mut blit_result: Result<(), sdl3::Error> = Ok(());
-        canvas.with_texture_canvas(&mut self.texture_level, |canvas| {
-            blit_result = canvas.copy(&self.texture_terrain, None, None)
+        with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+            canvas
+                .copy(&self.texture_terrain, None, None)
+                .map_err(anyhow::Error::from)
         })?;
-        blit_result?;
 
-        let mut blit_result: Result<(), sdl3::Error> = Ok(());
-        canvas.with_texture_canvas(&mut self.texture_screen, |canvas| {
-            blit_result = (|| -> Result<(), sdl3::Error> {
-                canvas.copy(
-                    &self.texture_skill_panel,
-                    None,
-                    SdlRect::new(
-                        0,
-                        LEVEL_HEIGHT as i32,
-                        SCREEN_WIDTH as u32,
-                        SKILL_PANEL_HEIGHT as u32,
-                    ),
-                )?;
+        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| -> Result<()> {
+            canvas.copy(
+                &self.texture_skill_panel,
+                None,
+                SdlRect::new(
+                    0,
+                    LEVEL_HEIGHT as i32,
+                    SCREEN_WIDTH as u32,
+                    SKILL_PANEL_HEIGHT as u32,
+                ),
+            )?;
 
-                canvas.copy(
-                    &self.texture_level,
-                    SdlRect::new(
-                        self.state.level_x as i32,
-                        0,
-                        SCREEN_WIDTH as u32,
-                        LEVEL_HEIGHT as u32,
-                    ),
-                    SdlRect::new(0, 0, SCREEN_WIDTH as u32, LEVEL_HEIGHT as u32),
-                )?;
+            canvas.copy(
+                &self.texture_level,
+                SdlRect::new(
+                    self.state.level_x as i32,
+                    0,
+                    SCREEN_WIDTH as u32,
+                    LEVEL_HEIGHT as u32,
+                ),
+                SdlRect::new(0, 0, SCREEN_WIDTH as u32, LEVEL_HEIGHT as u32),
+            )?;
 
-                Ok(())
-            })()
+            Ok(())
         })?;
-        blit_result?;
 
         Ok(())
     }

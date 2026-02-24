@@ -1,6 +1,7 @@
 use std::mem::transmute;
 
 use anyhow::Result;
+use rustlings::sdl_rendering::with_texture_canvas;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
 use sdl3::pixels::PixelFormat;
 use sdl3::render::{ScaleMode, Texture};
@@ -141,16 +142,15 @@ impl<'sdl> Stage<'sdl> {
         source_texture.set_scale_mode(ScaleMode::Nearest);
         intermediate_texture.set_scale_mode(ScaleMode::Linear);
 
-        let mut blit_result: Result<(), sdl3::Error> = Ok(());
-        self.canvas
-            .with_texture_canvas(intermediate_texture, |canvas| {
-                blit_result = canvas.copy(
+        with_texture_canvas(self.canvas, intermediate_texture, |canvas| -> Result<()> {
+            canvas
+                .copy(
                     source_texture,
                     None,
                     SdlRect::new(0, 0, integer_scaled_width, integer_scaled_height),
-                );
-            })?;
-        blit_result?;
+                )
+                .map_err(anyhow::Error::from)
+        })?;
 
         Ok(layer.intermediate_texture.as_mut().unwrap())
     }
