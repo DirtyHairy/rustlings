@@ -451,6 +451,11 @@ impl EventWatchCallback for ExposeWatch {
 
 impl ExposeWatch {
     pub fn new(stage: &mut Stage, render_state: &mut RenderState, scene: &mut dyn Scene) -> Self {
+        // SAFETY: EventWatchCallbacks are declared as Send + 'static, which makes sense for the
+        // general case: they are sent to another thread and live until the watch is removed.
+        // However, we don't need this as we 1. we check whether we are on the main thread before
+        // doing anything and 2. drop and destroy the watch before the dependencies are dropped
+        // or moved.
         ExposeWatch {
             stage: (stage as *mut _) as *mut Stage<'static>,
             render_state: (render_state as *mut _) as *mut RenderState<'static>,
