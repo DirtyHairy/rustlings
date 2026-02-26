@@ -48,6 +48,10 @@ impl<'sdl> Stage<'sdl> {
         scene.register_layers(&mut render_state);
         scene.draw(&mut self.canvas)?;
 
+        let expose_watch = ExposeWatch::new(self, &mut render_state, scene);
+        let mut event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
+        event_watch.deactivate();
+
         let mut redraw = true;
         loop {
             if redraw {
@@ -55,10 +59,9 @@ impl<'sdl> Stage<'sdl> {
                 redraw = false;
             }
 
-            let expose_watch = ExposeWatch::new(self, &mut render_state, scene);
-            let _event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
-
+            event_watch.activate();
             let handle_events_result = self.handle_events()?;
+            event_watch.deactivate();
 
             match handle_events_result {
                 HandleEventsResult::Quit => return Ok(RunResult::Quit),
