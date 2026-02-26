@@ -13,5 +13,6 @@ path = "src/tools/main.rs"
 
 [dependencies]
 anyhow = "1.0.101"
+bitflags = "2.11.0"
 clap = "4.5.57"
 sdl3 = "0.17.3"

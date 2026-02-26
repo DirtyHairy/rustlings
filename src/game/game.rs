@@ -68,7 +68,7 @@ pub fn run(config: &Config) -> Result<()> {
         let run_result: RunResult;
 
         {
-            let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator)?;
+            let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator);
             let mut scene =
                 create_scene(game_data.clone(), game_state, scene_state, &texture_creator)?;
 

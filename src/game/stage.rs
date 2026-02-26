@@ -37,12 +37,12 @@ impl<'sdl> Stage<'sdl> {
         sdl_context: &'sdl Sdl,
         canvas: &'sdl mut Canvas<Window>,
         texture_creator: &'sdl TextureCreator<WindowContext>,
-    ) -> Result<Self> {
-        Ok(Stage {
+    ) -> Self {
+        Self {
             sdl_context,
             canvas,
             texture_creator,
-        })
+        }
     }
 
     pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<RunResult> {
@@ -77,7 +77,8 @@ impl<'sdl> Stage<'sdl> {
             }
 
             event_watch.activate();
-            let handle_events_result = self.handle_events(scene.next_tick_at_msec() - time)?;
+            let handle_events_result =
+                self.handle_events(scene.next_tick_at_msec().saturating_sub(time))?;
             event_watch.deactivate();
 
             match handle_events_result {

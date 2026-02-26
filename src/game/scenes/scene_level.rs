@@ -33,16 +33,21 @@ const TEXTURE_ID_PREVIEW: usize = 1;
 
 const ENGINE_TICK_MSEC: u64 = 66; // 15.15 FPS
 
-const REDRAW_LEVEL: u32 = 0x01;
-const REDRAW_SCREEN: u32 = 0x02;
-const REDRAW_ALL: u32 = !0;
+bitflags::bitflags! {
+    #[derive(Clone, Copy)]
+    struct Redraw: u32 {
+        const LEVEL = 0x01;
+        const SCREEN = 0x02;
+        const ALL = !0;
+    }
+}
 
 pub struct SceneLevel<'texture_creator> {
     game_data: Rc<GameData>,
     game_state: GameState,
     state: SceneStateLevel,
 
-    redraw: u32,
+    redraw: Redraw,
 
     texture_terrain: Texture<'texture_creator>,
     texture_skill_panel: Texture<'texture_creator>,
@@ -100,7 +105,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             texture_skill_panel,
             texture_level,
             texture_screen,
-            redraw: REDRAW_ALL,
+            redraw: Redraw::ALL,
             scroll_controller: ScrollController::new(),
         })
     }
@@ -132,10 +137,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn tick(&mut self, clock_msec: u64) {
         if clock_msec <= self.state.current_clock_msec {
             return;
-        };
+        }
 
         if self.scroll_controller.tick(clock_msec, &mut self.state) {
-            self.redraw |= REDRAW_SCREEN;
+            self.redraw |= Redraw::SCREEN;
         }
 
         self.state.current_clock_msec = clock_msec;
@@ -174,13 +179,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
         let redraw = self.redraw;
-        self.redraw = 0;
+        self.redraw = Redraw::empty();
 
-        if redraw == 0 {
+        if redraw.is_empty() {
             return Ok(false);
         }
 
-        if redraw & REDRAW_LEVEL != 0 {
+        if redraw.contains(Redraw::LEVEL) {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 canvas.clear();
