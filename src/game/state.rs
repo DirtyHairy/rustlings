@@ -15,6 +15,8 @@ pub struct GameState {
 pub struct SceneStateLevel {
     pub level_x: usize,
     pub terrain: Bitmap,
+
+    pub current_clock_msec: u64,
 }
 
 #[derive(Default, Clone)]

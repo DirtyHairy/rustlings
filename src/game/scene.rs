@@ -1,5 +1,15 @@
 use anyhow::Result;
-use sdl3::{render::Canvas, render::Texture, video::Window};
+use sdl3::{
+    keyboard::{Keycode, Mod},
+    render::{Canvas, Texture},
+    video::Window,
+};
+
+#[derive(Clone, Copy)]
+pub enum SceneEvent {
+    KeyDown { keycode: Keycode, keymod: Mod },
+    KeyUp { keycode: Keycode },
+}
 
 use crate::{
     geometry::Rect,
@@ -15,11 +25,14 @@ pub trait Scene<'texture_creator> {
     fn height(&self) -> usize;
     fn aspect(&self) -> f32;
 
-    fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>>;
+    fn dispatch_event(&mut self, event: SceneEvent);
+    fn tick(&mut self, clock_msec: u64);
+    fn next_tick_at_msec(&self) -> u64;
 
+    fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>>;
     fn register_layers(&self, compositor: &mut dyn Compositor);
 
-    fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<()>;
+    fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool>;
 
     fn finish(self: Box<Self>) -> (GameState, SceneState);
 }

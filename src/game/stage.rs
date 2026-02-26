@@ -1,9 +1,10 @@
 use std::mem::transmute;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use rustlings::sdl_rendering::with_texture_canvas;
 use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
-use sdl3::pixels::PixelFormat;
+use sdl3::pixels::{Color, PixelFormat};
 use sdl3::render::{ScaleMode, Texture};
 use sdl3::sys::video::SDL_WindowFlags;
 use sdl3::{
@@ -16,7 +17,9 @@ use sdl3::{
 };
 
 use crate::geometry;
-use crate::scene::{Compositor, Scene};
+use crate::scene::{Compositor, Scene, SceneEvent};
+
+const MAX_TIMESLICE_MSEC: u64 = 100;
 
 pub enum RunResult {
     Quit,
@@ -46,21 +49,35 @@ impl<'sdl> Stage<'sdl> {
         let mut render_state = RenderState::new(scene);
 
         scene.register_layers(&mut render_state);
-        scene.draw(&mut self.canvas)?;
 
         let expose_watch = ExposeWatch::new(self, &mut render_state, scene);
         let mut event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
         event_watch.deactivate();
 
         let mut redraw = true;
+        let mut ts_reference = Instant::now();
+        let mut time_old = 0;
+
         loop {
+            let ts = Instant::now();
+
+            let mut time = ts.duration_since(ts_reference).as_millis() as u64;
+            if time - time_old > MAX_TIMESLICE_MSEC {
+                ts_reference += Duration::from_millis(time - time_old - MAX_TIMESLICE_MSEC);
+                time = ts.duration_since(ts_reference).as_millis() as u64;
+            }
+
+            time_old = time;
+            scene.tick(time);
+
+            redraw = scene.draw(&mut self.canvas)? || redraw;
             if redraw {
                 self.render(&mut render_state, scene)?;
                 redraw = false;
             }
 
             event_watch.activate();
-            let handle_events_result = self.handle_events()?;
+            let handle_events_result = self.handle_events(scene.next_tick_at_msec() - time)?;
             event_watch.deactivate();
 
             match handle_events_result {
@@ -76,6 +93,8 @@ impl<'sdl> Stage<'sdl> {
                         .clone()
                         .set_fullscreen(!is_fullscreen)?;
                 }
+                HandleEventsResult::DispatchSceneEvent(event) => scene.dispatch_event(event),
+                HandleEventsResult::Nop => (),
             }
         }
     }
@@ -88,6 +107,7 @@ impl<'sdl> Stage<'sdl> {
         let (canvas_width, canvas_height) = self.canvas.output_size()?;
         render_state.update_layout(canvas_width as usize, canvas_height as usize);
 
+        self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         self.canvas.clear();
 
         for i in 0..render_state.layers.len() {
@@ -158,15 +178,23 @@ impl<'sdl> Stage<'sdl> {
         Ok(layer.intermediate_texture.as_mut().unwrap())
     }
 
-    fn handle_events(&mut self) -> Result<HandleEventsResult> {
+    fn handle_events(&mut self, wait_millis: u64) -> Result<HandleEventsResult> {
+        let ts_reference = Instant::now();
+        let mut elapsed: u64 = 0;
+
         loop {
             if let Some(handle_event_result) = self
                 .sdl_context
                 .event_pump()?
-                .wait_event_timeout(50)
+                .wait_event_timeout((wait_millis - elapsed) as u32)
                 .and_then(handle_event)
             {
                 return Ok(handle_event_result);
+            }
+
+            elapsed = Instant::now().duration_since(ts_reference).as_millis() as u64;
+            if elapsed >= wait_millis {
+                return Ok(HandleEventsResult::Nop);
             }
         }
     }
@@ -181,6 +209,11 @@ fn handle_event(event: Event) -> Option<HandleEventsResult> {
         },
         Event::RenderDeviceReset { .. } => Some(HandleEventsResult::RenderReset),
         Event::RenderTargetsReset { .. } => Some(HandleEventsResult::RenderReset),
+        Event::Unknown {
+            type_: SDL_EVENT_RENDER_DEVICE_LOST,
+            ..
+        } => Some(HandleEventsResult::RenderReset),
+
         Event::KeyDown {
             keycode: Some(code),
             keymod,
@@ -194,12 +227,22 @@ fn handle_event(event: Event) -> Option<HandleEventsResult> {
             (Keycode::Return, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
                 Some(HandleEventsResult::ToggleFullscreen)
             }
-            _ => None,
+            _ => Some(HandleEventsResult::DispatchSceneEvent(
+                SceneEvent::KeyDown {
+                    keycode: code,
+                    keymod,
+                },
+            )),
         },
-        Event::Unknown {
-            type_: SDL_EVENT_RENDER_DEVICE_LOST,
+
+        Event::KeyUp {
+            keycode: Some(code),
+            repeat: false,
             ..
-        } => Some(HandleEventsResult::RenderReset),
+        } => Some(HandleEventsResult::DispatchSceneEvent(SceneEvent::KeyUp {
+            keycode: code,
+        })),
+
         _ => None,
     }
 }
@@ -209,6 +252,8 @@ enum HandleEventsResult {
     Redraw,
     RenderReset,
     ToggleFullscreen,
+    DispatchSceneEvent(SceneEvent),
+    Nop,
 }
 
 #[derive(Debug, PartialEq)]

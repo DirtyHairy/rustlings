@@ -1,4 +1,5 @@
 mod factory;
+mod level;
 mod scene_level;
 
 pub use factory::*;
