@@ -337,7 +337,10 @@ impl RenderState<'_> {
             dest_scene.y = ((h - height) / 2.).round() as usize;
         }
 
-        let mut dest_layers: Vec<geometry::Rect> = Vec::with_capacity(self.layers.len());
+        let dest_layers = &mut self.layout.layers;
+        dest_layers.reserve_exact(self.layers.len() - dest_layers.len());
+        dest_layers.clear();
+
         let scale_x = dest_scene.width as f32 / self.scene_width as f32;
         let scale_y = dest_scene.height as f32 / self.scene_height as f32;
 
@@ -354,12 +357,9 @@ impl RenderState<'_> {
                 calculate_prescaling_mode(layer.texture_width, layer.texture_height, &dest);
         }
 
-        self.layout = Layout {
-            width,
-            height,
-            scene: dest_scene,
-            layers: dest_layers,
-        };
+        self.layout.width = width;
+        self.layout.height = height;
+        self.layout.scene = dest_scene;
     }
 }
 
