@@ -24,6 +24,7 @@ const MAX_TIMESLICE_MSEC: u64 = 100;
 pub enum RunResult {
     Quit,
     RenderReset,
+    NextScene,
 }
 
 pub struct Stage<'sdl> {
@@ -69,6 +70,10 @@ impl<'sdl> Stage<'sdl> {
 
             time_old = time;
             scene.tick(time);
+
+            if scene.is_complete() {
+                return Ok(RunResult::NextScene);
+            }
 
             redraw = scene.draw(&mut self.canvas)? || redraw;
             if redraw {

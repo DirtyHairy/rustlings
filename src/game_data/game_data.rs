@@ -1,6 +1,5 @@
 use anyhow::{Result, bail, format_err};
 
-use crate::game_data::SkillPanel;
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
@@ -11,13 +10,7 @@ pub use crate::game_data::file::main::NUM_LEMMING_SPRITES;
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
-
-pub const LEVEL_WIDTH: usize = 1600;
-pub const LEVEL_HEIGHT: usize = 160;
-pub const VGASPEC_POSITION: usize = 304;
-
-pub const SCREEN_WIDTH: usize = 320;
-pub const SCREEN_HEIGHT: usize = 200;
+use crate::game_data::{LEVEL_HEIGHT, LEVEL_WIDTH, SkillPanel, VGASPEC_POSITION};
 
 const LEVEL_TABLE: [u8; 120] = [
     0x93, 0x9b, 0x9d, 0x95, 0x97, 0x99, 0x9f, 0x0e, 0x16, 0x36, 0x46, 0x10, 0x1d, 0x20, 0x26, 0x2a,
@@ -29,37 +22,6 @@ const LEVEL_TABLE: [u8; 120] = [
     0x67, 0x69, 0x6b, 0x6d, 0x70, 0x71, 0x73, 0x75, 0x77, 0x79, 0x7b, 0x7d, 0x7f, 0x96, 0x81, 0x09,
     0x83, 0x85, 0x87, 0x89, 0x8b, 0x8d, 0x8f, 0x91,
 ];
-
-#[derive(Clone, Copy)]
-pub enum DifficultyRating {
-    Fun,
-    Tricky,
-    Taxing,
-    Mayhem,
-}
-
-impl ToString for DifficultyRating {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Fun => "Fun".to_string(),
-            Self::Tricky => "Tricky".to_string(),
-            Self::Taxing => "Taxing".to_string(),
-            Self::Mayhem => "Mayhem".to_string(),
-        }
-    }
-}
-
-impl From<usize> for DifficultyRating {
-    fn from(value: usize) -> Self {
-        match value % 4 {
-            0 => Self::Fun,
-            1 => Self::Tricky,
-            2 => Self::Taxing,
-            3 => Self::Mayhem,
-            _ => unreachable!(),
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct Image {

@@ -36,6 +36,8 @@ pub trait Scene<'texture_creator> {
     fn tick(&mut self, clock_msec: u64);
     fn next_tick_at_msec(&self) -> u64;
 
+    fn is_complete(&self) -> bool;
+
     fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>>;
     fn register_layers(&self, compositor: &mut dyn Compositor);
 

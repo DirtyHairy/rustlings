@@ -1,13 +1,19 @@
 use std::{cmp, rc::Rc};
 
 use anyhow::Result;
-use rustlings::game_data::{GameData, SCREEN_HEIGHT, SCREEN_WIDTH};
+use rustlings::game_data::{
+    GameData, Level, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
+};
 use sdl3::{
+    keyboard::{Keycode, Mod},
     render::{Canvas, Texture, TextureCreator},
     video::Window,
 };
 
-use crate::{scene::Scene, scenes::level::ScrollController};
+use crate::{
+    scene::{Scene, SceneEvent},
+    scenes::level::ScrollController,
+};
 use crate::{
     scenes::level::{Redraw, Renderer},
     state::{GameState, SceneState, SceneStateLevel},
@@ -15,9 +21,17 @@ use crate::{
 
 const ENGINE_TICK_MSEC: u64 = 66; // 15.15 FPS
 
+#[derive(PartialEq)]
+enum Status {
+    Running,
+    DoneNextLevel,
+    DonePreviousLevel,
+}
+
 pub struct SceneLevel<'texture_creator> {
     game_state: GameState,
     state: SceneStateLevel,
+    status: Status,
 
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
@@ -31,6 +45,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(game_state.current_level)?;
+        print_level(game_state.current_level, &level);
 
         let state = match scene_state {
             SceneState::Level(state_level) => state_level,
@@ -46,6 +61,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         Ok(SceneLevel {
             game_state,
             state,
+            status: Status::Running,
             renderer,
             scroll_controller: ScrollController::new(),
         })
@@ -54,9 +70,22 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
     fn finish(mut self: Box<Self>) -> (GameState, SceneState) {
-        self.state.current_clock_msec %= ENGINE_TICK_MSEC;
+        match self.status {
+            Status::Running => {
+                self.state.current_clock_msec %= ENGINE_TICK_MSEC;
 
-        (self.game_state, SceneState::Level(self.state))
+                (self.game_state, SceneState::Level(self.state))
+            }
+            Status::DoneNextLevel => {
+                self.game_state.current_level = (self.game_state.current_level + 1) % NUM_LEVELS;
+                (self.game_state, SceneState::None)
+            }
+            Status::DonePreviousLevel => {
+                self.game_state.current_level =
+                    (self.game_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS;
+                (self.game_state, SceneState::None)
+            }
+        }
     }
 
     fn width(&self) -> usize {
@@ -71,8 +100,28 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         1.2
     }
 
-    fn dispatch_event(&mut self, event: crate::scene::SceneEvent) {
-        self.scroll_controller.dispatch_event(event);
+    fn dispatch_event(&mut self, event: SceneEvent) {
+        match event {
+            SceneEvent::KeyDown {
+                keycode: Keycode::PageDown,
+                keymod: Mod::NOMOD,
+                ..
+            } => {
+                if self.status == Status::Running {
+                    self.status = Status::DonePreviousLevel;
+                }
+            }
+            SceneEvent::KeyDown {
+                keycode: Keycode::PageUp,
+                keymod: Mod::NOMOD,
+                ..
+            } => {
+                if self.status == Status::Running {
+                    self.status = Status::DoneNextLevel;
+                }
+            }
+            _ => self.scroll_controller.dispatch_event(event),
+        }
     }
 
     fn tick(&mut self, clock_msec: u64) {
@@ -108,4 +157,15 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>> {
         self.renderer.texture(id)
     }
+
+    fn is_complete(&self) -> bool {
+        self.status != Status::Running
+    }
+}
+
+fn print_level(current_level: usize, level: &Level) {
+    let (difficulty, index) = decode_level_index(current_level);
+    println!();
+    println!("{} {}", difficulty.to_string(), index);
+    println!("{}", level);
 }
