@@ -3,8 +3,9 @@ use std::{cmp, rc::Rc};
 use anyhow::Result;
 use rustlings::{
     game_data::{
-        GameData, LEVEL_HEIGHT, LEVEL_WIDTH, MINIMAP_FRAME_HEIGHT, MINIMAP_FRAME_WIDTH,
-        MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X, MINIMAP_VIEW_Y, MINIMAP_Y,
+        GameData, LEVEL_HEIGHT, LEVEL_WIDTH, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
+        MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
+        MINIMAP_VIEW_Y,
     },
     sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
@@ -122,7 +123,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
     fn minimap_frame_position(&self) -> (usize, usize) {
         (
             MINIMAP_VIEW_X + (self.state.level_x * MINIMAP_VIEW_WIDTH) / LEVEL_WIDTH - 1,
-            SKILL_PANEL_Y + MINIMAP_Y,
+            SKILL_PANEL_Y + MINIMAP_AREA_Y,
         )
     }
 }

@@ -1,7 +1,7 @@
 use std::cmp;
 
 use rustlings::game_data::LEVEL_WIDTH;
-use sdl3::keyboard::{Keycode, Mod};
+use sdl3::keyboard::Scancode;
 
 use crate::{scene::SceneEvent, state::SceneStateLevel};
 
@@ -44,24 +44,16 @@ impl ScrollController {
 
     pub fn dispatch_event(&mut self, event: SceneEvent) {
         match event {
-            SceneEvent::KeyDown { keycode, keymod } => {
-                let fast_scroll = keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD);
-
-                match keycode {
-                    Keycode::Left => {
-                        self.arrow_left_down = true;
-                        self.fast_scroll = fast_scroll;
-                    }
-                    Keycode::Right => {
-                        self.arrow_right_down = true;
-                        self.fast_scroll = fast_scroll;
-                    }
-                    _ => (),
-                }
-            }
-            SceneEvent::KeyUp { keycode, .. } => match keycode {
-                Keycode::Left => self.arrow_left_down = false,
-                Keycode::Right => self.arrow_right_down = false,
+            SceneEvent::KeyDown { scancode, .. } => match scancode {
+                Scancode::Left => self.arrow_left_down = true,
+                Scancode::Right => self.arrow_right_down = true,
+                Scancode::LShift | Scancode::RShift => self.fast_scroll = true,
+                _ => (),
+            },
+            SceneEvent::KeyUp { scancode, .. } => match scancode {
+                Scancode::Left => self.arrow_left_down = false,
+                Scancode::Right => self.arrow_right_down = false,
+                Scancode::LShift | Scancode::RShift => self.fast_scroll = false,
                 _ => (),
             },
         }

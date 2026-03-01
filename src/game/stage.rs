@@ -218,11 +218,12 @@ fn handle_event(event: Event) -> Option<HandleEventsResult> {
         } => Some(HandleEventsResult::RenderReset),
 
         Event::KeyDown {
-            keycode: Some(code),
+            keycode: Some(keycode),
             keymod,
+            scancode: Some(scancode),
             repeat: false,
             ..
-        } => match (code, keymod) {
+        } => match (keycode, keymod) {
             (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(HandleEventsResult::RenderReset),
             (Keycode::Q, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
                 Some(HandleEventsResult::Quit)
@@ -232,18 +233,21 @@ fn handle_event(event: Event) -> Option<HandleEventsResult> {
             }
             _ => Some(HandleEventsResult::DispatchSceneEvent(
                 SceneEvent::KeyDown {
-                    keycode: code,
+                    keycode,
                     keymod,
+                    scancode,
                 },
             )),
         },
 
         Event::KeyUp {
-            keycode: Some(code),
+            keycode: Some(keycode),
+            scancode: Some(scancode),
             repeat: false,
             ..
         } => Some(HandleEventsResult::DispatchSceneEvent(SceneEvent::KeyUp {
-            keycode: code,
+            keycode,
+            scancode,
         })),
 
         _ => None,

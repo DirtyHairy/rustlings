@@ -1,14 +1,21 @@
 use anyhow::Result;
 use sdl3::{
-    keyboard::{Keycode, Mod},
+    keyboard::{Keycode, Mod, Scancode},
     render::{Canvas, Texture},
     video::Window,
 };
 
 #[derive(Clone, Copy)]
 pub enum SceneEvent {
-    KeyDown { keycode: Keycode, keymod: Mod },
-    KeyUp { keycode: Keycode },
+    KeyDown {
+        keycode: Keycode,
+        keymod: Mod,
+        scancode: Scancode,
+    },
+    KeyUp {
+        keycode: Keycode,
+        scancode: Scancode,
+    },
 }
 
 use crate::{
