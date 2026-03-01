@@ -5,6 +5,7 @@ use sdl3::keyboard::{Keycode, Mod};
 
 use crate::{scene::SceneEvent, state::SceneStateLevel};
 
+#[derive(Default)]
 pub struct ScrollController {
     arrow_left_down: bool,
     arrow_right_down: bool,
@@ -12,26 +13,17 @@ pub struct ScrollController {
     current_scroll_mode: ScrollMode,
 }
 
-impl Default for ScrollController {
-    fn default() -> Self {
-        Self {
-            arrow_left_down: false,
-            arrow_right_down: false,
-            fast_scroll: false,
-            current_scroll_mode: ScrollMode::None,
-        }
-    }
-}
-
+#[derive(Default)]
 enum ScrollMode {
+    #[default]
+    None,
     Left,
     Right,
-    None,
 }
 
 const SCROLL_MSEC_PER_PIXEL: u64 = 5; // 3200 msec to scroll over the full width
 const FAST_SCROLL_SPEEDUP: usize = 3;
-const LEVEL_X_MAX: usize = LEVEL_WIDTH - 320 - 1;
+const LEVEL_X_MAX: usize = LEVEL_WIDTH - 320;
 
 impl ScrollController {
     pub fn new() -> Self {

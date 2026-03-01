@@ -1,5 +1,6 @@
 use anyhow::{Result, bail, format_err};
 
+use crate::game_data::SkillPanel;
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
@@ -79,7 +80,7 @@ pub struct GameData {
     pub oddtable: Vec<LevelParamters>,
     pub tilesets: Vec<TileSet>,
     pub special_backgrounds: Vec<Image>,
-    pub skill_panel: Bitmap,
+    pub skill_panel: SkillPanel,
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
     pub static_palette: [PaletteEntry; PALETTE_SIZE],
 }

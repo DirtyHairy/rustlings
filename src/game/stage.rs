@@ -124,6 +124,7 @@ impl<'sdl> Stage<'sdl> {
                 .ok_or(anyhow::format_err!("no layout for layer {}", i))?;
 
             let texture = self.prescale_layer(scene, layer)?;
+            texture.set_blend_mode(sdl3::render::BlendMode::Blend);
             let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
@@ -166,6 +167,7 @@ impl<'sdl> Stage<'sdl> {
         source_texture.set_scale_mode(ScaleMode::Nearest);
         intermediate_texture.set_scale_mode(ScaleMode::Linear);
 
+        source_texture.set_blend_mode(sdl3::render::BlendMode::None);
         with_texture_canvas(self.canvas, intermediate_texture, |canvas| -> Result<()> {
             canvas
                 .copy(

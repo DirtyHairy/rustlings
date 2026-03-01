@@ -2,13 +2,14 @@ use std::path::Path;
 
 use anyhow::Result;
 
+use crate::game_data::SkillPanel;
 use crate::game_data::file::ground::read_ground;
 use crate::game_data::file::level::{Level, read_level_file, read_oddtable};
 use crate::game_data::file::main::read_main;
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
 use crate::game_data::file::vgagr::read_vgagr;
 use crate::game_data::file::vgaspec::read_vgaspec;
-use crate::game_data::game_data::{GameData, Image, TileSet};
+use crate::game_data::{GameData, Image, TileSet};
 
 const NUM_LEVELS_FILES: usize = 10;
 const LEVELS_PER_FILE: usize = 8;
@@ -63,7 +64,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         tilesets,
         special_backgrounds,
         static_palette,
-        skill_panel: main.skill_panel,
+        skill_panel: SkillPanel::new(main.skill_panel),
         lemming_sprites: main.lemming_sprites,
     })
 }
