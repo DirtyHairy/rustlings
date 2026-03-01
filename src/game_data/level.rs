@@ -34,7 +34,7 @@ impl From<usize> for DifficultyRating {
 
 pub fn decode_level_index(index: usize) -> (DifficultyRating, usize) {
     (
-        DifficultyRating::from(index),
+        DifficultyRating::from(index / LEVELS_PER_DIFFICULTY),
         (index % LEVELS_PER_DIFFICULTY) + 1,
     )
 }
