@@ -1,6 +1,6 @@
 use std::cmp;
 
-use rustlings::game_data::{LEVEL_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH};
+use rustlings::game_data::{LEVEL_WIDTH, SCREEN_WIDTH};
 use sdl3::keyboard::Scancode;
 
 use crate::{scene::SceneEvent, state::SceneStateLevel};

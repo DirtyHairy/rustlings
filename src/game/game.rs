@@ -58,7 +58,10 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
 
 pub fn run(config: &Config) -> Result<()> {
     let game_data: Rc<GameData> = read_game_data(Path::new(&config.data_dir))?.into();
+
     let mut game_state: GameState = Default::default();
+    game_state.current_level = 22;
+
     let mut scene_state: SceneState = Default::default();
 
     let (sdl_context, window) = init_sdl()?;

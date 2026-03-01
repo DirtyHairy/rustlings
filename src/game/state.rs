@@ -9,6 +9,7 @@ pub enum Screen {
 #[derive(Default, Clone)]
 pub struct GameState {
     pub screen: Screen,
+    pub current_level: usize,
 }
 
 #[derive(Clone)]
