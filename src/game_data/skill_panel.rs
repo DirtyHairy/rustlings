@@ -1,4 +1,4 @@
-use crate::game_data::Bitmap;
+use crate::game_data::{Bitmap, SCREEN_WIDTH};
 
 pub const MINIMAP_FRAME_HEIGHT: usize = 20;
 pub const MINIMAP_FRAME_WIDTH: usize = 22;
@@ -24,7 +24,7 @@ impl SkillPanel {
     pub fn new(mut panel: Bitmap) -> SkillPanel {
         for y in MINIMAP_AREA_Y..MINIMAP_AREA_Y + MINIMAP_AREA_HEIGHT {
             for x in MINIMAP_AREA_X..MINIMAP_AREA_X + MINIMAP_AREA_WIDTH {
-                panel.transparency[x + y * 320] = true;
+                panel.transparency[x + y * SCREEN_WIDTH] = true;
             }
         }
 

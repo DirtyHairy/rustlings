@@ -1,6 +1,6 @@
 use std::cmp;
 
-use rustlings::game_data::LEVEL_WIDTH;
+use rustlings::game_data::{LEVEL_WIDTH, SCREEN_HEIGHT};
 use sdl3::keyboard::Scancode;
 
 use crate::{scene::SceneEvent, state::SceneStateLevel};
@@ -23,7 +23,7 @@ enum ScrollMode {
 
 const SCROLL_MSEC_PER_PIXEL: u64 = 5; // 3200 msec to scroll over the full width
 const FAST_SCROLL_SPEEDUP: usize = 3;
-const LEVEL_X_MAX: usize = LEVEL_WIDTH - 320;
+const LEVEL_X_MAX: usize = LEVEL_WIDTH - SCREEN_HEIGHT;
 
 impl ScrollController {
     pub fn new() -> Self {

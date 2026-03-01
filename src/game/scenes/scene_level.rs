@@ -5,7 +5,7 @@ use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
         MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
-        MINIMAP_VIEW_Y,
+        MINIMAP_VIEW_Y, SCREEN_HEIGHT, SCREEN_WIDTH,
     },
     sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
@@ -21,9 +21,6 @@ use crate::{
     state::{GameState, SceneState, SceneStateLevel},
 };
 use crate::{scene::Scene, scenes::level::ScrollController};
-
-const SCREEN_WIDTH: usize = 320;
-const SCREEN_HEIGHT: usize = 200;
 
 const SKILL_PANEL_HEIGHT: usize = 40;
 const SKILL_PANEL_Y: usize = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
