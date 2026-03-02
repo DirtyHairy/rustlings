@@ -56,6 +56,7 @@ impl ScrollController {
                 Scancode::LShift | Scancode::RShift => self.fast_scroll = false,
                 _ => (),
             },
+            _ => (),
         }
     }
 

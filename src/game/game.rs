@@ -40,6 +40,8 @@ fn init_sdl() -> Result<(Sdl, Window)> {
     let _ = window.set_minimum_size(640, 480);
     let _ = window.raise();
 
+    sdl_context.mouse().show_cursor(false);
+
     Ok((sdl_context, window))
 }
 
@@ -71,7 +73,12 @@ pub fn run(config: &Config) -> Result<()> {
         let run_result: RunResult;
 
         {
-            let mut stage = Stage::new(&sdl_context, &mut canvas, &texture_creator);
+            let mut stage = Stage::new(
+                &sdl_context,
+                &mut canvas,
+                &texture_creator,
+                game_data.clone(),
+            );
             let mut scene =
                 create_scene(game_data.clone(), game_state, scene_state, &texture_creator)?;
 

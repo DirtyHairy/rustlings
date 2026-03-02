@@ -11,7 +11,7 @@ use sdl3::{
 };
 
 use crate::{
-    scene::{Scene, SceneEvent},
+    scene::{CursorType, Scene, SceneEvent},
     scenes::level::ScrollController,
 };
 use crate::{
@@ -98,6 +98,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
     fn aspect(&self) -> f32 {
         1.2
+    }
+
+    fn cursor_type(&self) -> CursorType {
+        CursorType::Crosshair
     }
 
     fn dispatch_event(&mut self, event: SceneEvent) {

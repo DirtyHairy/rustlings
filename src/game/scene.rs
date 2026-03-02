@@ -5,6 +5,11 @@ use sdl3::{
     video::Window,
 };
 
+use crate::{
+    geometry::Rect,
+    state::{GameState, SceneState},
+};
+
 #[derive(Clone, Copy)]
 pub enum SceneEvent {
     KeyDown {
@@ -16,12 +21,20 @@ pub enum SceneEvent {
         keycode: Keycode,
         scancode: Scancode,
     },
+    MouseMove {
+        x: u32,
+        y: u32,
+        x_frac: f32,
+        y_frac: f32,
+    },
 }
 
-use crate::{
-    geometry::Rect,
-    state::{GameState, SceneState},
-};
+#[derive(Clone, Copy, PartialEq)]
+pub enum CursorType {
+    None,
+    Crosshair,
+    Box,
+}
 
 pub trait Compositor {
     fn add_layer(&mut self, texture_id: usize, width: usize, height: usize, destination: Rect);
@@ -31,6 +44,8 @@ pub trait Scene<'texture_creator> {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     fn aspect(&self) -> f32;
+
+    fn cursor_type(&self) -> CursorType;
 
     fn dispatch_event(&mut self, event: SceneEvent);
     fn tick(&mut self, clock_msec: u64);
