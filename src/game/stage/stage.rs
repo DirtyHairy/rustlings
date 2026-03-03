@@ -25,6 +25,7 @@ use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTextu
 const MAX_TIMESLICE_MSEC: u64 = 100;
 const FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS: u64 = 5;
 const REFRESH_RATE_SAFETY_FACTOR: f32 = 0.8;
+const NEGLIGIBLE_LAG_FPS: f32 = 100.;
 
 pub enum RunResult {
     Quit,
@@ -134,7 +135,9 @@ impl<'sdl> Stage<'sdl> {
     fn min_event_aggregation_time_millis(&self) -> u64 {
         let refresh_rate = current_refresh_rate(&self.canvas.window());
 
-        if refresh_rate > 0. {
+        if refresh_rate >= NEGLIGIBLE_LAG_FPS {
+            0
+        } else if refresh_rate > 0. {
             (1000. / refresh_rate * REFRESH_RATE_SAFETY_FACTOR).round() as u64
         } else {
             FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS
