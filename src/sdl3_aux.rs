@@ -1,6 +1,9 @@
 use std::ffi;
 
-use sdl3::render::{Canvas, RenderTarget};
+use sdl3::{
+    render::{Canvas, RenderTarget},
+    video::{DisplayMode, Window},
+};
 
 pub const SDL_EVENT_RENDER_DEVICE_LOST: u32 = 0x2002;
 
@@ -17,5 +20,21 @@ pub fn get_canvas_vsync(canvas: &Canvas<impl RenderTarget>) -> bool {
 pub fn is_main_thread() -> bool {
     unsafe {
         return sdl3::sys::init::SDL_IsMainThread();
+    }
+}
+
+pub fn current_refresh_rate(window: &Window) -> f32 {
+    unsafe {
+        let display_id = sdl3::sys::video::SDL_GetDisplayForWindow(window.raw());
+        if display_id.0 == 0 {
+            return 0.;
+        }
+
+        let mode_raw = sdl3::sys::video::SDL_GetCurrentDisplayMode(display_id);
+        if mode_raw.is_null() {
+            return 0.;
+        }
+
+        DisplayMode::from_ll(&*mode_raw).refresh_rate
     }
 }

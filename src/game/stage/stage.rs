@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use rustlings::game_data::GameData;
 use rustlings::sdl_rendering::with_texture_canvas;
-use rustlings::sdl3_aux::{SDL_EVENT_RENDER_DEVICE_LOST, is_main_thread};
+use rustlings::sdl3_aux::{current_refresh_rate, is_main_thread};
 use sdl3::mouse::MouseState;
 use sdl3::pixels::{Color, PixelFormat};
 use sdl3::render::{ScaleMode, Texture};
@@ -13,16 +13,18 @@ use sdl3::sys::video::SDL_WindowFlags;
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
-    keyboard::{Keycode, Mod},
     rect::Rect as SdlRect,
     render::{Canvas, TextureCreator},
     video::{Window, WindowContext},
 };
 
-use crate::scene::{CursorType, Scene, SceneEvent};
+use crate::scene::{CursorType, Scene};
+use crate::stage::event_collector::{DecodedEvent, EventCollector};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
+const FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS: u64 = 5;
+const REFRESH_RATE_SAFETY_FACTOR: f32 = 0.8;
 
 pub enum RunResult {
     Quit,
@@ -69,6 +71,8 @@ impl<'sdl> Stage<'sdl> {
         render_state.mouse_x = mouse_state.x();
         render_state.mouse_y = mouse_state.y();
 
+        let mut event_collector = EventCollector::new();
+
         loop {
             let ts = Instant::now();
 
@@ -92,31 +96,48 @@ impl<'sdl> Stage<'sdl> {
             }
 
             event_watch.activate();
-            let handle_events_result =
-                self.handle_events(scene.next_tick_at_msec().saturating_sub(time))?;
+            event_collector.collect_events(
+                self.min_event_aggregation_time_millis(),
+                scene.next_tick_at_msec().saturating_sub(time),
+                &mut self.sdl_context.event_pump()?,
+            );
             event_watch.deactivate();
 
-            match handle_events_result {
-                HandleEventsResult::Quit => return Ok(RunResult::Quit),
-                HandleEventsResult::RenderReset => return Ok(RunResult::RenderReset),
-                HandleEventsResult::Redraw => redraw = true,
-                HandleEventsResult::ToggleFullscreen => {
-                    let is_fullscreen =
-                        self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
-
-                    self.canvas
-                        .window()
-                        .clone()
-                        .set_fullscreen(!is_fullscreen)?;
+            let mut toggle_fullscreen = false;
+            for event in event_collector.decoded_events().as_ref() {
+                match *event {
+                    DecodedEvent::Quit => return Ok(RunResult::Quit),
+                    DecodedEvent::RenderReset => return Ok(RunResult::RenderReset),
+                    DecodedEvent::Redraw => redraw = true,
+                    DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
+                    DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
+                    DecodedEvent::MouseMove { x, y, .. } => {
+                        render_state.mouse_x = x;
+                        render_state.mouse_y = y;
+                        redraw = true;
+                    }
                 }
-                HandleEventsResult::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                HandleEventsResult::DispatchMouseEvent { x, y, .. } => {
-                    render_state.mouse_x = x;
-                    render_state.mouse_y = y;
-                    redraw = true;
-                }
-                HandleEventsResult::Nop => (),
             }
+
+            if toggle_fullscreen {
+                let is_fullscreen =
+                    self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
+
+                self.canvas
+                    .window()
+                    .clone()
+                    .set_fullscreen(!is_fullscreen)?;
+            }
+        }
+    }
+
+    fn min_event_aggregation_time_millis(&self) -> u64 {
+        let refresh_rate = current_refresh_rate(&self.canvas.window());
+
+        if refresh_rate > 0. {
+            (1000. / refresh_rate * REFRESH_RATE_SAFETY_FACTOR).round() as u64
+        } else {
+            FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS
         }
     }
 
@@ -151,6 +172,7 @@ impl<'sdl> Stage<'sdl> {
         if scene.cursor_type() != CursorType::None {
             let layout_cursor = render_state.layout.cursor.clone();
             let pixel_scale = self.canvas.window().display_scale();
+
             let mouse_x = render_state.mouse_x * pixel_scale;
             let mouse_y = render_state.mouse_y * pixel_scale;
 
@@ -264,103 +286,6 @@ impl<'sdl> Stage<'sdl> {
 
         Ok(intermediate_texture)
     }
-
-    fn handle_events(&mut self, wait_millis: u64) -> Result<HandleEventsResult> {
-        let ts_reference = Instant::now();
-        let mut elapsed: u64 = 0;
-
-        loop {
-            if let Some(handle_event_result) = self
-                .sdl_context
-                .event_pump()?
-                .wait_event_timeout((wait_millis - elapsed) as u32)
-                .and_then(handle_event)
-            {
-                return Ok(handle_event_result);
-            }
-
-            elapsed = Instant::now().duration_since(ts_reference).as_millis() as u64;
-            if elapsed >= wait_millis {
-                return Ok(HandleEventsResult::Nop);
-            }
-        }
-    }
-}
-
-fn handle_event(event: Event) -> Option<HandleEventsResult> {
-    match event {
-        Event::Quit { .. } => Some(HandleEventsResult::Quit),
-        Event::Window { win_event, .. } => match win_event {
-            WindowEvent::PixelSizeChanged(_, _) => Some(HandleEventsResult::Redraw),
-            _ => None,
-        },
-        Event::RenderDeviceReset { .. } => Some(HandleEventsResult::RenderReset),
-        Event::RenderTargetsReset { .. } => Some(HandleEventsResult::RenderReset),
-        Event::Unknown {
-            type_: SDL_EVENT_RENDER_DEVICE_LOST,
-            ..
-        } => Some(HandleEventsResult::RenderReset),
-
-        Event::KeyDown {
-            keycode: Some(keycode),
-            keymod,
-            scancode: Some(scancode),
-            repeat: false,
-            ..
-        } => match (keycode, keymod) {
-            (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(HandleEventsResult::RenderReset),
-            (Keycode::Q, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
-                Some(HandleEventsResult::Quit)
-            }
-            (Keycode::Return, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
-                Some(HandleEventsResult::ToggleFullscreen)
-            }
-            _ => Some(HandleEventsResult::DispatchSceneEvent(
-                SceneEvent::KeyDown {
-                    keycode,
-                    keymod,
-                    scancode,
-                },
-            )),
-        },
-
-        Event::KeyUp {
-            keycode: Some(keycode),
-            scancode: Some(scancode),
-            repeat: false,
-            ..
-        } => Some(HandleEventsResult::DispatchSceneEvent(SceneEvent::KeyUp {
-            keycode,
-            scancode,
-        })),
-
-        Event::MouseMotion { x, y, .. } => Some(HandleEventsResult::DispatchMouseEvent {
-            scene_event: SceneEvent::MouseMove {
-                x: 0,
-                y: 0,
-                x_frac: 0.,
-                y_frac: 0.,
-            },
-            x,
-            y,
-        }),
-
-        _ => None,
-    }
-}
-
-enum HandleEventsResult {
-    Quit,
-    Redraw,
-    RenderReset,
-    ToggleFullscreen,
-    DispatchSceneEvent(SceneEvent),
-    DispatchMouseEvent {
-        scene_event: SceneEvent,
-        x: f32,
-        y: f32,
-    },
-    Nop,
 }
 
 struct ExposeWatch {
