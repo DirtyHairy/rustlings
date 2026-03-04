@@ -153,41 +153,51 @@ impl<'texture_creator> RenderState<'texture_creator> {
             return;
         }
 
+        self.layout.width = width;
+        self.layout.height = height;
+
+        self.layout_scene(width, height);
+
+        let scale_x = self.layout.scene.width as f32 / self.scene_width as f32;
+        let scale_y = self.layout.scene.height as f32 / self.scene_height as f32;
+
+        self.layout_layers(scale_x, scale_y);
+        self.layout_cursor(scale_x, scale_y);
+    }
+
+    fn layout_scene(&mut self, width: usize, height: usize) {
         let w = width as f32;
         let h = height as f32;
         let w_scene = self.scene_width as f32;
         let h_scene = self.scene_height as f32 * self.scene_aspect;
 
-        let mut dest_scene: geometry::Rect = Default::default();
-
         if w_scene * h / h_scene <= w {
             let width = w_scene * h / h_scene;
 
-            dest_scene.height = height;
-            dest_scene.width = width.round() as usize;
-            dest_scene.y = 0;
-            dest_scene.x = ((w - width) / 2.).round() as usize;
+            self.layout.scene.height = height;
+            self.layout.scene.width = width.round() as usize;
+            self.layout.scene.y = 0;
+            self.layout.scene.x = ((w - width) / 2.).round() as usize;
         } else {
             let height = h_scene * w / w_scene;
 
-            dest_scene.width = width;
-            dest_scene.height = height.round() as usize;
-            dest_scene.x = 0;
-            dest_scene.y = ((h - height) / 2.).round() as usize;
+            self.layout.scene.width = width;
+            self.layout.scene.height = height.round() as usize;
+            self.layout.scene.x = 0;
+            self.layout.scene.y = ((h - height) / 2.).round() as usize;
         }
+    }
 
+    fn layout_layers(&mut self, scale_x: f32, scale_y: f32) {
         self.layout
             .layers
             .reserve_exact(self.layers.len() - self.layout.layers.len());
         self.layout.layers.clear();
 
-        let scale_x = dest_scene.width as f32 / self.scene_width as f32;
-        let scale_y = dest_scene.height as f32 / self.scene_height as f32;
-
         for layer in &mut self.layers {
             let dest = geometry::Rect {
-                x: dest_scene.x + (layer.destination.x as f32 * scale_x).round() as usize,
-                y: dest_scene.y + (layer.destination.y as f32 * scale_y).round() as usize,
+                x: self.layout.scene.x + (layer.destination.x as f32 * scale_x).round() as usize,
+                y: self.layout.scene.y + (layer.destination.y as f32 * scale_y).round() as usize,
                 width: (layer.destination.width as f32 * scale_x).round() as usize,
                 height: (layer.destination.height as f32 * scale_y).round() as usize,
             };
@@ -196,7 +206,9 @@ impl<'texture_creator> RenderState<'texture_creator> {
             layer.prescaling_mode =
                 calculate_prescaling_mode(layer.texture_width, layer.texture_height, &dest);
         }
+    }
 
+    fn layout_cursor(&mut self, scale_x: f32, scale_y: f32) {
         let cursor_scale_x = scale_x * self.scene_width as f32 / CURSOR_NATIVE_SCREEN_WIDTH as f32;
         let cursor_scale_y = scale_y * self.scene_height as f32
             / CURSOR_NATIVE_SCREEN_HEIGHT as f32
@@ -212,10 +224,6 @@ impl<'texture_creator> RenderState<'texture_creator> {
             CURSOR_SIZE,
             &geometry::Rect::new(0, 0, self.layout.cursor.width, self.layout.cursor.height),
         );
-
-        self.layout.width = width;
-        self.layout.height = height;
-        self.layout.scene = dest_scene;
     }
 }
 

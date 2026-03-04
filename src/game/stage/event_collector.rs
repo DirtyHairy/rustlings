@@ -44,22 +44,20 @@ impl EventCollector {
 
         loop {
             if let Some(event) = event_pump.wait_event_timeout((timeout_millis - elapsed) as u32) {
-                match decode_sdl_event(&event) {
-                    Some(decoded_event) => self.decoded_events.push(decoded_event),
-                    None => (),
+                if let Some(decoded_event) = decode_sdl_event(&event) {
+                    self.decoded_events.push(decoded_event);
                 }
             }
 
             for event in event_pump.poll_iter() {
-                match decode_sdl_event(&event) {
-                    Some(decoded_event) => self.decoded_events.push(decoded_event),
-                    None => (),
+                if let Some(decoded_event) = decode_sdl_event(&event) {
+                    self.decoded_events.push(decoded_event);
                 }
             }
 
             let now = Instant::now();
             elapsed = now.duration_since(ts_reference).as_millis() as u64;
-            if self.decoded_events.len() > 0 && now >= aggregate_at_least_until
+            if !self.decoded_events.is_empty() && now >= aggregate_at_least_until
                 || elapsed >= timeout_millis
             {
                 break;

@@ -26,7 +26,7 @@ const MAX_TIMESLICE_MSEC: u64 = 100;
 const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 2;
 const FALLBACK_REFRESH_RATE: f32 = 100.;
 
-pub enum RunResult {
+pub enum StopReason {
     Quit,
     RenderReset,
     NextScene,
@@ -37,6 +37,10 @@ pub struct Stage<'sdl> {
     canvas: &'sdl mut Canvas<Window>,
     texture_creator: &'sdl TextureCreator<WindowContext>,
     game_data: Rc<GameData>,
+
+    rerender: bool,
+    ts_reference: Instant,
+    time_old: u64,
 }
 
 impl<'sdl> Stage<'sdl> {
@@ -51,10 +55,13 @@ impl<'sdl> Stage<'sdl> {
             canvas,
             texture_creator,
             game_data,
+            rerender: false,
+            ts_reference: Instant::now(),
+            time_old: 0,
         }
     }
 
-    pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<RunResult> {
+    pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<StopReason> {
         let mut render_state = RenderState::new(scene, &self.game_data, self.texture_creator)?;
 
         scene.register_layers(&mut render_state);
@@ -63,63 +70,40 @@ impl<'sdl> Stage<'sdl> {
         let mut event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
         event_watch.deactivate();
 
-        let mut rerender = true;
-        let mut ts_reference = Instant::now();
-        let mut time_old = 0;
-
-        let mouse_state = MouseState::new(&self.sdl_context.event_pump()?);
-        render_state.mouse_x = mouse_state.x();
-        render_state.mouse_y = mouse_state.y();
-
         let mut event_collector = EventCollector::new();
 
+        self.rerender = true;
+        self.ts_reference = Instant::now();
+        self.time_old = 0;
+
+        self.update_mouse_state(&mut render_state)?;
+
         loop {
-            let scene_changed = scene.draw(&mut self.canvas)?;
-            if rerender || scene_changed {
-                self.render(&mut render_state, scene, scene_changed)?;
-                rerender = false;
-            }
+            self.render_scene(scene, &mut render_state)?;
 
             let frame_budget = self
                 .time_per_frame_msec()
                 .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MSEC);
             let ts_frame_start = Instant::now();
 
-            let mut toggle_fullscreen = false;
-            for event in event_collector.decoded_events().as_ref() {
-                match *event {
-                    DecodedEvent::Quit => return Ok(RunResult::Quit),
-                    DecodedEvent::RenderReset => return Ok(RunResult::RenderReset),
-                    DecodedEvent::Redraw => rerender = true,
-                    DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
-                    DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                    DecodedEvent::MouseMove { .. } => (),
-                }
-            }
-
-            if toggle_fullscreen {
-                let is_fullscreen =
-                    self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
-
-                self.canvas
-                    .window()
-                    .clone()
-                    .set_fullscreen(!is_fullscreen)?;
+            if let Some(stop_reason) = self.consume_events(scene, &mut event_collector)? {
+                return Ok(stop_reason);
             }
 
             let ts_tick = Instant::now();
 
-            let mut time = ts_tick.duration_since(ts_reference).as_millis() as u64;
-            if time - time_old > MAX_TIMESLICE_MSEC {
-                ts_reference += Duration::from_millis(time - time_old - MAX_TIMESLICE_MSEC);
-                time = ts_tick.duration_since(ts_reference).as_millis() as u64;
+            let mut time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
+            if time - self.time_old > MAX_TIMESLICE_MSEC {
+                self.ts_reference +=
+                    Duration::from_millis(time - self.time_old - MAX_TIMESLICE_MSEC);
+                time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
             }
 
-            time_old = time;
+            self.time_old = time;
             scene.tick(time);
 
             if scene.is_complete() {
-                return Ok(RunResult::NextScene);
+                return Ok(StopReason::NextScene);
             }
 
             event_watch.activate();
@@ -130,15 +114,72 @@ impl<'sdl> Stage<'sdl> {
             );
             event_watch.deactivate();
 
-            for event in event_collector.decoded_events().as_ref() {
-                match *event {
-                    DecodedEvent::MouseMove { x, y, .. } => {
-                        render_state.mouse_x = x;
-                        render_state.mouse_y = y;
-                        rerender = true;
-                    }
-                    _ => (),
-                }
+            self.update_mouse_position(&event_collector, &mut render_state);
+        }
+    }
+
+    fn update_mouse_state(&mut self, render_state: &mut RenderState) -> Result<()> {
+        let mouse_state = MouseState::new(&self.sdl_context.event_pump()?);
+        render_state.mouse_x = mouse_state.x();
+        render_state.mouse_y = mouse_state.y();
+
+        Ok(())
+    }
+
+    fn render_scene(
+        &mut self,
+        scene: &mut dyn Scene<'sdl>,
+        render_state: &mut RenderState<'sdl>,
+    ) -> Result<()> {
+        let scene_changed = scene.draw(&mut self.canvas)?;
+        if self.rerender || scene_changed {
+            self.render(render_state, scene, scene_changed)?;
+            self.rerender = false;
+        }
+
+        Ok(())
+    }
+
+    fn consume_events(
+        &mut self,
+        scene: &mut dyn Scene,
+        event_collector: &mut EventCollector,
+    ) -> Result<Option<StopReason>> {
+        let mut toggle_fullscreen = false;
+        for event in event_collector.decoded_events().as_ref() {
+            match *event {
+                DecodedEvent::Quit => return Ok(Some(StopReason::Quit)),
+                DecodedEvent::RenderReset => return Ok(Some(StopReason::RenderReset)),
+                DecodedEvent::Redraw => self.rerender = true,
+                DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
+                DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
+                DecodedEvent::MouseMove { .. } => (),
+            }
+        }
+
+        if toggle_fullscreen {
+            let is_fullscreen =
+                self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
+
+            self.canvas
+                .window()
+                .clone()
+                .set_fullscreen(!is_fullscreen)?;
+        }
+
+        Ok(None)
+    }
+
+    fn update_mouse_position(
+        &mut self,
+        event_collector: &EventCollector,
+        render_state: &mut RenderState,
+    ) {
+        for event in event_collector.decoded_events().as_ref() {
+            if let DecodedEvent::MouseMove { x, y, .. } = *event {
+                render_state.mouse_x = x;
+                render_state.mouse_y = y;
+                self.rerender = true;
             }
         }
     }
@@ -147,7 +188,7 @@ impl<'sdl> Stage<'sdl> {
         let refresh_rate =
             current_refresh_rate(&self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
 
-        return (1000. / refresh_rate).floor() as u64;
+        (1000. / refresh_rate).floor() as u64
     }
 
     fn render(
@@ -176,7 +217,7 @@ impl<'sdl> Stage<'sdl> {
 
             let texture = self.prescale_layer(scene, layer, needs_redraw)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);
-            let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
+            self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
         if scene.cursor_type() != CursorType::None {
@@ -192,7 +233,7 @@ impl<'sdl> Stage<'sdl> {
                 self.prescale_static_texture(static_texture, layout_cursor.prescaling_mode)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);
 
-            let _ = self.canvas.copy(
+            self.canvas.copy(
                 texture,
                 None,
                 SdlRect::new(
@@ -214,9 +255,10 @@ impl<'sdl> Stage<'sdl> {
         layer: &'layer mut Layer<'sdl>,
         needs_redraw: bool,
     ) -> Result<&'layer mut Texture<'sdl>> {
-        let redraw_on_difference_from = match needs_redraw {
-            false => Some(layer.current_prescaling_mode),
-            true => None,
+        let redraw_on_difference_from = if needs_redraw {
+            None
+        } else {
+            Some(layer.current_prescaling_mode)
         };
 
         let prescaled_texture = self.prescale_texture(
@@ -283,10 +325,7 @@ impl<'sdl> Stage<'sdl> {
 
         let intermediate_texture = maybe_intermediate_texture.as_mut().unwrap();
 
-        let already_prescaled = match redraw_on_difference_from {
-            Some(mode) => mode == prescaling_mode,
-            None => false,
-        };
+        let already_prescaled = redraw_on_difference_from == Some(prescaling_mode);
 
         if needs_recreate || !already_prescaled {
             source_texture.set_scale_mode(ScaleMode::Nearest);

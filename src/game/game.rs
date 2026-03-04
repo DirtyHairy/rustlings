@@ -13,7 +13,7 @@ use sdl3::{
 
 use crate::{
     scenes::create_scene,
-    stage::{RunResult, Stage},
+    stage::{Stage, StopReason},
     state::{GameState, SceneState},
 };
 
@@ -70,7 +70,7 @@ pub fn run(config: &Config) -> Result<()> {
     let (mut canvas, mut texture_creator) = init_canvas(window.clone())?;
 
     loop {
-        let run_result: RunResult;
+        let run_result: StopReason;
 
         {
             let mut stage = Stage::new(
@@ -87,11 +87,11 @@ pub fn run(config: &Config) -> Result<()> {
         }
 
         match run_result {
-            RunResult::Quit => {
+            StopReason::Quit => {
                 println!("shutting down");
                 break;
             }
-            RunResult::RenderReset => {
+            StopReason::RenderReset => {
                 println!("render reset");
 
                 // release the renderer before creating a new one; otherwise, SDL will crash
@@ -100,7 +100,7 @@ pub fn run(config: &Config) -> Result<()> {
 
                 (canvas, texture_creator) = init_canvas(window.clone())?;
             }
-            RunResult::NextScene => (),
+            StopReason::NextScene => (),
         }
     }
 
