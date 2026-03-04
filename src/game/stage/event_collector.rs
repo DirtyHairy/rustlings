@@ -1,4 +1,7 @@
-use std::time::Instant;
+use std::{
+    cmp,
+    time::{Duration, Instant},
+};
 
 use rustlings::sdl3_aux::SDL_EVENT_RENDER_DEVICE_LOST;
 use sdl3::{
@@ -31,6 +34,8 @@ impl EventCollector {
         }
     }
 
+    // Wait until there are relevant events or until the timeout has expired, but wait at least
+    // until aggregate_at_least_until
     pub fn collect_events(
         &mut self,
         aggregate_at_least_until: Instant,
@@ -43,9 +48,15 @@ impl EventCollector {
         self.decoded_events.clear();
 
         loop {
-            if let Some(event) =
-                event_pump.wait_event_timeout((timeout_millis.saturating_sub(elapsed)) as u32)
-            {
+            let wait_timeout = cmp::max(
+                timeout_millis.saturating_sub(elapsed),
+                aggregate_at_least_until
+                    .checked_duration_since(Instant::now())
+                    .unwrap_or(Duration::from_millis(0))
+                    .as_millis() as u64,
+            );
+
+            if let Some(event) = event_pump.wait_event_timeout(wait_timeout as u32) {
                 if let Some(decoded_event) = decode_sdl_event(&event) {
                     self.decoded_events.push(decoded_event);
                 }
