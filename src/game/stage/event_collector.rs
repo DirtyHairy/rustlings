@@ -43,7 +43,9 @@ impl EventCollector {
         self.decoded_events.clear();
 
         loop {
-            if let Some(event) = event_pump.wait_event_timeout((timeout_millis - elapsed) as u32) {
+            if let Some(event) =
+                event_pump.wait_event_timeout((timeout_millis.saturating_sub(elapsed)) as u32)
+            {
                 if let Some(decoded_event) = decode_sdl_event(&event) {
                     self.decoded_events.push(decoded_event);
                 }
@@ -57,8 +59,9 @@ impl EventCollector {
 
             let now = Instant::now();
             elapsed = now.duration_since(ts_reference).as_millis() as u64;
-            if !self.decoded_events.is_empty() && now >= aggregate_at_least_until
-                || elapsed >= timeout_millis
+
+            if now >= aggregate_at_least_until
+                && (!self.decoded_events.is_empty() || elapsed >= timeout_millis)
             {
                 break;
             }
