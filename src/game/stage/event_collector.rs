@@ -43,17 +43,29 @@ impl EventCollector {
         event_pump: &mut EventPump,
     ) {
         let ts_reference = Instant::now();
-        let mut elapsed: u64 = 0;
-
         self.decoded_events.clear();
 
+        let mut first_iteration = false;
+
         loop {
+            let now = Instant::now();
+            let elapsed = now.duration_since(ts_reference).as_millis() as u64;
+
+            let aggregation_time_remaining = aggregate_at_least_until
+                .checked_duration_since(now)
+                .unwrap_or(Duration::from_millis(0))
+                .as_millis() as u64;
+
+            if !first_iteration
+                && aggregation_time_remaining == 0
+                && (!self.decoded_events.is_empty() || elapsed >= timeout_millis)
+            {
+                break;
+            }
+
             let wait_timeout = cmp::max(
                 timeout_millis.saturating_sub(elapsed),
-                aggregate_at_least_until
-                    .checked_duration_since(Instant::now())
-                    .unwrap_or(Duration::from_millis(0))
-                    .as_millis() as u64,
+                aggregation_time_remaining,
             );
 
             if let Some(event) = event_pump.wait_event_timeout(wait_timeout as u32) {
@@ -68,19 +80,7 @@ impl EventCollector {
                 }
             }
 
-            let now = Instant::now();
-            elapsed = now.duration_since(ts_reference).as_millis() as u64;
-
-            let aggregation_time_remaining = aggregate_at_least_until
-                .checked_duration_since(now)
-                .unwrap_or(Duration::from_millis(0))
-                .as_millis() as u64;
-
-            if aggregation_time_remaining == 0
-                && (!self.decoded_events.is_empty() || elapsed >= timeout_millis)
-            {
-                break;
-            }
+            first_iteration = false;
         }
     }
 
