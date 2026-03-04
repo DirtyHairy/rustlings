@@ -63,7 +63,7 @@ impl<'sdl> Stage<'sdl> {
         let mut event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
         event_watch.deactivate();
 
-        let mut redraw = true;
+        let mut rerender = true;
         let mut ts_reference = Instant::now();
         let mut time_old = 0;
 
@@ -74,10 +74,10 @@ impl<'sdl> Stage<'sdl> {
         let mut event_collector = EventCollector::new();
 
         loop {
-            redraw = scene.draw(&mut self.canvas)? || redraw;
-            if redraw {
-                self.render(&mut render_state, scene)?;
-                redraw = false;
+            let scene_changed = scene.draw(&mut self.canvas)?;
+            if rerender || scene_changed {
+                self.render(&mut render_state, scene, scene_changed)?;
+                rerender = false;
             }
 
             let frame_budget = self
@@ -90,7 +90,7 @@ impl<'sdl> Stage<'sdl> {
                 match *event {
                     DecodedEvent::Quit => return Ok(RunResult::Quit),
                     DecodedEvent::RenderReset => return Ok(RunResult::RenderReset),
-                    DecodedEvent::Redraw => redraw = true,
+                    DecodedEvent::Redraw => rerender = true,
                     DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
                     DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
                     DecodedEvent::MouseMove { .. } => (),
@@ -135,7 +135,7 @@ impl<'sdl> Stage<'sdl> {
                     DecodedEvent::MouseMove { x, y, .. } => {
                         render_state.mouse_x = x;
                         render_state.mouse_y = y;
-                        redraw = true;
+                        rerender = true;
                     }
                     _ => (),
                 }
@@ -154,6 +154,7 @@ impl<'sdl> Stage<'sdl> {
         &mut self,
         render_state: &mut RenderState<'sdl>,
         scene: &mut dyn Scene<'sdl>,
+        needs_redraw: bool,
     ) -> Result<()> {
         let (canvas_width, canvas_height) = self.canvas.output_size()?;
         render_state.update_layout(canvas_width as usize, canvas_height as usize);
@@ -173,7 +174,7 @@ impl<'sdl> Stage<'sdl> {
                 .get(i)
                 .ok_or(anyhow::format_err!("no layout for layer {}", i))?;
 
-            let texture = self.prescale_layer(scene, layer)?;
+            let texture = self.prescale_layer(scene, layer, needs_redraw)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);
             let _ = self.canvas.copy(texture, None, Some(dest.into()))?;
         }
@@ -211,13 +212,23 @@ impl<'sdl> Stage<'sdl> {
         &mut self,
         scene: &'scene mut dyn Scene<'sdl>,
         layer: &'layer mut Layer<'sdl>,
+        needs_redraw: bool,
     ) -> Result<&'layer mut Texture<'sdl>> {
-        self.prescale_texture(
+        let redraw_on_difference_from = match needs_redraw {
+            false => Some(layer.current_prescaling_mode),
+            true => None,
+        };
+
+        let prescaled_texture = self.prescale_texture(
             scene.texture(layer.texture_id)?,
             &mut layer.intermediate_texture,
             layer.prescaling_mode,
-            None,
-        )
+            redraw_on_difference_from,
+        )?;
+
+        layer.current_prescaling_mode = layer.prescaling_mode;
+
+        Ok(prescaled_texture)
     }
 
     fn prescale_static_texture<'a>(
@@ -242,7 +253,7 @@ impl<'sdl> Stage<'sdl> {
         source_texture: &'a mut Texture<'sdl>,
         maybe_intermediate_texture: &'a mut Option<Texture<'sdl>>,
         prescaling_mode: PrescalingMode,
-        previous_prescaling_mode: Option<PrescalingMode>,
+        redraw_on_difference_from: Option<PrescalingMode>,
     ) -> Result<&'a mut Texture<'sdl>> {
         let (integer_scaled_width, integer_scaled_height) = match prescaling_mode {
             PrescalingMode::None(scaling_mode) => {
@@ -272,7 +283,7 @@ impl<'sdl> Stage<'sdl> {
 
         let intermediate_texture = maybe_intermediate_texture.as_mut().unwrap();
 
-        let already_prescaled = match previous_prescaling_mode {
+        let already_prescaled = match redraw_on_difference_from {
             Some(mode) => mode == prescaling_mode,
             None => false,
         };
@@ -321,7 +332,7 @@ impl EventWatchCallback for ExposeWatch {
         }
 
         unsafe {
-            let _ = (*self.stage).render(&mut *self.render_state, &mut *self.scene);
+            let _ = (*self.stage).render(&mut *self.render_state, &mut *self.scene, true);
         }
     }
 }

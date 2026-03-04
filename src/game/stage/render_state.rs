@@ -35,6 +35,7 @@ pub struct Layer<'texture_creator> {
     pub destination: geometry::Rect,
 
     pub prescaling_mode: PrescalingMode,
+    pub current_prescaling_mode: PrescalingMode,
     pub intermediate_texture: Option<Texture<'texture_creator>>,
 }
 
@@ -42,8 +43,10 @@ pub struct Layer<'texture_creator> {
 pub struct CursorLayout {
     pub width: usize,
     pub height: usize,
+
     pub center_x: usize,
     pub center_y: usize,
+
     pub prescaling_mode: PrescalingMode,
 }
 
@@ -269,6 +272,7 @@ impl Compositor for RenderState<'_> {
             destination,
             intermediate_texture: None,
             prescaling_mode: Default::default(),
+            current_prescaling_mode: Default::default(),
         });
     }
 }
