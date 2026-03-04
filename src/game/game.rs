@@ -3,7 +3,7 @@ use std::{path::Path, rc::Rc};
 use anyhow::Result;
 use rustlings::{
     game_data::{GameData, read_game_data},
-    sdl3_aux::get_canvas_vsync,
+    sdl3_aux::{current_refresh_rate, get_canvas_vsync},
 };
 use sdl3::{
     Sdl,
@@ -52,6 +52,12 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
         get_canvas_vsync(&canvas),
         canvas.renderer_name
     );
+
+    if let Some(refresh_rate) = current_refresh_rate(&canvas.window()) {
+        println!("Refresh rate: {}Hz", refresh_rate as usize);
+    } else {
+        println!("unable to determine refresh rate");
+    }
 
     let texture_creator = canvas.texture_creator();
 
