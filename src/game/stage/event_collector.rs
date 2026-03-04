@@ -71,7 +71,12 @@ impl EventCollector {
             let now = Instant::now();
             elapsed = now.duration_since(ts_reference).as_millis() as u64;
 
-            if now >= aggregate_at_least_until
+            let aggregation_time_remaining = aggregate_at_least_until
+                .checked_duration_since(now)
+                .unwrap_or(Duration::from_millis(0))
+                .as_millis() as u64;
+
+            if aggregation_time_remaining == 0
                 && (!self.decoded_events.is_empty() || elapsed >= timeout_millis)
             {
                 break;
