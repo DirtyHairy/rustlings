@@ -222,7 +222,7 @@ impl<'sdl> Stage<'sdl> {
 
         if scene.cursor_type() != CursorType::None {
             let layout_cursor = render_state.layout.cursor.clone();
-            let pixel_scale = self.canvas.window().display_scale();
+            let pixel_scale = self.canvas.window().pixel_density();
 
             let mouse_x = render_state.mouse_x * pixel_scale;
             let mouse_y = render_state.mouse_y * pixel_scale;
