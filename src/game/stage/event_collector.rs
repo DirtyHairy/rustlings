@@ -33,7 +33,7 @@ impl EventCollector {
 
     pub fn collect_events(
         &mut self,
-        min_aggregation_time_millis: u64,
+        aggregate_at_least_until: Instant,
         timeout_millis: u64,
         event_pump: &mut EventPump,
     ) {
@@ -57,8 +57,9 @@ impl EventCollector {
                 }
             }
 
-            elapsed = Instant::now().duration_since(ts_reference).as_millis() as u64;
-            if self.decoded_events.len() > 0 && elapsed > min_aggregation_time_millis
+            let now = Instant::now();
+            elapsed = now.duration_since(ts_reference).as_millis() as u64;
+            if self.decoded_events.len() > 0 && now >= aggregate_at_least_until
                 || elapsed >= timeout_millis
             {
                 break;

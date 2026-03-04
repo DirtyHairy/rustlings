@@ -23,9 +23,8 @@ use crate::stage::event_collector::{DecodedEvent, EventCollector};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
-const FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS: u64 = 5;
-const REFRESH_RATE_SAFETY_FACTOR: f32 = 0.8;
-const NEGLIGIBLE_LAG_FPS: f32 = 100.;
+const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 2;
+const FALLBACK_REFRESH_RATE: f32 = 100.;
 
 pub enum RunResult {
     Quit,
@@ -75,34 +74,16 @@ impl<'sdl> Stage<'sdl> {
         let mut event_collector = EventCollector::new();
 
         loop {
-            let ts = Instant::now();
-
-            let mut time = ts.duration_since(ts_reference).as_millis() as u64;
-            if time - time_old > MAX_TIMESLICE_MSEC {
-                ts_reference += Duration::from_millis(time - time_old - MAX_TIMESLICE_MSEC);
-                time = ts.duration_since(ts_reference).as_millis() as u64;
-            }
-
-            time_old = time;
-            scene.tick(time);
-
-            if scene.is_complete() {
-                return Ok(RunResult::NextScene);
-            }
-
             redraw = scene.draw(&mut self.canvas)? || redraw;
             if redraw {
                 self.render(&mut render_state, scene)?;
                 redraw = false;
             }
 
-            event_watch.activate();
-            event_collector.collect_events(
-                self.min_event_aggregation_time_millis(),
-                scene.next_tick_at_msec().saturating_sub(time),
-                &mut self.sdl_context.event_pump()?,
-            );
-            event_watch.deactivate();
+            let frame_budget = self
+                .time_per_frame_msec()
+                .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MSEC);
+            let ts_frame_start = Instant::now();
 
             let mut toggle_fullscreen = false;
             for event in event_collector.decoded_events().as_ref() {
@@ -112,11 +93,7 @@ impl<'sdl> Stage<'sdl> {
                     DecodedEvent::Redraw => redraw = true,
                     DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
                     DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                    DecodedEvent::MouseMove { x, y, .. } => {
-                        render_state.mouse_x = x;
-                        render_state.mouse_y = y;
-                        redraw = true;
-                    }
+                    DecodedEvent::MouseMove { .. } => (),
                 }
             }
 
@@ -129,19 +106,48 @@ impl<'sdl> Stage<'sdl> {
                     .clone()
                     .set_fullscreen(!is_fullscreen)?;
             }
+
+            let ts_tick = Instant::now();
+
+            let mut time = ts_tick.duration_since(ts_reference).as_millis() as u64;
+            if time - time_old > MAX_TIMESLICE_MSEC {
+                ts_reference += Duration::from_millis(time - time_old - MAX_TIMESLICE_MSEC);
+                time = ts_tick.duration_since(ts_reference).as_millis() as u64;
+            }
+
+            time_old = time;
+            scene.tick(time);
+
+            if scene.is_complete() {
+                return Ok(RunResult::NextScene);
+            }
+
+            event_watch.activate();
+            event_collector.collect_events(
+                ts_frame_start + Duration::from_millis(frame_budget),
+                scene.next_tick_at_msec().saturating_sub(time),
+                &mut self.sdl_context.event_pump()?,
+            );
+            event_watch.deactivate();
+
+            for event in event_collector.decoded_events().as_ref() {
+                match *event {
+                    DecodedEvent::MouseMove { x, y, .. } => {
+                        render_state.mouse_x = x;
+                        render_state.mouse_y = y;
+                        redraw = true;
+                    }
+                    _ => (),
+                }
+            }
         }
     }
 
-    fn min_event_aggregation_time_millis(&self) -> u64 {
-        let refresh_rate = current_refresh_rate(&self.canvas.window());
+    fn time_per_frame_msec(&self) -> u64 {
+        let refresh_rate =
+            current_refresh_rate(&self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
 
-        if refresh_rate >= NEGLIGIBLE_LAG_FPS {
-            0
-        } else if refresh_rate > 0. {
-            (1000. / refresh_rate * REFRESH_RATE_SAFETY_FACTOR).round() as u64
-        } else {
-            FALLBACK_MIN_EVENT_AGGREGATION_TIME_MULLIS
-        }
+        return (1000. / refresh_rate).floor() as u64;
     }
 
     fn render(

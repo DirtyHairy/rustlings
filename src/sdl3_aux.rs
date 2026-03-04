@@ -23,18 +23,24 @@ pub fn is_main_thread() -> bool {
     }
 }
 
-pub fn current_refresh_rate(window: &Window) -> f32 {
+pub fn current_refresh_rate(window: &Window) -> Option<f32> {
     unsafe {
         let display_id = sdl3::sys::video::SDL_GetDisplayForWindow(window.raw());
         if display_id.0 == 0 {
-            return 0.;
+            return None;
         }
 
         let mode_raw = sdl3::sys::video::SDL_GetCurrentDisplayMode(display_id);
         if mode_raw.is_null() {
-            return 0.;
+            return None;
         }
 
-        DisplayMode::from_ll(&*mode_raw).refresh_rate
+        let display_mode = DisplayMode::from_ll(&*mode_raw);
+
+        if display_mode.refresh_rate_numerator > 0 {
+            Some(display_mode.refresh_rate)
+        } else {
+            None
+        }
     }
 }
