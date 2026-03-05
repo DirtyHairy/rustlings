@@ -11,6 +11,14 @@ use crate::{
 };
 
 #[derive(Clone, Copy)]
+pub struct MouseCoordinates {
+    pub x: usize,
+    pub y: usize,
+    pub x_frac: f32,
+    pub y_frac: f32,
+}
+
+#[derive(Clone, Copy)]
 pub enum SceneEvent {
     KeyDown {
         keycode: Keycode,
@@ -21,12 +29,9 @@ pub enum SceneEvent {
         keycode: Keycode,
         scancode: Scancode,
     },
-    MouseMove {
-        x: u32,
-        y: u32,
-        x_frac: f32,
-        y_frac: f32,
-    },
+    MouseMove(MouseCoordinates),
+    MouseDown(MouseCoordinates),
+    MouseUp(MouseCoordinates),
 }
 
 #[derive(Clone, Copy, PartialEq)]

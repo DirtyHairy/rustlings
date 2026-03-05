@@ -8,6 +8,7 @@ use sdl3::{
     EventPump,
     event::{Event, WindowEvent},
     keyboard::{Keycode, Mod},
+    mouse::MouseButton,
 };
 
 use crate::scene::SceneEvent;
@@ -21,6 +22,8 @@ pub enum DecodedEvent {
     ToggleFullscreen,
     DispatchSceneEvent(SceneEvent),
     MouseMove { x: f32, y: f32 },
+    MouseDown { x: f32, y: f32 },
+    MouseUp { x: f32, y: f32 },
 }
 
 pub struct EventCollector {
@@ -135,6 +138,18 @@ fn decode_sdl_event(event: &Event) -> Option<DecodedEvent> {
         })),
 
         Event::MouseMotion { x, y, .. } => Some(DecodedEvent::MouseMove { x, y }),
+        Event::MouseButtonDown {
+            mouse_btn: MouseButton::Left,
+            x,
+            y,
+            ..
+        } => Some(DecodedEvent::MouseDown { x, y }),
+        Event::MouseButtonUp {
+            mouse_btn: MouseButton::Left,
+            x,
+            y,
+            ..
+        } => Some(DecodedEvent::MouseUp { x, y }),
 
         _ => None,
     }

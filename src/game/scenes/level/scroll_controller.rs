@@ -1,14 +1,23 @@
 use std::cmp;
 
-use rustlings::game_data::{LEVEL_WIDTH, SCREEN_WIDTH};
+use rustlings::game_data::{
+    LEVEL_WIDTH, MINIMAP_AREA_HEIGHT, MINIMAP_AREA_WIDTH, MINIMAP_AREA_X, MINIMAP_AREA_Y,
+    MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X, SCREEN_HEIGHT, SCREEN_WIDTH,
+    SKILL_PANEL_HEIGHT,
+};
 use sdl3::keyboard::Scancode;
 
-use crate::{scene::SceneEvent, state::SceneStateLevel};
+use crate::{
+    scene::{MouseCoordinates, SceneEvent},
+    state::SceneStateLevel,
+};
 
 #[derive(Default)]
 pub struct ScrollController {
     arrow_left_down: bool,
     arrow_right_down: bool,
+    mouse_down: bool,
+
     fast_scroll: bool,
     current_scroll_mode: ScrollMode,
 }
@@ -19,6 +28,7 @@ enum ScrollMode {
     None,
     Left,
     Right,
+    Drag,
 }
 
 const SCROLL_MSEC_PER_PIXEL: u64 = 5; // 3200 msec to scroll over the full width
@@ -31,6 +41,10 @@ impl ScrollController {
     }
 
     fn scroll_mode(&self) -> ScrollMode {
+        if self.mouse_down {
+            return ScrollMode::Drag;
+        }
+
         if !(self.arrow_left_down ^ self.arrow_right_down) {
             return ScrollMode::None;
         }
@@ -42,21 +56,52 @@ impl ScrollController {
         }
     }
 
-    pub fn dispatch_event(&mut self, event: SceneEvent) {
+    pub fn dispatch_event(&mut self, event: SceneEvent, state: &mut SceneStateLevel) -> bool {
         match event {
-            SceneEvent::KeyDown { scancode, .. } => match scancode {
-                Scancode::Left => self.arrow_left_down = true,
-                Scancode::Right => self.arrow_right_down = true,
-                Scancode::LShift | Scancode::RShift => self.fast_scroll = true,
-                _ => (),
-            },
-            SceneEvent::KeyUp { scancode, .. } => match scancode {
-                Scancode::Left => self.arrow_left_down = false,
-                Scancode::Right => self.arrow_right_down = false,
-                Scancode::LShift | Scancode::RShift => self.fast_scroll = false,
-                _ => (),
-            },
-            _ => (),
+            SceneEvent::KeyDown { scancode, .. } => {
+                match scancode {
+                    Scancode::Left => self.arrow_left_down = true,
+                    Scancode::Right => self.arrow_right_down = true,
+                    Scancode::LShift | Scancode::RShift => self.fast_scroll = true,
+                    _ => (),
+                };
+                false
+            }
+            SceneEvent::KeyUp { scancode, .. } => {
+                match scancode {
+                    Scancode::Left => self.arrow_left_down = false,
+                    Scancode::Right => self.arrow_right_down = false,
+                    Scancode::LShift | Scancode::RShift => self.fast_scroll = false,
+                    _ => (),
+                };
+                false
+            }
+            SceneEvent::MouseMove(coordinates) => {
+                if self.mouse_down {
+                    self.update_from_drag(&coordinates, state);
+                    true
+                } else {
+                    false
+                }
+            }
+            SceneEvent::MouseDown(coordinates) => {
+                if in_minimap(coordinates) {
+                    self.mouse_down = true;
+                    self.update_from_drag(&coordinates, state);
+                    true
+                } else {
+                    false
+                }
+            }
+            SceneEvent::MouseUp(coordinates) => {
+                if self.mouse_down {
+                    self.update_from_drag(&coordinates, state);
+                    self.mouse_down = false;
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 
@@ -88,7 +133,7 @@ impl ScrollController {
 
                 current_level_x != state.level_x
             }
-            ScrollMode::None => false,
+            _ => false,
         };
 
         self.current_scroll_mode = self.scroll_mode();
@@ -98,10 +143,27 @@ impl ScrollController {
 
     pub fn next_tick_at_msec(&self, state: &SceneStateLevel) -> Option<u64> {
         match self.scroll_mode() {
-            ScrollMode::None => None,
-            _ => Some(
+            ScrollMode::Left | ScrollMode::Right => Some(
                 ((state.current_clock_msec / SCROLL_MSEC_PER_PIXEL) + 1) * SCROLL_MSEC_PER_PIXEL,
             ),
+            _ => None,
         }
     }
+
+    fn update_from_drag(&mut self, coordinates: &MouseCoordinates, state: &mut SceneStateLevel) {
+        let x =
+            (coordinates.x_frac - MINIMAP_VIEW_X as f32 - ((MINIMAP_FRAME_WIDTH - 2) / 2) as f32)
+                / MINIMAP_VIEW_WIDTH as f32
+                * LEVEL_WIDTH as f32;
+
+        state.level_x = (x.round() as isize).clamp(0, LEVEL_X_MAX as isize) as usize;
+    }
+}
+
+fn in_minimap(coordinates: MouseCoordinates) -> bool {
+    (coordinates.x >= MINIMAP_AREA_X)
+        && (coordinates.x < MINIMAP_AREA_X + MINIMAP_AREA_WIDTH)
+        && (coordinates.y >= MINIMAP_AREA_Y + SCREEN_HEIGHT - SKILL_PANEL_HEIGHT)
+        && (coordinates.y
+            < MINIMAP_AREA_Y + MINIMAP_AREA_HEIGHT + SCREEN_HEIGHT - SKILL_PANEL_HEIGHT)
 }

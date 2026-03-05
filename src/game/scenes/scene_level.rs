@@ -124,7 +124,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                     self.status = Status::DoneNextLevel;
                 }
             }
-            _ => self.scroll_controller.dispatch_event(event),
+            _ => {
+                if self
+                    .scroll_controller
+                    .dispatch_event(event, &mut self.state)
+                {
+                    self.renderer.mark_for_redraw(Redraw::SCREEN);
+                }
+            }
         }
     }
 

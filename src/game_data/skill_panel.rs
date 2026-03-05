@@ -1,5 +1,7 @@
 use crate::game_data::{Bitmap, SCREEN_WIDTH};
 
+pub const SKILL_PANEL_HEIGHT: usize = 40;
+
 pub const MINIMAP_FRAME_HEIGHT: usize = 20;
 pub const MINIMAP_FRAME_WIDTH: usize = 22;
 const MINIMAP_FRAME_COLOR: u8 = 3;

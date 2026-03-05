@@ -5,7 +5,7 @@ use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
         MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
-        MINIMAP_VIEW_Y, SCREEN_HEIGHT, SCREEN_WIDTH,
+        MINIMAP_VIEW_Y, SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
     },
     sdl_rendering::{texture_from_bitmap, with_texture_canvas},
 };
@@ -27,7 +27,6 @@ bitflags::bitflags! {
     }
 }
 
-const SKILL_PANEL_HEIGHT: usize = 40;
 const SKILL_PANEL_Y: usize = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;

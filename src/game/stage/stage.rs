@@ -1,3 +1,4 @@
+use std::fs::ReadDir;
 use std::mem::transmute;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -18,7 +19,7 @@ use sdl3::{
     video::{Window, WindowContext},
 };
 
-use crate::scene::{CursorType, Scene};
+use crate::scene::{CursorType, MouseCoordinates, Scene, SceneEvent};
 use crate::stage::event_collector::{DecodedEvent, EventCollector};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
@@ -86,7 +87,9 @@ impl<'sdl> Stage<'sdl> {
                 .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MSEC);
             let ts_frame_start = Instant::now();
 
-            if let Some(stop_reason) = self.consume_events(scene, &mut event_collector)? {
+            if let Some(stop_reason) =
+                self.consume_events(&render_state, scene, &mut event_collector)?
+            {
                 return Ok(stop_reason);
             }
 
@@ -142,6 +145,7 @@ impl<'sdl> Stage<'sdl> {
 
     fn consume_events(
         &mut self,
+        render_state: &RenderState,
         scene: &mut dyn Scene,
         event_collector: &mut EventCollector,
     ) -> Result<Option<StopReason>> {
@@ -153,7 +157,15 @@ impl<'sdl> Stage<'sdl> {
                 DecodedEvent::Redraw => self.rerender = true,
                 DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
                 DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                DecodedEvent::MouseMove { .. } => (),
+                DecodedEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
+                    self.mouse_coordinates_from(render_state, scene, x, y),
+                )),
+                DecodedEvent::MouseDown { x, y } => scene.dispatch_event(SceneEvent::MouseDown(
+                    self.mouse_coordinates_from(render_state, scene, x, y),
+                )),
+                DecodedEvent::MouseUp { x, y } => scene.dispatch_event(SceneEvent::MouseUp(
+                    self.mouse_coordinates_from(render_state, scene, x, y),
+                )),
             }
         }
 
@@ -170,16 +182,50 @@ impl<'sdl> Stage<'sdl> {
         Ok(None)
     }
 
+    fn mouse_coordinates_from(
+        &self,
+        render_state: &RenderState,
+        scene: &dyn Scene,
+        x_win: f32,
+        y_win: f32,
+    ) -> MouseCoordinates {
+        let window = self.canvas.window();
+        let pixel_scale = window.pixel_density();
+
+        let x_frac = (x_win * pixel_scale - render_state.layout.scene.x as f32)
+            / render_state.layout.scene.width as f32
+            * scene.width() as f32;
+
+        let y_frac = (y_win * pixel_scale - render_state.layout.scene.y as f32)
+            / render_state.layout.scene.height as f32
+            * scene.height() as f32;
+
+        let x = (x_frac.round() as isize).clamp(0, scene.width() as isize - 1) as usize;
+        let y = (y_frac.round() as isize).clamp(0, scene.height() as isize - 1) as usize;
+
+        MouseCoordinates {
+            x,
+            y,
+            x_frac,
+            y_frac,
+        }
+    }
+
     fn update_mouse_position(
         &mut self,
         event_collector: &EventCollector,
         render_state: &mut RenderState,
     ) {
         for event in event_collector.decoded_events().as_ref() {
-            if let DecodedEvent::MouseMove { x, y, .. } = *event {
-                render_state.mouse_x = x;
-                render_state.mouse_y = y;
-                self.rerender = true;
+            match *event {
+                DecodedEvent::MouseMove { x, y }
+                | DecodedEvent::MouseDown { x, y }
+                | DecodedEvent::MouseUp { x, y } => {
+                    render_state.mouse_x = x;
+                    render_state.mouse_y = y;
+                    self.rerender = true;
+                }
+                _ => (),
             }
         }
     }
