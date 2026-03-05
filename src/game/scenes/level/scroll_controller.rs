@@ -16,7 +16,9 @@ use crate::{
 pub struct ScrollController {
     arrow_left_down: bool,
     arrow_right_down: bool,
+
     mouse_down: bool,
+    mouse_x: Option<usize>,
 
     fast_scroll: bool,
     current_scroll_mode: ScrollMode,
@@ -43,6 +45,12 @@ impl ScrollController {
     fn scroll_mode(&self) -> ScrollMode {
         if self.mouse_down {
             return ScrollMode::Drag;
+        }
+
+        match self.mouse_x {
+            Some(x) if x == 0 => return ScrollMode::Left,
+            Some(x) if x == SCREEN_WIDTH - 1 => return ScrollMode::Right,
+            _ => (),
         }
 
         if !(self.arrow_left_down ^ self.arrow_right_down) {
@@ -77,6 +85,8 @@ impl ScrollController {
                 false
             }
             SceneEvent::MouseMove(coordinates) => {
+                self.mouse_x = Some(coordinates.x);
+
                 if self.mouse_down {
                     self.update_from_drag(&coordinates, state);
                     true
