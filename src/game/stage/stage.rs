@@ -20,7 +20,7 @@ use sdl3::{
 };
 
 use crate::scene::{CursorType, MouseCoordinates, Scene, SceneEvent};
-use crate::stage::event_collector::{DecodedEvent, EventCollector};
+use crate::stage::event_collector::{EventCollector, GameEvent};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
@@ -106,7 +106,6 @@ impl<'sdl> Stage<'sdl> {
             }
 
             self.time_old = time;
-            scene.set_mouse_enabled(render_state.mouse_enabled);
             scene.tick(time);
 
             if scene.is_complete() {
@@ -163,22 +162,24 @@ impl<'sdl> Stage<'sdl> {
         let mut toggle_fullscreen = false;
         for event in event_collector.decoded_events().as_ref() {
             match *event {
-                DecodedEvent::Quit => return Ok(Some(StopReason::Quit)),
-                DecodedEvent::RenderReset => return Ok(Some(StopReason::RenderReset)),
-                DecodedEvent::Redraw => self.rerender = true,
-                DecodedEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
-                DecodedEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                DecodedEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
+                GameEvent::Quit => return Ok(Some(StopReason::Quit)),
+                GameEvent::RenderReset => return Ok(Some(StopReason::RenderReset)),
+                GameEvent::Redraw => self.rerender = true,
+                GameEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
+                GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
+                GameEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
-                DecodedEvent::MouseDown { x, y } => scene.dispatch_event(SceneEvent::MouseDown(
+                GameEvent::MouseDown { x, y } => scene.dispatch_event(SceneEvent::MouseDown(
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
-                DecodedEvent::MouseUp { x, y } => scene.dispatch_event(SceneEvent::MouseUp(
+                GameEvent::MouseUp { x, y } => scene.dispatch_event(SceneEvent::MouseUp(
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
-                DecodedEvent::EnterFullscreen => scene.set_is_fullscreen(true),
-                DecodedEvent::LeaveFullscreen => scene.set_is_fullscreen(false),
+                GameEvent::MouseEnter => scene.set_mouse_enabled(true),
+                GameEvent::MouseLeave => scene.set_mouse_enabled(false),
+                GameEvent::EnterFullscreen => scene.set_is_fullscreen(true),
+                GameEvent::LeaveFullscreen => scene.set_is_fullscreen(false),
                 _ => (),
             }
         }
@@ -232,18 +233,18 @@ impl<'sdl> Stage<'sdl> {
     ) {
         for event in event_collector.decoded_events().as_ref() {
             match *event {
-                DecodedEvent::MouseMove { x, y }
-                | DecodedEvent::MouseDown { x, y }
-                | DecodedEvent::MouseUp { x, y } => {
+                GameEvent::MouseMove { x, y }
+                | GameEvent::MouseDown { x, y }
+                | GameEvent::MouseUp { x, y } => {
                     render_state.mouse_x = x;
                     render_state.mouse_y = y;
                     self.rerender = true;
                 }
-                DecodedEvent::MouseEnter => {
+                GameEvent::MouseEnter => {
                     render_state.mouse_enabled = true;
                     self.rerender = true;
                 }
-                DecodedEvent::MouseLeave => {
+                GameEvent::MouseLeave => {
                     render_state.mouse_enabled = false;
                     self.rerender = true;
                 }

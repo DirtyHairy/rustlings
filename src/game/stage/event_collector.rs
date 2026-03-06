@@ -18,7 +18,7 @@ use crate::scene::SceneEvent;
 
 const INITIAL_CAPACITY: usize = 32;
 
-pub enum DecodedEvent {
+pub enum GameEvent {
     Quit,
     Redraw,
     RenderReset,
@@ -34,7 +34,7 @@ pub enum DecodedEvent {
 }
 
 pub struct EventCollector {
-    decoded_events: Vec<DecodedEvent>,
+    decoded_events: Vec<GameEvent>,
 }
 
 impl EventCollector {
@@ -94,36 +94,36 @@ impl EventCollector {
         }
     }
 
-    pub fn decoded_events(&self) -> &[DecodedEvent] {
+    pub fn decoded_events(&self) -> &[GameEvent] {
         &self.decoded_events
     }
 }
 
-fn decode_sdl_event(event: &Event) -> Option<DecodedEvent> {
+fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
     match *event {
-        Event::Quit { .. } => Some(DecodedEvent::Quit),
+        Event::Quit { .. } => Some(GameEvent::Quit),
 
         Event::Window { win_event, .. } => match win_event {
-            WindowEvent::PixelSizeChanged(_, _) => Some(DecodedEvent::Redraw),
-            WindowEvent::MouseEnter => Some(DecodedEvent::MouseEnter),
-            WindowEvent::MouseLeave => Some(DecodedEvent::MouseLeave),
+            WindowEvent::PixelSizeChanged(_, _) => Some(GameEvent::Redraw),
+            WindowEvent::MouseEnter => Some(GameEvent::MouseEnter),
+            WindowEvent::MouseLeave => Some(GameEvent::MouseLeave),
             _ => None,
         },
         Event::Unknown {
             type_: SDL_EVENT_WINDOW_ENTER_FULLSCREEN,
             ..
-        } => Some(DecodedEvent::EnterFullscreen),
+        } => Some(GameEvent::EnterFullscreen),
         Event::Unknown {
             type_: SDL_EVENT_WINDOW_LEAVE_FULLSCREEN,
             ..
-        } => Some(DecodedEvent::LeaveFullscreen),
+        } => Some(GameEvent::LeaveFullscreen),
 
-        Event::RenderDeviceReset { .. } => Some(DecodedEvent::RenderReset),
-        Event::RenderTargetsReset { .. } => Some(DecodedEvent::RenderReset),
+        Event::RenderDeviceReset { .. } => Some(GameEvent::RenderReset),
+        Event::RenderTargetsReset { .. } => Some(GameEvent::RenderReset),
         Event::Unknown {
             type_: SDL_EVENT_RENDER_DEVICE_LOST,
             ..
-        } => Some(DecodedEvent::RenderReset),
+        } => Some(GameEvent::RenderReset),
 
         Event::KeyDown {
             keycode: Some(keycode),
@@ -132,14 +132,14 @@ fn decode_sdl_event(event: &Event) -> Option<DecodedEvent> {
             repeat: false,
             ..
         } => match (keycode, keymod) {
-            (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(DecodedEvent::RenderReset),
+            (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(GameEvent::RenderReset),
             (Keycode::Q, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
-                Some(DecodedEvent::Quit)
+                Some(GameEvent::Quit)
             }
             (Keycode::Return, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
-                Some(DecodedEvent::ToggleFullscreen)
+                Some(GameEvent::ToggleFullscreen)
             }
-            _ => Some(DecodedEvent::DispatchSceneEvent(SceneEvent::KeyDown {
+            _ => Some(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {
                 keycode,
                 keymod,
                 scancode,
@@ -151,24 +151,24 @@ fn decode_sdl_event(event: &Event) -> Option<DecodedEvent> {
             scancode: Some(scancode),
             repeat: false,
             ..
-        } => Some(DecodedEvent::DispatchSceneEvent(SceneEvent::KeyUp {
+        } => Some(GameEvent::DispatchSceneEvent(SceneEvent::KeyUp {
             keycode,
             scancode,
         })),
 
-        Event::MouseMotion { x, y, .. } => Some(DecodedEvent::MouseMove { x, y }),
+        Event::MouseMotion { x, y, .. } => Some(GameEvent::MouseMove { x, y }),
         Event::MouseButtonDown {
             mouse_btn: MouseButton::Left,
             x,
             y,
             ..
-        } => Some(DecodedEvent::MouseDown { x, y }),
+        } => Some(GameEvent::MouseDown { x, y }),
         Event::MouseButtonUp {
             mouse_btn: MouseButton::Left,
             x,
             y,
             ..
-        } => Some(DecodedEvent::MouseUp { x, y }),
+        } => Some(GameEvent::MouseUp { x, y }),
 
         _ => None,
     }
