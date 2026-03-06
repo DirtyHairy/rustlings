@@ -12,10 +12,10 @@ use sdl3::{
 
 use crate::{
     scene::{CursorType, Scene, SceneEvent},
-    scenes::level::ScrollController,
+    scenes::scene_level::renderer::{Redraw, Renderer},
 };
 use crate::{
-    scenes::level::{Redraw, Renderer},
+    scenes::scene_level::scroll_controller::ScrollController,
     state::{GameState, SceneState, SceneStateLevel},
 };
 

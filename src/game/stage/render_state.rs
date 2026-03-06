@@ -217,8 +217,8 @@ impl<'texture_creator> RenderState<'texture_creator> {
 
         self.layout.cursor.width = (cursor_scale_x * CURSOR_SIZE as f32).round() as usize;
         self.layout.cursor.height = (cursor_scale_y * CURSOR_SIZE as f32).round() as usize;
-        self.layout.cursor.center_x = (cursor_scale_x * CURSOR_CENTER_X as f32).round() as usize;
-        self.layout.cursor.center_y = (cursor_scale_y * CURSOR_CENTER_Y as f32).round() as usize;
+        self.layout.cursor.center_x = (cursor_scale_x * CURSOR_CENTER_X).round() as usize;
+        self.layout.cursor.center_y = (cursor_scale_y * CURSOR_CENTER_Y).round() as usize;
         self.layout.cursor.prescaling_mode = calculate_prescaling_mode(
             CURSOR_SIZE,
             CURSOR_SIZE,
