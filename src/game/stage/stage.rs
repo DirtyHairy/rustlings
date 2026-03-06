@@ -10,7 +10,7 @@ use rustlings::sdl3_aux::{current_refresh_rate, is_main_thread};
 use sdl3::mouse::MouseState;
 use sdl3::pixels::{Color, PixelFormat};
 use sdl3::render::{ScaleMode, Texture};
-use sdl3::sys::video::SDL_WindowFlags;
+use sdl3::sys::video::{SDL_WINDOW_FULLSCREEN, SDL_WINDOW_MOUSE_FOCUS, SDL_WindowFlags};
 use sdl3::{
     Sdl,
     event::{Event, EventWatchCallback, WindowEvent},
@@ -77,7 +77,10 @@ impl<'sdl> Stage<'sdl> {
         self.ts_reference = Instant::now();
         self.time_old = 0;
 
-        self.update_mouse_state(&mut render_state)?;
+        self.transfer_mouse_state(&mut render_state)?;
+
+        scene.set_is_fullscreen(self.is_fullscreen());
+        scene.set_mouse_enabled(render_state.mouse_enabled);
 
         loop {
             self.render_scene(scene, &mut render_state)?;
@@ -88,7 +91,7 @@ impl<'sdl> Stage<'sdl> {
             let ts_frame_start = Instant::now();
 
             if let Some(stop_reason) =
-                self.consume_events(&render_state, scene, &mut event_collector)?
+                self.consume_events(&mut render_state, scene, &mut event_collector)?
             {
                 return Ok(stop_reason);
             }
@@ -103,6 +106,7 @@ impl<'sdl> Stage<'sdl> {
             }
 
             self.time_old = time;
+            scene.set_mouse_enabled(render_state.mouse_enabled);
             scene.tick(time);
 
             if scene.is_complete() {
@@ -117,16 +121,23 @@ impl<'sdl> Stage<'sdl> {
             );
             event_watch.deactivate();
 
-            self.update_mouse_position(&event_collector, &mut render_state);
+            self.update_mouse_state(&event_collector, &mut render_state);
         }
     }
 
-    fn update_mouse_state(&mut self, render_state: &mut RenderState) -> Result<()> {
+    fn transfer_mouse_state(&mut self, render_state: &mut RenderState) -> Result<()> {
         let mouse_state = MouseState::new(&self.sdl_context.event_pump()?);
         render_state.mouse_x = mouse_state.x();
         render_state.mouse_y = mouse_state.y();
 
+        let window_flags = self.canvas.window().window_flags();
+        render_state.mouse_enabled = window_flags.0 & SDL_WINDOW_MOUSE_FOCUS.0 != 0;
+
         Ok(())
+    }
+
+    fn is_fullscreen(&self) -> bool {
+        self.canvas.window().window_flags().0 & SDL_WINDOW_FULLSCREEN.0 != 0
     }
 
     fn render_scene(
@@ -145,7 +156,7 @@ impl<'sdl> Stage<'sdl> {
 
     fn consume_events(
         &mut self,
-        render_state: &RenderState,
+        render_state: &mut RenderState,
         scene: &mut dyn Scene,
         event_collector: &mut EventCollector,
     ) -> Result<Option<StopReason>> {
@@ -166,6 +177,9 @@ impl<'sdl> Stage<'sdl> {
                 DecodedEvent::MouseUp { x, y } => scene.dispatch_event(SceneEvent::MouseUp(
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
+                DecodedEvent::EnterFullscreen => scene.set_is_fullscreen(true),
+                DecodedEvent::LeaveFullscreen => scene.set_is_fullscreen(false),
+                _ => (),
             }
         }
 
@@ -211,7 +225,7 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn update_mouse_position(
+    fn update_mouse_state(
         &mut self,
         event_collector: &EventCollector,
         render_state: &mut RenderState,
@@ -223,6 +237,14 @@ impl<'sdl> Stage<'sdl> {
                 | DecodedEvent::MouseUp { x, y } => {
                     render_state.mouse_x = x;
                     render_state.mouse_y = y;
+                    self.rerender = true;
+                }
+                DecodedEvent::MouseEnter => {
+                    render_state.mouse_enabled = true;
+                    self.rerender = true;
+                }
+                DecodedEvent::MouseLeave => {
+                    render_state.mouse_enabled = false;
                     self.rerender = true;
                 }
                 _ => (),
@@ -266,7 +288,7 @@ impl<'sdl> Stage<'sdl> {
             self.canvas.copy(texture, None, Some(dest.into()))?;
         }
 
-        if scene.cursor_type() != CursorType::None {
+        if render_state.mouse_enabled && scene.cursor_type() != CursorType::None {
             let layout_cursor = render_state.layout.cursor.clone();
             let pixel_scale = self.canvas.window().pixel_density();
 

@@ -17,6 +17,8 @@ pub struct ScrollController {
     arrow_left_down: bool,
     arrow_right_down: bool,
 
+    is_fullscreen: bool,
+    mouse_enabled: bool,
     mouse_down: bool,
     mouse_x: Option<usize>,
 
@@ -42,15 +44,25 @@ impl ScrollController {
         Default::default()
     }
 
+    pub fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
+        self.is_fullscreen = is_fullscreen;
+    }
+
+    pub fn set_mouse_enabled(&mut self, mouse_enabled: bool) {
+        self.mouse_enabled = mouse_enabled;
+    }
+
     fn scroll_mode(&self) -> ScrollMode {
         if self.mouse_down {
             return ScrollMode::Drag;
         }
 
-        match self.mouse_x {
-            Some(x) if x == 0 => return ScrollMode::Left,
-            Some(x) if x == SCREEN_WIDTH - 1 => return ScrollMode::Right,
-            _ => (),
+        if self.is_fullscreen && self.mouse_enabled {
+            match self.mouse_x {
+                Some(x) if x == 0 => return ScrollMode::Left,
+                Some(x) if x == SCREEN_WIDTH - 1 => return ScrollMode::Right,
+                _ => (),
+            }
         }
 
         if !(self.arrow_left_down ^ self.arrow_right_down) {

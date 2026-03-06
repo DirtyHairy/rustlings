@@ -3,7 +3,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rustlings::sdl3_aux::SDL_EVENT_RENDER_DEVICE_LOST;
+use rustlings::sdl3_aux::{
+    SDL_EVENT_RENDER_DEVICE_LOST, SDL_EVENT_WINDOW_ENTER_FULLSCREEN,
+    SDL_EVENT_WINDOW_LEAVE_FULLSCREEN,
+};
 use sdl3::{
     EventPump,
     event::{Event, WindowEvent},
@@ -24,6 +27,10 @@ pub enum DecodedEvent {
     MouseMove { x: f32, y: f32 },
     MouseDown { x: f32, y: f32 },
     MouseUp { x: f32, y: f32 },
+    MouseEnter,
+    MouseLeave,
+    EnterFullscreen,
+    LeaveFullscreen,
 }
 
 pub struct EventCollector {
@@ -95,10 +102,22 @@ impl EventCollector {
 fn decode_sdl_event(event: &Event) -> Option<DecodedEvent> {
     match *event {
         Event::Quit { .. } => Some(DecodedEvent::Quit),
+
         Event::Window { win_event, .. } => match win_event {
             WindowEvent::PixelSizeChanged(_, _) => Some(DecodedEvent::Redraw),
+            WindowEvent::MouseEnter => Some(DecodedEvent::MouseEnter),
+            WindowEvent::MouseLeave => Some(DecodedEvent::MouseLeave),
             _ => None,
         },
+        Event::Unknown {
+            type_: SDL_EVENT_WINDOW_ENTER_FULLSCREEN,
+            ..
+        } => Some(DecodedEvent::EnterFullscreen),
+        Event::Unknown {
+            type_: SDL_EVENT_WINDOW_LEAVE_FULLSCREEN,
+            ..
+        } => Some(DecodedEvent::LeaveFullscreen),
+
         Event::RenderDeviceReset { .. } => Some(DecodedEvent::RenderReset),
         Event::RenderTargetsReset { .. } => Some(DecodedEvent::RenderReset),
         Event::Unknown {

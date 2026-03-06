@@ -6,6 +6,8 @@ use sdl3::{
 };
 
 pub const SDL_EVENT_RENDER_DEVICE_LOST: u32 = 0x2002;
+pub const SDL_EVENT_WINDOW_ENTER_FULLSCREEN: u32 = 0x0217;
+pub const SDL_EVENT_WINDOW_LEAVE_FULLSCREEN: u32 = 0x0218;
 
 pub fn get_canvas_vsync(canvas: &Canvas<impl RenderTarget>) -> bool {
     let mut vsync: ffi::c_int = 0;

@@ -50,6 +50,9 @@ pub trait Scene<'texture_creator> {
     fn height(&self) -> usize;
     fn aspect(&self) -> f32;
 
+    fn set_is_fullscreen(&mut self, is_fullscreen: bool);
+    fn set_mouse_enabled(&mut self, mouse_enabled: bool);
+
     fn cursor_type(&self) -> CursorType;
 
     fn dispatch_event(&mut self, event: SceneEvent);

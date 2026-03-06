@@ -100,6 +100,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         1.2
     }
 
+    fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
+        self.scroll_controller.set_is_fullscreen(is_fullscreen);
+    }
+
+    fn set_mouse_enabled(&mut self, mouse_enabled: bool) {
+        self.scroll_controller.set_mouse_enabled(mouse_enabled);
+    }
+
     fn cursor_type(&self) -> CursorType {
         CursorType::Crosshair
     }

@@ -117,6 +117,7 @@ pub struct RenderState<'texture_creator> {
 
     pub mouse_x: f32,
     pub mouse_y: f32,
+    pub mouse_enabled: bool,
 }
 
 impl<'texture_creator> RenderState<'texture_creator> {
@@ -134,6 +135,7 @@ impl<'texture_creator> RenderState<'texture_creator> {
             scene_aspect: scene.aspect(),
             mouse_x: 0.,
             mouse_y: 0.,
+            mouse_enabled: false,
         })
     }
 
