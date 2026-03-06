@@ -39,8 +39,8 @@ GGWW..BB..WWGG
 ";
 
 pub const CURSOR_SIZE: usize = 14;
-pub const CURSOR_CENTER_X: usize = 7;
-pub const CURSOR_CENTER_Y: usize = 7;
+pub const CURSOR_CENTER_X: f32 = 7.5;
+pub const CURSOR_CENTER_Y: f32 = 7.5;
 pub const CURSOR_NATIVE_SCREEN_WIDTH: usize = 320;
 pub const CURSOR_NATIVE_SCREEN_HEIGHT: usize = 200;
 pub const CURSOR_NATIVE_ASPECT: f32 = 1.2;
