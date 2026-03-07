@@ -13,9 +13,16 @@ pub struct GameState {
 }
 
 #[derive(Clone)]
+pub struct ObjectState {
+    pub triggered: bool,
+    pub frame: usize,
+}
+
+#[derive(Clone)]
 pub struct SceneStateLevel {
     pub level_x: usize,
     pub terrain: Bitmap,
+    pub object_state: Vec<ObjectState>,
 
     pub current_clock_msec: u64,
 }

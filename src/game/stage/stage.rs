@@ -1,4 +1,3 @@
-use std::fs::ReadDir;
 use std::mem::transmute;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -40,6 +39,7 @@ pub struct Stage<'sdl> {
     game_data: Rc<GameData>,
 
     rerender: bool,
+    suspended: bool,
     ts_reference: Instant,
     time_old: u64,
 }
@@ -57,6 +57,7 @@ impl<'sdl> Stage<'sdl> {
             texture_creator,
             game_data,
             rerender: false,
+            suspended: false,
             ts_reference: Instant::now(),
             time_old: 0,
         }
@@ -74,6 +75,7 @@ impl<'sdl> Stage<'sdl> {
         let mut event_collector = EventCollector::new();
 
         self.rerender = true;
+        self.suspended = false;
         self.ts_reference = Instant::now();
         self.time_old = 0;
 
@@ -83,7 +85,9 @@ impl<'sdl> Stage<'sdl> {
         scene.set_mouse_enabled(render_state.mouse_enabled);
 
         loop {
-            self.render_scene(scene, &mut render_state)?;
+            if !self.suspended {
+                self.render_scene(scene, &mut render_state)?;
+            }
 
             let frame_budget = self
                 .time_per_frame_msec()
@@ -97,19 +101,21 @@ impl<'sdl> Stage<'sdl> {
             }
 
             let ts_tick = Instant::now();
-
             let mut time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
+
             if time - self.time_old > MAX_TIMESLICE_MSEC {
                 self.ts_reference +=
                     Duration::from_millis(time - self.time_old - MAX_TIMESLICE_MSEC);
                 time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
             }
 
-            self.time_old = time;
-            scene.tick(time);
+            if !self.suspended {
+                self.time_old = time;
+                scene.tick(time);
 
-            if scene.is_complete() {
-                return Ok(StopReason::NextScene);
+                if scene.is_complete() {
+                    return Ok(StopReason::NextScene);
+                }
             }
 
             event_watch.activate();
@@ -178,15 +184,22 @@ impl<'sdl> Stage<'sdl> {
                 )),
                 GameEvent::MouseEnter => scene.set_mouse_enabled(true),
                 GameEvent::MouseLeave => scene.set_mouse_enabled(false),
-                GameEvent::EnterFullscreen => scene.set_is_fullscreen(true),
-                GameEvent::LeaveFullscreen => scene.set_is_fullscreen(false),
-                _ => (),
+                GameEvent::EnterFullscreen => {
+                    scene.set_is_fullscreen(true);
+                    self.suspended = false;
+                }
+                GameEvent::LeaveFullscreen => {
+                    scene.set_is_fullscreen(false);
+                    self.suspended = false;
+                }
             }
         }
 
         if toggle_fullscreen {
             let is_fullscreen =
                 self.canvas.window().window_flags().0 & SDL_WindowFlags::FULLSCREEN.0 != 0;
+
+            self.suspended = true;
 
             self.canvas
                 .window()

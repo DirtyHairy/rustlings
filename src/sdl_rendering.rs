@@ -161,6 +161,10 @@ impl<'a> SDLSprite<'a> {
             )
             .map_err(anyhow::Error::from)
     }
+
+    pub fn texture(&mut self) -> &mut Texture<'a> {
+        &mut self.texture
+    }
 }
 
 pub fn with_texture_canvas<T: RenderTarget, F>(

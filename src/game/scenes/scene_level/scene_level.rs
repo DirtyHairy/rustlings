@@ -12,7 +12,11 @@ use sdl3::{
 
 use crate::{
     scene::{CursorType, Scene, SceneEvent},
-    scenes::scene_level::renderer::{Redraw, Renderer},
+    scenes::scene_level::{
+        renderer::{Redraw, Renderer},
+        simulation::Simulation,
+    },
+    state::ObjectState,
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
@@ -35,6 +39,7 @@ pub struct SceneLevel<'texture_creator> {
 
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
+    simulation: Simulation,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -47,23 +52,42 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let level = game_data.resolve_level(game_state.current_level)?;
         print_level(game_state.current_level, &level);
 
+        let object_state = level
+            .objects
+            .iter()
+            .map(|_| ObjectState {
+                triggered: false,
+                frame: 0,
+            })
+            .collect::<Vec<ObjectState>>();
+
+        let simulation = Simulation::new(game_data.clone(), &level)?;
+
         let state = match scene_state {
             SceneState::Level(state_level) => state_level,
-            _ => SceneStateLevel {
-                level_x: level.start_x as usize,
-                terrain: game_data.compose_terrain(&level)?,
-                current_clock_msec: 0,
-            },
+            _ => {
+                let mut state = SceneStateLevel {
+                    level_x: level.start_x as usize,
+                    terrain: game_data.compose_terrain(&level)?,
+                    object_state,
+                    current_clock_msec: 0,
+                };
+
+                simulation.initialize(&mut state);
+                state
+            }
         };
 
         let renderer = Renderer::new(&level, &state, game_data.clone(), texture_creator)?;
+        let scroll_controller = ScrollController::new();
 
         Ok(SceneLevel {
             game_state,
             state,
             status: Status::Running,
             renderer,
-            scroll_controller: ScrollController::new(),
+            scroll_controller,
+            simulation,
         })
     }
 }
@@ -150,6 +174,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
         if self.scroll_controller.tick(clock_msec, &mut self.state) {
             self.renderer.mark_for_redraw(Redraw::SCREEN);
+        }
+
+        let engine_ticks_current = self.state.current_clock_msec / ENGINE_TICK_MSEC;
+        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
+
+        for _ in engine_ticks_current..engine_ticks {
+            self.simulation.tick(&mut self.state);
+            self.renderer.mark_for_redraw(Redraw::LEVEL);
         }
 
         self.state.current_clock_msec = clock_msec;

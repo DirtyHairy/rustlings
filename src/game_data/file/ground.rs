@@ -1,5 +1,4 @@
-use std::fmt;
-use std::{fs, path::Path};
+use std::{fmt, fs, path::Path};
 
 use anyhow::*;
 
@@ -11,8 +10,61 @@ use crate::game_data::file::read::{read_byte, read_word_be};
 pub const OBJECTS_PER_TILESET: usize = 16;
 pub const TILES_PER_TILESET: usize = 64;
 
+#[derive(Clone, Default, Copy, PartialEq)]
+pub enum InteractionType {
+    #[default]
+    None,
+    Entrance,
+    Exit,
+    Trap,
+    Drown,
+    Disintegrate,
+    OneWayLeft,
+    OneWayRight,
+}
+
+impl InteractionType {
+    fn new(trigger_effect: usize, animation_flags: usize) -> Self {
+        match trigger_effect {
+            0 => {
+                if animation_flags == 0x03 {
+                    Self::Entrance
+                } else {
+                    Self::None
+                }
+            }
+            1 => Self::Exit,
+            4 => Self::Trap,
+            5 => Self::Drown,
+            6 => Self::Disintegrate,
+            7 => Self::OneWayLeft,
+            8 => Self::OneWayRight,
+            _ => Self::None,
+        }
+    }
+}
+
+impl fmt::Display for InteractionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match *self {
+            Self::None => "none",
+            Self::Exit => "exit",
+            Self::Trap => "trap",
+            Self::Drown => "drown",
+            Self::Disintegrate => "disintegrate",
+            Self::OneWayLeft => "one way left",
+            Self::OneWayRight => "one way right",
+            Self::Entrance => "entrance",
+        };
+
+        write!(f, "{}", description)
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct ObjectInfo {
+    pub interaction_type: InteractionType,
+    pub animation_flags: usize,
     pub animation_loops: bool,
     pub animation_start: usize,
     pub animation_end: usize,
@@ -117,7 +169,9 @@ fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)>
 
     Ok((
         ObjectInfo {
-            animation_loops: (animation_flags & 0x01) > 0,
+            interaction_type: InteractionType::new(trigger_effect, animation_flags),
+            animation_flags,
+            animation_loops: animation_flags == 0x02,
             animation_start,
             animation_end,
             width,
@@ -195,7 +249,9 @@ impl fmt::Display for ObjectInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            r#"animation_loops:          {}
+            r#"interaction_type:         {}
+animation_flags:          {:#06x}
+animation_loops:          {}
 animation_start:          {}
 animation_end:            {}
 width:                    {}
@@ -210,6 +266,8 @@ trigger_effect:           {}
 frames_offset:            {}
 preview_frame:            {}
 trap_sound_effect:        {}"#,
+            self.interaction_type,
+            self.animation_flags,
             self.animation_loops,
             self.animation_start,
             self.animation_end,

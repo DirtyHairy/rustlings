@@ -76,6 +76,16 @@ fn main() -> Result<()> {
                         .help("destination path")
                         .index(2),
                 ),
+        )
+        .subcommand(
+            Command::new("dump-object-info")
+                .about("dump object info for all tilesets")
+                .arg(
+                    Arg::new(ARG_GAME_DATA_PATH)
+                        .required(true)
+                        .help("path to lemmings data files")
+                        .index(1),
+                ),
         );
 
     let matches = command.clone().get_matches();
@@ -106,6 +116,10 @@ fn main() -> Result<()> {
                 .get_one::<String>(ARG_DESTINATION_PATH)
                 .expect("unreachable"),
         ),
+
+        Some(("dump-object-info", subcommand_matches)) => {
+            cmd::dump_object_info::main(game_data_path(subcommand_matches))
+        }
 
         _ => command.print_help().map_err(anyhow::Error::from),
     }

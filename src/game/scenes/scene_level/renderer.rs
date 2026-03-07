@@ -1,18 +1,19 @@
 use std::rc::Rc;
 
-use anyhow::Result;
+use anyhow::{Result, format_err};
 use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
         MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
-        MINIMAP_VIEW_Y, SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
+        MINIMAP_VIEW_Y, PALETTE_SIZE, PaletteEntry, SCREEN_HEIGHT, SCREEN_WIDTH,
+        SKILL_PANEL_HEIGHT, file::level,
     },
-    sdl_rendering::{texture_from_bitmap, with_texture_canvas},
+    sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect as SdlRect,
-    render::{Canvas, ScaleMode, Texture, TextureCreator},
+    render::{BlendMode::Blend, Canvas, ScaleMode, Texture, TextureCreator},
     video::Window,
 };
 
@@ -32,6 +33,16 @@ const SKILL_PANEL_Y: usize = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
 
+struct Object<'texture_creator> {
+    id: usize,
+
+    x: usize,
+    y: usize,
+    flip: bool,
+
+    sprite: SDLSprite<'texture_creator>,
+}
+
 pub struct Renderer<'texture_creator> {
     redraw: Redraw,
 
@@ -40,6 +51,10 @@ pub struct Renderer<'texture_creator> {
     texture_minimap_frame: Texture<'texture_creator>,
     texture_level: Texture<'texture_creator>,
     texture_screen: Texture<'texture_creator>,
+
+    objects_background: Vec<Object<'texture_creator>>,
+    objects_foreground: Vec<Object<'texture_creator>>,
+    objects_merge: Vec<Object<'texture_creator>>,
 }
 
 impl<'texture_creator> Renderer<'texture_creator> {
@@ -78,6 +93,20 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SCREEN_HEIGHT as u32,
         )?;
 
+        let objects_merge = create_objects(&game_data, &palette, level, texture_creator, |o| {
+            o.draw_only_over_terrain
+        })?;
+
+        let objects_foreground =
+            create_objects(&game_data, &palette, level, texture_creator, |o| {
+                !o.draw_only_over_terrain && !o.do_not_overwrite
+            })?;
+
+        let objects_background =
+            create_objects(&game_data, &palette, level, texture_creator, |o| {
+                !o.draw_only_over_terrain && o.do_not_overwrite
+            })?;
+
         Ok(Renderer {
             redraw: Redraw::ALL,
 
@@ -86,6 +115,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
             texture_minimap_frame,
             texture_level,
             texture_screen,
+
+            objects_merge,
+            objects_foreground,
+            objects_background,
         })
     }
 
@@ -142,12 +175,42 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 canvas.clear();
 
+                for object in &mut self.objects_background {
+                    object.sprite.texture().set_blend_mode(Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
                 self.texture_terrain
-                    .set_blend_mode(sdl3::render::BlendMode::None);
+                    .set_blend_mode(sdl3::render::BlendMode::Blend);
                 self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
                 canvas
                     .copy(&self.texture_terrain, None, None)
-                    .map_err(anyhow::Error::from)
+                    .map_err(anyhow::Error::from)?;
+
+                for object in &mut self.objects_foreground {
+                    object.sprite.texture().set_blend_mode(Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
+                Ok(())
             })?;
         }
 
@@ -185,8 +248,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 SdlRect::new(0, 0, SCREEN_WIDTH as u32, LEVEL_HEIGHT as u32),
             )?;
 
-            self.texture_minimap_frame
-                .set_blend_mode(sdl3::render::BlendMode::Blend);
+            self.texture_minimap_frame.set_blend_mode(Blend);
             self.texture_minimap_frame
                 .set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
@@ -205,4 +267,42 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
         Ok(true)
     }
+}
+
+fn create_objects<'texture_creator, P: Fn(&&level::Object) -> bool, T>(
+    game_data: &GameData,
+    palette: &[PaletteEntry; PALETTE_SIZE],
+    level: &Level,
+    texture_creator: &'texture_creator TextureCreator<T>,
+    predicate: P,
+) -> Result<Vec<Object<'texture_creator>>> {
+    level
+        .objects
+        .iter()
+        .enumerate()
+        .filter(|(_, x)| predicate(x))
+        .map(|(id, o)| -> Result<Object> {
+            let tileset = game_data
+                .tilesets
+                .get(level.graphics_set as usize)
+                .ok_or(format_err!("invalid tileset {}", o.id))?;
+
+            let sprite = tileset
+                .object_sprites
+                .get(o.id as usize)
+                .ok_or(format_err!("invlid object {}", o.id))?
+                .as_ref()
+                .ok_or(format_err!("object {} not defined", o.id))?;
+
+            let sdl_sprite = SDLSprite::from_sprite(&sprite, palette, texture_creator)?;
+
+            Ok(Object {
+                id,
+                x: o.x as usize,
+                y: o.y as usize,
+                flip: o.flip_y,
+                sprite: sdl_sprite,
+            })
+        })
+        .collect()
 }
