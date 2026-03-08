@@ -55,7 +55,7 @@ pub fn parse(data: &[u8]) -> Result<Content> {
 
         match offset.cmp(&data.len()) {
             Ordering::Equal => break,
-            Ordering::Greater => panic!("bad file"),
+            Ordering::Greater => bail!("bad file"),
             Ordering::Less => continue,
         };
     }

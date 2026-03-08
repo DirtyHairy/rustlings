@@ -462,9 +462,13 @@ impl ExposeWatch {
     pub fn new(stage: &mut Stage, render_state: &mut RenderState, scene: &mut dyn Scene) -> Self {
         // SAFETY: EventWatchCallbacks are declared as Send + 'static, which makes sense for the
         // general case: they are sent to another thread and live until the watch is removed.
-        // However, we don't need this as we 1. we check whether we are on the main thread before
+        // However, we don't need this as we 1. check whether we are on the main thread before
         // doing anything and 2. drop and destroy the watch before the dependencies are dropped
         // or moved.
+        //
+        // The whole construction qualifies as abomination, but MacOS stalls the event pump during
+        // window resize, so this is the only way to get redraws and avoid an ugly stretched texture
+        // while the window handles are being dragged.
         ExposeWatch {
             stage: (stage as *mut _) as *mut Stage<'static>,
             render_state: (render_state as *mut _) as *mut RenderState<'static>,
