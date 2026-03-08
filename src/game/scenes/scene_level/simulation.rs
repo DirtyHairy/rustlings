@@ -62,11 +62,14 @@ impl Simulation {
 
     pub fn initialize(&self, state: &mut SceneStateLevel) {
         for (i, object) in self.objects.iter().enumerate() {
-            if object.interaction_type == InteractionType::Entrance {
-                let object_state = &mut state.object_state[i];
+            let object_state = &mut state.object_state[i];
 
+            if object.interaction_type == InteractionType::Entrance {
                 object_state.triggered = true;
                 object_state.frame = object.animation_start;
+            } else {
+                object_state.triggered = false;
+                object_state.frame = 0;
             }
         }
     }

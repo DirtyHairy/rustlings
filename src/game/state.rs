@@ -12,7 +12,7 @@ pub struct GameState {
     pub current_level: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ObjectState {
     pub triggered: bool,
     pub frame: usize,

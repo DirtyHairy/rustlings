@@ -16,7 +16,6 @@ use crate::{
         renderer::{Redraw, Renderer},
         simulation::Simulation,
     },
-    state::ObjectState,
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
@@ -52,15 +51,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let level = game_data.resolve_level(game_state.current_level)?;
         print_level(game_state.current_level, &level);
 
-        let object_state = level
-            .objects
-            .iter()
-            .map(|_| ObjectState {
-                triggered: false,
-                frame: 0,
-            })
-            .collect::<Vec<ObjectState>>();
-
         let simulation = Simulation::new(game_data.clone(), &level)?;
 
         let state = match scene_state {
@@ -69,7 +59,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                 let mut state = SceneStateLevel {
                     level_x: level.start_x as usize,
                     terrain: game_data.compose_terrain(&level)?,
-                    object_state,
+                    object_state: vec![Default::default(); level.objects.len()],
                     current_clock_msec: 0,
                 };
 
