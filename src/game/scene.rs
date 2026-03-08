@@ -11,6 +11,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy)]
+#[allow(unused)]
 pub struct MouseCoordinates {
     pub x: usize,
     pub y: usize,
@@ -19,6 +20,7 @@ pub struct MouseCoordinates {
 }
 
 #[derive(Clone, Copy)]
+#[allow(unused)]
 pub enum SceneEvent {
     KeyDown {
         keycode: Keycode,

@@ -9,11 +9,17 @@ use rustlings::{
         SKILL_PANEL_HEIGHT, file::level,
     },
     sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
+    sdl3_aux::apply_blend_mode,
 };
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect as SdlRect,
     render::{BlendMode::Blend, Canvas, ScaleMode, Texture, TextureCreator},
+    sys::blendmode::{
+        SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_ZERO, SDL_BLENDOPERATION_ADD,
+        SDL_BlendMode, SDL_ComposeCustomBlendMode,
+    },
     video::Window,
 };
 
@@ -55,6 +61,9 @@ pub struct Renderer<'texture_creator> {
     objects_background: Vec<Object<'texture_creator>>,
     objects_foreground: Vec<Object<'texture_creator>>,
     objects_merge: Vec<Object<'texture_creator>>,
+
+    blend_mode_merge: SDL_BlendMode,
+    blend_mode_background: SDL_BlendMode,
 }
 
 impl<'texture_creator> Renderer<'texture_creator> {
@@ -107,6 +116,24 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 !o.draw_only_over_terrain && o.do_not_overwrite
             })?;
 
+        let blend_mode_merge = SDL_ComposeCustomBlendMode(
+            SDL_BLENDFACTOR_DST_ALPHA,
+            SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            SDL_BLENDOPERATION_ADD,
+            SDL_BLENDFACTOR_ZERO,
+            SDL_BLENDFACTOR_ONE,
+            SDL_BLENDOPERATION_ADD,
+        );
+
+        let blend_mode_background = SDL_ComposeCustomBlendMode(
+            SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            SDL_BLENDFACTOR_ONE,
+            SDL_BLENDOPERATION_ADD,
+            SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            SDL_BLENDFACTOR_ONE,
+            SDL_BLENDOPERATION_ADD,
+        );
+
         Ok(Renderer {
             redraw: Redraw::ALL,
 
@@ -119,6 +146,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
             objects_merge,
             objects_foreground,
             objects_background,
+
+            blend_mode_merge,
+            blend_mode_background,
         })
     }
 
@@ -172,11 +202,18 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
         if redraw.contains(Redraw::LEVEL) {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
-                canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
                 canvas.clear();
 
-                for object in &mut self.objects_background {
-                    object.sprite.texture().set_blend_mode(Blend);
+                self.texture_terrain
+                    .set_blend_mode(sdl3::render::BlendMode::Blend);
+                self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
+                canvas
+                    .copy(&self.texture_terrain, None, None)
+                    .map_err(anyhow::Error::from)?;
+
+                for object in &mut self.objects_merge {
+                    apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_merge);
                     object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
 
                     object.sprite.blit(
@@ -189,12 +226,19 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     )?;
                 }
 
-                self.texture_terrain
-                    .set_blend_mode(sdl3::render::BlendMode::Blend);
-                self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
-                canvas
-                    .copy(&self.texture_terrain, None, None)
-                    .map_err(anyhow::Error::from)?;
+                for object in &mut self.objects_background {
+                    apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_background);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
 
                 for object in &mut self.objects_foreground {
                     object.sprite.texture().set_blend_mode(Blend);

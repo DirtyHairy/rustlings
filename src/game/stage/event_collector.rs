@@ -3,15 +3,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rustlings::sdl3_aux::{
-    SDL_EVENT_RENDER_DEVICE_LOST, SDL_EVENT_WINDOW_ENTER_FULLSCREEN,
-    SDL_EVENT_WINDOW_LEAVE_FULLSCREEN,
-};
 use sdl3::{
     EventPump,
     event::{Event, WindowEvent},
     keyboard::{Keycode, Mod},
     mouse::MouseButton,
+    sys::events::{self, SDL_EVENT_WINDOW_ENTER_FULLSCREEN, SDL_EVENT_WINDOW_LEAVE_FULLSCREEN},
 };
 
 use crate::scene::SceneEvent;
@@ -109,21 +106,18 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
             WindowEvent::MouseLeave => Some(GameEvent::MouseLeave),
             _ => None,
         },
-        Event::Unknown {
-            type_: SDL_EVENT_WINDOW_ENTER_FULLSCREEN,
-            ..
-        } => Some(GameEvent::EnterFullscreen),
-        Event::Unknown {
-            type_: SDL_EVENT_WINDOW_LEAVE_FULLSCREEN,
-            ..
-        } => Some(GameEvent::LeaveFullscreen),
+        Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_ENTER_FULLSCREEN.0 => {
+            Some(GameEvent::EnterFullscreen)
+        }
+        Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_LEAVE_FULLSCREEN.0 => {
+            Some(GameEvent::LeaveFullscreen)
+        }
 
         Event::RenderDeviceReset { .. } => Some(GameEvent::RenderReset),
         Event::RenderTargetsReset { .. } => Some(GameEvent::RenderReset),
-        Event::Unknown {
-            type_: SDL_EVENT_RENDER_DEVICE_LOST,
-            ..
-        } => Some(GameEvent::RenderReset),
+        Event::Unknown { type_, .. } if type_ == events::SDL_EVENT_RENDER_DEVICE_LOST.0 => {
+            Some(GameEvent::RenderReset)
+        }
 
         Event::KeyDown {
             keycode: Some(keycode),
