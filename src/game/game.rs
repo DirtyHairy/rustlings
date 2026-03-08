@@ -73,6 +73,10 @@ pub fn run(config: &Config) -> Result<()> {
     let mut scene_state: SceneState = Default::default();
 
     let (sdl_context, window) = init_sdl()?;
+
+    // Creating the canvas consumes the window. However, we need to preserve it in order
+    // to spawn a new canvas if we lose context (see below), so we clone it. Looks expensive,
+    // but window is just an Arc around a handle, so it is actually cheap.
     let (mut canvas, mut texture_creator) = init_canvas(window.clone())?;
 
     loop {
@@ -83,10 +87,14 @@ pub fn run(config: &Config) -> Result<()> {
                 &sdl_context,
                 &mut canvas,
                 &texture_creator,
-                game_data.clone(),
+                Rc::clone(&game_data),
             );
-            let mut scene =
-                create_scene(game_data.clone(), game_state, scene_state, &texture_creator)?;
+            let mut scene = create_scene(
+                Rc::clone(&game_data),
+                game_state,
+                scene_state,
+                &texture_creator,
+            )?;
 
             run_result = stage.run(&mut *scene)?;
             (game_state, scene_state) = scene.finish();
@@ -104,6 +112,7 @@ pub fn run(config: &Config) -> Result<()> {
                 drop(texture_creator);
                 drop(canvas);
 
+                // See above.
                 (canvas, texture_creator) = init_canvas(window.clone())?;
             }
             StopReason::NextScene => (),

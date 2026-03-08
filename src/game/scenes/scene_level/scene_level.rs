@@ -51,7 +51,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let level = game_data.resolve_level(game_state.current_level)?;
         print_level(game_state.current_level, &level);
 
-        let simulation = Simulation::new(game_data.clone(), &level)?;
+        let simulation = Simulation::new(Rc::clone(&game_data), &level)?;
 
         let state = match scene_state {
             SceneState::Level(state_level) => state_level,
@@ -68,7 +68,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             }
         };
 
-        let renderer = Renderer::new(&level, &state, game_data.clone(), texture_creator)?;
+        let renderer = Renderer::new(&level, &state, Rc::clone(&game_data), texture_creator)?;
         let scroll_controller = ScrollController::new();
 
         Ok(SceneLevel {
