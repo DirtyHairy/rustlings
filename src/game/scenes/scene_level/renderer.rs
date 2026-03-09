@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{Result, format_err};
+use anyhow::{Result, bail, format_err};
 use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
@@ -8,13 +8,16 @@ use rustlings::{
         MINIMAP_VIEW_Y, PALETTE_SIZE, PaletteEntry, SCREEN_HEIGHT, SCREEN_WIDTH,
         SKILL_PANEL_HEIGHT, file::level,
     },
-    sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
+    sdl_rendering::{
+        SDLSprite, texture_from_bitmap, texture_from_bitmap_mapped, with_texture_canvas,
+    },
     sdl3_aux::apply_blend_mode,
 };
+use sdl3::render::BlendMode;
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect as SdlRect,
-    render::{BlendMode::Blend, Canvas, ScaleMode, Texture, TextureCreator},
+    render::{BlendMode::Blend, Canvas, ScaleMode, Texture, TextureAccess, TextureCreator},
     sys::blendmode::{
         SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
         SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_ZERO, SDL_BLENDOPERATION_ADD,
@@ -49,6 +52,16 @@ struct Object<'texture_creator> {
     sprite: SDLSprite<'texture_creator>,
 }
 
+struct StencilTextures<'texture_creator> {
+    stencil_terrain: Texture<'texture_creator>,
+    intermediate_terrain: Texture<'texture_creator>,
+}
+
+enum RenderStrategy<'texture_creator> {
+    Blend,
+    Stencil(StencilTextures<'texture_creator>),
+}
+
 pub struct Renderer<'texture_creator> {
     redraw: Redraw,
 
@@ -64,6 +77,8 @@ pub struct Renderer<'texture_creator> {
 
     blend_mode_merge: SDL_BlendMode,
     blend_mode_background: SDL_BlendMode,
+
+    render_strategy: RenderStrategy<'texture_creator>,
 }
 
 impl<'texture_creator> Renderer<'texture_creator> {
@@ -134,6 +149,41 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SDL_BLENDOPERATION_ADD,
         );
 
+        let mut texture_probe =
+            texture_creator.create_texture(PixelFormat::RGBA8888, TextureAccess::Static, 1, 1)?;
+
+        let render_mode = if apply_blend_mode(&mut texture_probe, blend_mode_background)
+            && apply_blend_mode(&mut texture_probe, blend_mode_merge)
+        {
+            RenderStrategy::Blend
+        } else {
+            println!("custom blend modes not supported; falling back to stencil based rendering");
+
+            let stencil_terrain = texture_from_bitmap_mapped(
+                &scene_state.terrain,
+                &palette,
+                texture_creator,
+                |Color { a, .. }| {
+                    if a == 0 {
+                        Color::RGBA(0, 0, 0, 0)
+                    } else {
+                        Color::RGBA(255, 255, 255, 255)
+                    }
+                },
+            )?;
+
+            let intermediate_terrain = texture_creator.create_texture_target(
+                PixelFormat::RGBA8888,
+                LEVEL_WIDTH as u32,
+                LEVEL_HEIGHT as u32,
+            )?;
+
+            RenderStrategy::Stencil(StencilTextures {
+                stencil_terrain,
+                intermediate_terrain,
+            })
+        };
+
         Ok(Renderer {
             redraw: Redraw::ALL,
 
@@ -149,6 +199,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             blend_mode_merge,
             blend_mode_background,
+
+            render_strategy: render_mode,
         })
     }
 
@@ -201,44 +253,111 @@ impl<'texture_creator> Renderer<'texture_creator> {
         }
 
         if redraw.contains(Redraw::LEVEL) {
+            match self.render_strategy {
+                RenderStrategy::Blend => self.draw_level_strategy_blend(state, canvas)?,
+                RenderStrategy::Stencil(..) if self.objects_merge.len() == 0 => {
+                    self.draw_level_strategy_stencil_no_mergeables(state, canvas)?
+                }
+                _ => self.draw_level_strategy_stencil(state, canvas)?,
+            };
+        }
+
+        self.draw_level_scene(state, canvas)?;
+
+        Ok(true)
+    }
+
+    fn draw_level_strategy_blend(
+        &mut self,
+        state: &SceneStateLevel,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<()> {
+        with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+            self.texture_terrain.set_blend_mode(BlendMode::None);
+            self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
+            canvas
+                .copy(&self.texture_terrain, None, None)
+                .map_err(anyhow::Error::from)?;
+
+            for object in &mut self.objects_merge {
+                apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_merge);
+                object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                object.sprite.blit(
+                    canvas,
+                    object.x as i32,
+                    object.y as i32,
+                    state.object_state[object.id].frame,
+                    1,
+                    object.flip,
+                )?;
+            }
+
+            for object in &mut self.objects_background {
+                apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_background);
+                object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                object.sprite.blit(
+                    canvas,
+                    object.x as i32,
+                    object.y as i32,
+                    state.object_state[object.id].frame,
+                    1,
+                    object.flip,
+                )?;
+            }
+
+            for object in &mut self.objects_foreground {
+                object.sprite.texture().set_blend_mode(Blend);
+                object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                object.sprite.blit(
+                    canvas,
+                    object.x as i32,
+                    object.y as i32,
+                    state.object_state[object.id].frame,
+                    1,
+                    object.flip,
+                )?;
+            }
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    fn draw_level_strategy_stencil_no_mergeables(
+        &mut self,
+        state: &SceneStateLevel,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<()> {
+        if let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy
+            && self.objects_merge.len() == 0
+        {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
                 canvas.clear();
 
-                self.texture_terrain
-                    .set_blend_mode(sdl3::render::BlendMode::Blend);
+                for object in &mut self.objects_background {
+                    object.sprite.texture().set_blend_mode(BlendMode::Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
+                self.texture_terrain.set_blend_mode(BlendMode::Blend);
                 self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
                 canvas
                     .copy(&self.texture_terrain, None, None)
                     .map_err(anyhow::Error::from)?;
-
-                for object in &mut self.objects_merge {
-                    apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_merge);
-                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
-
-                    object.sprite.blit(
-                        canvas,
-                        object.x as i32,
-                        object.y as i32,
-                        state.object_state[object.id].frame,
-                        1,
-                        object.flip,
-                    )?;
-                }
-
-                for object in &mut self.objects_background {
-                    apply_blend_mode(&mut object.sprite.texture(), self.blend_mode_background);
-                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
-
-                    object.sprite.blit(
-                        canvas,
-                        object.x as i32,
-                        object.y as i32,
-                        state.object_state[object.id].frame,
-                        1,
-                        object.flip,
-                    )?;
-                }
 
                 for object in &mut self.objects_foreground {
                     object.sprite.texture().set_blend_mode(Blend);
@@ -256,16 +375,127 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                 Ok(())
             })?;
-        }
 
+            Ok(())
+        } else {
+            bail!("unreachable")
+        }
+    }
+
+    fn draw_level_strategy_stencil(
+        &mut self,
+        state: &SceneStateLevel,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<()> {
+        if let RenderStrategy::Stencil(StencilTextures {
+            stencil_terrain,
+            intermediate_terrain,
+        }) = &mut self.render_strategy
+            && self.objects_merge.len() > 0
+        {
+            with_texture_canvas(canvas, intermediate_terrain, |canvas| -> Result<()> {
+                stencil_terrain.set_blend_mode(BlendMode::None);
+                stencil_terrain.set_scale_mode(ScaleMode::Nearest);
+                canvas
+                    .copy(stencil_terrain, None, None)
+                    .map_err(anyhow::Error::from)?;
+
+                Ok(())
+            })?;
+
+            with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+                self.texture_terrain.set_blend_mode(BlendMode::None);
+                self.texture_terrain.set_scale_mode(ScaleMode::Nearest);
+                canvas
+                    .copy(&self.texture_terrain, None, None)
+                    .map_err(anyhow::Error::from)?;
+
+                for object in &mut self.objects_merge {
+                    object.sprite.texture().set_blend_mode(BlendMode::Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
+                Ok(())
+            })?;
+
+            with_texture_canvas(canvas, intermediate_terrain, |canvas| -> Result<()> {
+                self.texture_level.set_blend_mode(BlendMode::Mod);
+                self.texture_level.set_scale_mode(ScaleMode::Nearest);
+                canvas
+                    .copy(&mut self.texture_level, None, None)
+                    .map_err(anyhow::Error::from)?;
+
+                Ok(())
+            })?;
+
+            with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+                canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                canvas.clear();
+
+                for object in &mut self.objects_background {
+                    object.sprite.texture().set_blend_mode(BlendMode::Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
+                intermediate_terrain.set_blend_mode(BlendMode::Blend);
+                intermediate_terrain.set_scale_mode(ScaleMode::Nearest);
+                canvas
+                    .copy(intermediate_terrain, None, None)
+                    .map_err(anyhow::Error::from)?;
+
+                for object in &mut self.objects_foreground {
+                    object.sprite.texture().set_blend_mode(Blend);
+                    object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
+
+                    object.sprite.blit(
+                        canvas,
+                        object.x as i32,
+                        object.y as i32,
+                        state.object_state[object.id].frame,
+                        1,
+                        object.flip,
+                    )?;
+                }
+
+                Ok(())
+            })?;
+
+            Ok(())
+        } else {
+            bail!("unreachable")
+        }
+    }
+
+    fn draw_level_scene(
+        &mut self,
+        state: &SceneStateLevel,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<()> {
         let (frame_x, frame_y) = self.minimap_frame_position(state);
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| -> Result<()> {
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0xff));
             canvas.clear();
 
-            self.texture_skill_panel
-                .set_blend_mode(sdl3::render::BlendMode::None);
+            self.texture_skill_panel.set_blend_mode(BlendMode::None);
             self.texture_skill_panel.set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
                 &self.texture_skill_panel,
@@ -278,8 +508,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 ),
             )?;
 
-            self.texture_level
-                .set_blend_mode(sdl3::render::BlendMode::None);
+            self.texture_level.set_blend_mode(BlendMode::None);
             self.texture_level.set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
                 &self.texture_level,
@@ -309,7 +538,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             Ok(())
         })?;
 
-        Ok(true)
+        Ok(())
     }
 }
 

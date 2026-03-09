@@ -8,10 +8,11 @@ use sdl3::{
 use crate::game_data::PALETTE_SIZE;
 use crate::game_data::{Bitmap, PaletteEntry, Sprite};
 
-fn copy_bitmap_to_texture_data(
+fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
     bitmap: &Bitmap,
     palette: &[PaletteEntry; PALETTE_SIZE],
     texture_data: &mut [u8],
+    mapping: T,
 ) -> Result<()> {
     let data32: &mut [u32];
     unsafe {
@@ -30,7 +31,7 @@ fn copy_bitmap_to_texture_data(
                 0
             } else {
                 let (r, g, b) = palette[bitmap.data[i] as usize];
-                Color::RGBA(r, g, b, 0xff).to_u32(&PixelFormat::RGBA8888)
+                mapping(Color::RGBA(r, g, b, 0xff)).to_u32(&PixelFormat::RGBA8888)
             };
 
             i += 1;
@@ -45,6 +46,15 @@ pub fn texture_from_bitmap<'a, T>(
     palette: &[PaletteEntry; PALETTE_SIZE],
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<Texture<'a>> {
+    texture_from_bitmap_mapped(bitmap, palette, texture_creator, |c| c)
+}
+
+pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
+    bitmap: &Bitmap,
+    palette: &[PaletteEntry; PALETTE_SIZE],
+    texture_creator: &'a TextureCreator<T>,
+    mapping: F,
+) -> Result<Texture<'a>> {
     let mut texture = texture_creator.create_texture(
         PixelFormat::RGBA8888,
         TextureAccess::Static,
@@ -54,7 +64,7 @@ pub fn texture_from_bitmap<'a, T>(
     texture.set_scale_mode(ScaleMode::Nearest);
 
     let mut texture_data = vec![0u8; bitmap.width * bitmap.height * 4];
-    copy_bitmap_to_texture_data(bitmap, palette, &mut texture_data)?;
+    copy_bitmap_to_texture_data(bitmap, palette, &mut texture_data, mapping)?;
 
     texture.update(
         Rect::new(0, 0, bitmap.width as u32, bitmap.height as u32),
@@ -91,7 +101,7 @@ impl<'a> SDLSprite<'a> {
         let mut texture_data = vec![0u8; sprite.width * sprite.height * 4];
 
         for iframe in 0..sprite.frames.len() {
-            copy_bitmap_to_texture_data(&sprite.frames[iframe], palette, &mut texture_data)?;
+            copy_bitmap_to_texture_data(&sprite.frames[iframe], palette, &mut texture_data, |c| c)?;
 
             texture.update(
                 Rect::new(
