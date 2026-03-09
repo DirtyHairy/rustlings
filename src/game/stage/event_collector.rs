@@ -52,7 +52,7 @@ impl EventCollector {
         let ts_reference = Instant::now();
         self.decoded_events.clear();
 
-        let mut first_iteration = false;
+        let mut first_iteration = true;
 
         loop {
             let now = Instant::now();
