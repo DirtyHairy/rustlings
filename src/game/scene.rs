@@ -67,6 +67,7 @@ pub trait Scene<'texture_creator> {
     fn register_layers(&self, compositor: &mut dyn Compositor);
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool>;
+    fn will_redraw(&self) -> bool;
 
     fn finish(self: Box<Self>) -> (GameState, SceneState);
 }

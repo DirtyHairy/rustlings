@@ -211,6 +211,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
         self.redraw.insert(redraw);
     }
 
+    pub fn will_redraw(&self) -> bool {
+        !self.redraw.is_empty()
+    }
+
     pub fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {
         compositor.add_layer(
             TEXTURE_ID_MINIMAP,

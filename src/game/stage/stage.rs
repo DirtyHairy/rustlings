@@ -118,10 +118,16 @@ impl<'sdl> Stage<'sdl> {
                 }
             }
 
+            let aggregate_timeout = if scene.will_redraw() {
+                0
+            } else {
+                scene.next_tick_at_msec().saturating_sub(time)
+            };
+
             event_watch.activate();
             event_collector.collect_events(
                 ts_frame_start + Duration::from_millis(frame_budget),
-                scene.next_tick_at_msec().saturating_sub(time),
+                aggregate_timeout,
                 &mut self.sdl_context.event_pump()?,
             );
             event_watch.deactivate();

@@ -195,6 +195,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         self.renderer.draw(&self.state, canvas)
     }
 
+    fn will_redraw(&self) -> bool {
+        self.renderer.will_redraw()
+    }
+
     fn texture(&mut self, id: usize) -> Result<&mut Texture<'texture_creator>> {
         self.renderer.texture(id)
     }
