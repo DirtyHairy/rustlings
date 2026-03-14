@@ -92,7 +92,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .get(0x1908 + i * 0x10..)
                 .ok_or(format_err!("skill font data out of bounds"))?,
             TransparencyEncoding::Opaque,
-            Some(|x| if x == 0 { 2 } else { 0 }),
+            |x| if x == 0 { 2 } else { 0 },
         )?
         .sub(0, 0, 4, 8)?;
 
@@ -109,12 +109,12 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .get((0x19a0 + i * 0x30)..)
                 .ok_or(format_err!("skill panel font data out of bounds"))?,
             TransparencyEncoding::Black,
-            Some(|x| match x {
+            |x| match x {
                 0x05 => 0x02,
                 0x03 => 0x03,
                 0x02 => 0x08,
                 _ => 0x00,
-            }),
+            },
         )?;
 
         font_skill_panel.add_frame(&font_bitmap)?;

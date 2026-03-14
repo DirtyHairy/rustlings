@@ -35,7 +35,42 @@ impl Bitmap {
         }
     }
 
+    pub fn read_planar(
+        width: usize,
+        height: usize,
+        bpp: usize,
+        data: &[u8],
+        transparency_encoding: TransparencyEncoding,
+    ) -> Result<Bitmap> {
+        Self::read_planar_impl::<fn(u8) -> u8>(
+            width,
+            height,
+            bpp,
+            data,
+            transparency_encoding,
+            None,
+        )
+    }
+
     pub fn read_planar_mapped<T: Fn(u8) -> u8>(
+        width: usize,
+        height: usize,
+        bpp: usize,
+        data: &[u8],
+        transparency_encoding: TransparencyEncoding,
+        mapping: T,
+    ) -> Result<Bitmap> {
+        Self::read_planar_impl(
+            width,
+            height,
+            bpp,
+            data,
+            transparency_encoding,
+            Some(mapping),
+        )
+    }
+
+    fn read_planar_impl<T: Fn(u8) -> u8>(
         width: usize,
         height: usize,
         bpp: usize,
@@ -126,23 +161,6 @@ impl Bitmap {
         }
 
         Ok(bitmap)
-    }
-
-    pub fn read_planar(
-        width: usize,
-        height: usize,
-        bpp: usize,
-        data: &[u8],
-        transparency_encoding: TransparencyEncoding,
-    ) -> Result<Bitmap> {
-        Self::read_planar_mapped::<fn(u8) -> u8>(
-            width,
-            height,
-            bpp,
-            data,
-            transparency_encoding,
-            None,
-        )
     }
 
     pub fn sub(&self, x: usize, y: usize, width: usize, height: usize) -> Result<Self> {
