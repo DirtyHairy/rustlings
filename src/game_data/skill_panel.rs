@@ -1,4 +1,4 @@
-use crate::game_data::{Bitmap, SCREEN_WIDTH, Sprite, file::main::Content};
+use crate::game_data::{Bitmap, SCREEN_WIDTH, Sprite};
 
 pub use crate::game_data::file::main::{
     resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
@@ -29,9 +29,7 @@ pub struct SkillPanel {
 }
 
 impl SkillPanel {
-    pub fn new(main_data: &Content) -> SkillPanel {
-        let mut panel = main_data.skill_panel.clone();
-
+    pub fn new(mut panel: Bitmap, font: Sprite, font_skills: Sprite) -> SkillPanel {
         for y in MINIMAP_AREA_Y..MINIMAP_AREA_Y + MINIMAP_AREA_HEIGHT {
             for x in MINIMAP_AREA_X..MINIMAP_AREA_X + MINIMAP_AREA_WIDTH {
                 panel.transparency[x + y * SCREEN_WIDTH] = true;
@@ -41,8 +39,8 @@ impl SkillPanel {
         SkillPanel {
             panel,
             minimap_frame: create_minimap_frame(),
-            font: main_data.font_skill_panel.clone(),
-            font_skills: main_data.font_skill_panel_skills.clone(),
+            font,
+            font_skills,
         }
     }
 }
