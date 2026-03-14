@@ -22,15 +22,26 @@ pub enum TransparencyEncoding<'a> {
     Black,
     PlanarAt(&'a [u8]),
     PlanarOffset(usize),
+    Opaque,
 }
 
 impl Bitmap {
-    pub fn read_planar(
+    pub fn filled(width: usize, height: usize, fill: u8, transparency: bool) -> Self {
+        Self {
+            width,
+            height,
+            data: vec![fill; width * height],
+            transparency: vec![transparency; width * height],
+        }
+    }
+
+    pub fn read_planar_mapped<T: Fn(u8) -> u8>(
         width: usize,
         height: usize,
         bpp: usize,
         data: &[u8],
         transparency_encoding: TransparencyEncoding,
+        mapping: Option<T>,
     ) -> Result<Bitmap> {
         if bpp > 8 {
             bail!("bad bpp {}", bpp);
@@ -64,6 +75,17 @@ impl Bitmap {
                     ))?;
 
                     bitmap.data[i] |= ((byte >> (7 - (i % 8))) & 0x01) << iplane;
+
+                    i += 1;
+                }
+            }
+        }
+
+        if let Some(mapping) = mapping {
+            let mut i: usize = 0;
+            for _ in 0..height {
+                for _ in 0..width {
+                    bitmap.data[i] = mapping(bitmap.data[i]);
 
                     i += 1;
                 }
@@ -104,6 +126,48 @@ impl Bitmap {
         }
 
         Ok(bitmap)
+    }
+
+    pub fn read_planar(
+        width: usize,
+        height: usize,
+        bpp: usize,
+        data: &[u8],
+        transparency_encoding: TransparencyEncoding,
+    ) -> Result<Bitmap> {
+        Self::read_planar_mapped::<fn(u8) -> u8>(
+            width,
+            height,
+            bpp,
+            data,
+            transparency_encoding,
+            None,
+        )
+    }
+
+    pub fn sub(&self, x: usize, y: usize, width: usize, height: usize) -> Result<Self> {
+        if x + width > self.width || y + height > self.height {
+            bail!("invalid dimensions");
+        }
+
+        let mut data: Vec<u8> = vec![0; width * height];
+        let mut transparency: Vec<bool> = vec![false; width * height];
+        for y_ in 0..height {
+            for x_ in 0..width {
+                let i_source = (y + y_) * self.width + x + x_;
+                let i_dest = y_ * width + x_;
+
+                data[i_dest] = self.data[i_source];
+                transparency[i_dest] = self.transparency[i_source];
+            }
+        }
+
+        Ok(Self {
+            data,
+            width,
+            height,
+            transparency,
+        })
     }
 }
 
@@ -168,5 +232,22 @@ impl Sprite {
         *offset += frame_size * frame_count;
 
         Ok(sprite)
+    }
+
+    pub fn blank(width: usize, height: usize, capacity: usize) -> Self {
+        Self {
+            width,
+            height,
+            frames: Vec::with_capacity(capacity),
+        }
+    }
+
+    pub fn add_frame(&mut self, frame: &Bitmap) -> Result<()> {
+        if self.width != frame.width || self.height != frame.height {
+            bail!("invalid dimensions");
+        }
+
+        self.frames.push(frame.clone());
+        Ok(())
     }
 }

@@ -86,6 +86,16 @@ fn main() -> Result<()> {
                         .help("path to lemmings data files")
                         .index(1),
                 ),
+        )
+        .subcommand(
+            Command::new("dump-fonts")
+                .arg(
+                    Arg::new(ARG_GAME_DATA_PATH)
+                        .required(true)
+                        .help("path to lemmings data files")
+                        .index(1),
+                )
+                .about("dump fonts"),
         );
 
     let matches = command.clone().get_matches();
@@ -119,6 +129,10 @@ fn main() -> Result<()> {
 
         Some(("dump-object-info", subcommand_matches)) => {
             cmd::dump_object_info::main(game_data_path(subcommand_matches))
+        }
+
+        Some(("dump-fonts", subcommand_matches)) => {
+            cmd::dump_fonts::main(game_data_path(subcommand_matches))
         }
 
         _ => command.print_help().map_err(anyhow::Error::from),

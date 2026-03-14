@@ -64,7 +64,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
         tilesets,
         special_backgrounds,
         static_palette,
-        skill_panel: SkillPanel::new(main.skill_panel),
+        skill_panel: SkillPanel::new(&main),
         lemming_sprites: main.lemming_sprites,
         cursors: Cursors::new(),
     })
