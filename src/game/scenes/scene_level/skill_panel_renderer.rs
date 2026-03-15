@@ -158,6 +158,11 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 self.stats_current.clear();
                 self.stats_current.push_str(&self.stats_new);
 
+                self.lemmings_in = state.lemmings_in;
+                self.lemmings_out = state.lemmings_out;
+                self.cursor_state = state.cursor_state;
+                self.remaining_time_seconds = state.remaining_time_seconds;
+
                 updated = true;
             }
 

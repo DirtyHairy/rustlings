@@ -18,7 +18,7 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
     pub lemming_count: usize,
     pub leading_skill: Skill,
