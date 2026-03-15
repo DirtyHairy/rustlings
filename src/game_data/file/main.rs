@@ -11,6 +11,11 @@ pub const NUM_LEMMING_SPRITES: usize = 30;
 pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
 
+const COLOR_WHITE: u8 = 0x03;
+const COLOR_BLACK: u8 = 0x00;
+const COLOR_DARK_GREEN: u8 = 0x02;
+const COLOR_LIGHT_GREEN: u8 = 0x09;
+
 const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
     (8, 16, 10, 2),
     (1, 16, 10, 2),
@@ -92,14 +97,14 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .get(0x1908 + i * 0x10..)
                 .ok_or(format_err!("skill font data out of bounds"))?,
             TransparencyEncoding::Opaque,
-            |x| if x == 0 { 0x00 } else { 0x03 },
+            |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
         )?
         .sub(0, 0, 4, 8)?;
 
         font_skill_panel_skills.add_frame(&font_bitmap)?;
     }
 
-    font_skill_panel_skills.add_frame(&Bitmap::filled(4, 8, 0x03, false))?;
+    font_skill_panel_skills.add_frame(&Bitmap::filled(4, 8, COLOR_WHITE, false))?;
 
     for i in 0..FONT_SKILL_PANEL_SIZE - 1 {
         let font_bitmap = Bitmap::read_planar_mapped(
@@ -112,9 +117,9 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .ok_or(format_err!("skill panel font data out of bounds"))?,
             TransparencyEncoding::Opaque,
             |x| match x {
-                0x05 => 0x02,
-                0x03 => 0x03,
-                0x02 => 0x08,
+                0x05 => COLOR_LIGHT_GREEN,
+                0x03 => COLOR_WHITE,
+                0x02 => COLOR_DARK_GREEN,
                 _ => 0x00,
             },
         )?;
@@ -122,7 +127,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
         font_skill_panel.add_frame(&font_bitmap)?;
     }
 
-    font_skill_panel.add_frame(&Bitmap::filled(8, 16, 0, false))?;
+    font_skill_panel.add_frame(&Bitmap::filled(8, 16, COLOR_BLACK, false))?;
 
     Ok(Content {
         lemming_sprites: lemming_sprites

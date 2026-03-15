@@ -2,7 +2,7 @@ use std::{cmp, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, Level, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
+    GameData, Level, LevelParamters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -39,6 +39,9 @@ pub struct SceneLevel<'texture_creator> {
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
     simulation: Simulation,
+
+    level_parameters: LevelParamters,
+    clock_offset_msec: u64,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -78,12 +81,14 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let scroll_controller = ScrollController::new();
 
         Ok(SceneLevel {
+            clock_offset_msec: state.current_clock_msec,
             game_state,
             state,
             status: Status::Running,
             renderer,
             scroll_controller,
             simulation,
+            level_parameters: level.parameters,
         })
     }
 }
@@ -91,11 +96,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
     fn finish(mut self: Box<Self>) -> (GameState, SceneState) {
         match self.status {
-            Status::Running => {
-                self.state.current_clock_msec %= ENGINE_TICK_MSEC;
-
-                (self.game_state, SceneState::Level(self.state))
-            }
+            Status::Running => (self.game_state, SceneState::Level(self.state)),
             Status::DoneNextLevel => {
                 self.game_state.current_level = (self.game_state.current_level + 1) % NUM_LEVELS;
                 (self.game_state, SceneState::None)
@@ -163,7 +164,9 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
     }
 
-    fn tick(&mut self, clock_msec: u64) {
+    fn tick(&mut self, mut clock_msec: u64) {
+        clock_msec += self.clock_offset_msec;
+
         if clock_msec <= self.state.current_clock_msec {
             return;
         }
@@ -181,11 +184,24 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
 
         self.state.current_clock_msec = clock_msec;
+
+        let remaining_time_seconds = ((self.level_parameters.time_limit * 60) as usize)
+            .saturating_sub((clock_msec / 1000) as usize);
+
+        if remaining_time_seconds != self.state.remaining_time_seconds {
+            self.state.remaining_time_seconds = remaining_time_seconds;
+            self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+        }
     }
 
     fn next_tick_at_msec(&self) -> u64 {
-        let next_tick_engine =
-            ((self.state.current_clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
+        let next_tick_engine = ((self
+            .state
+            .current_clock_msec
+            .saturating_sub(self.clock_offset_msec)
+            / ENGINE_TICK_MSEC)
+            + 1)
+            * ENGINE_TICK_MSEC;
 
         match self.scroll_controller.next_tick_at_msec(&self.state) {
             None => next_tick_engine,

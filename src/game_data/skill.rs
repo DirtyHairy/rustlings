@@ -1,6 +1,6 @@
-pub const NUM_SKILLS: usize = 8;
+pub const NUM_ASIGNABLE_SKILLS: usize = 8;
 
-pub const SKILLS: [Skill; NUM_SKILLS] = [
+pub const ASSIGNABLE_SKILLS: [Skill; NUM_ASIGNABLE_SKILLS] = [
     Skill::Climber,
     Skill::Floater,
     Skill::Bomber,
@@ -11,7 +11,7 @@ pub const SKILLS: [Skill; NUM_SKILLS] = [
     Skill::Digger,
 ];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Skill {
     Climber = 0,
     Floater = 1,
@@ -21,6 +21,7 @@ pub enum Skill {
     Basher = 5,
     Miner = 6,
     Digger = 7,
+    Faller = 8,
 }
 
 impl std::string::ToString for Skill {
@@ -34,6 +35,7 @@ impl std::string::ToString for Skill {
             Skill::Basher => "Basher",
             Skill::Miner => "Miner",
             Skill::Digger => "Digger",
+            Skill::Faller => "Faller",
         };
 
         String::from(str)

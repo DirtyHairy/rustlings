@@ -5,7 +5,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::read::{read_byte, read_word_le};
-use crate::game_data::skill::{NUM_SKILLS, SKILLS};
+use crate::game_data::skill::{ASSIGNABLE_SKILLS, NUM_ASIGNABLE_SKILLS};
 
 const ODDTABLE_ENTRIES: usize = 80;
 const ODDTABLE_ENTRY_SIZE: usize = 0x38;
@@ -37,7 +37,7 @@ pub struct LevelParamters {
     pub released: u32,
     pub required: u32,
     pub time_limit: u32,
-    pub skills: [u32; NUM_SKILLS],
+    pub skills: [u32; NUM_ASIGNABLE_SKILLS],
     pub name: String,
 }
 
@@ -99,8 +99,8 @@ fn decode_level(data: &[u8]) -> Result<Level> {
         bail!("not a level: invalid length");
     }
 
-    let mut skills = [0 as u32; NUM_SKILLS];
-    for i in 0..NUM_SKILLS {
+    let mut skills = [0 as u32; NUM_ASIGNABLE_SKILLS];
+    for i in 0..NUM_ASIGNABLE_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }
 
@@ -136,8 +136,8 @@ fn decode_level(data: &[u8]) -> Result<Level> {
 }
 
 fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParamters> {
-    let mut skills = [0 as u32; NUM_SKILLS];
-    for i in 0..NUM_SKILLS {
+    let mut skills = [0 as u32; NUM_ASIGNABLE_SKILLS];
+    for i in 0..NUM_ASIGNABLE_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }
 
@@ -270,7 +270,7 @@ Skills"#,
             self.extended_graphics_set,
         )?;
 
-        for skill in SKILLS {
+        for skill in ASSIGNABLE_SKILLS {
             writeln!(
                 f,
                 "  {}: {}",

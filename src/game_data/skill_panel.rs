@@ -1,4 +1,4 @@
-use crate::game_data::{Bitmap, NUM_SKILLS, SCREEN_WIDTH, Sprite};
+use crate::game_data::{Bitmap, SCREEN_WIDTH, Sprite};
 
 pub use crate::game_data::file::main::{
     resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
