@@ -8,8 +8,8 @@ use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
 
 pub const NUM_LEMMING_SPRITES: usize = 30;
 
-pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 10;
-pub const FONT_SKILL_PANEL_SIZE: usize = 38;
+pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
+pub const FONT_SKILL_PANEL_SIZE: usize = 39;
 
 const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
     (8, 16, 10, 2),
@@ -82,7 +82,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let mut font_skill_panel_skills = Sprite::blank(4, 8, FONT_SKILL_PANEL_SKILLS_SIZE);
     let mut font_skill_panel = Sprite::blank(8, 16, FONT_SKILL_PANEL_SIZE);
 
-    for i in 0..FONT_SKILL_PANEL_SKILLS_SIZE {
+    for i in 0..FONT_SKILL_PANEL_SKILLS_SIZE - 1 {
         let font_bitmap = Bitmap::read_planar_mapped(
             8,
             8,
@@ -92,14 +92,16 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .get(0x1908 + i * 0x10..)
                 .ok_or(format_err!("skill font data out of bounds"))?,
             TransparencyEncoding::Opaque,
-            |x| if x == 0 { 2 } else { 0 },
+            |x| if x == 0 { 0x00 } else { 0x03 },
         )?
         .sub(0, 0, 4, 8)?;
 
         font_skill_panel_skills.add_frame(&font_bitmap)?;
     }
 
-    for i in 0..FONT_SKILL_PANEL_SIZE {
+    font_skill_panel_skills.add_frame(&Bitmap::filled(4, 8, 0x03, false))?;
+
+    for i in 0..FONT_SKILL_PANEL_SIZE - 1 {
         let font_bitmap = Bitmap::read_planar_mapped(
             8,
             16,
@@ -108,7 +110,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
                 .data
                 .get((0x19a0 + i * 0x30)..)
                 .ok_or(format_err!("skill panel font data out of bounds"))?,
-            TransparencyEncoding::Black,
+            TransparencyEncoding::Opaque,
             |x| match x {
                 0x05 => 0x02,
                 0x03 => 0x03,
@@ -119,6 +121,8 @@ pub fn read_main(path: &Path) -> Result<Content> {
 
         font_skill_panel.add_frame(&font_bitmap)?;
     }
+
+    font_skill_panel.add_frame(&Bitmap::filled(8, 16, 0, false))?;
 
     Ok(Content {
         lemming_sprites: lemming_sprites
@@ -131,26 +135,26 @@ pub fn read_main(path: &Path) -> Result<Content> {
     })
 }
 
-pub fn resolve_skill_panel_skill_font_index(c: char) -> Option<usize> {
+pub fn resolve_skill_panel_skill_font_index(c: char) -> usize {
     match c {
         '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-            Some(((c as u32) - ('0' as u32)) as usize)
+            ((c as u32) - ('0' as u32)) as usize
         }
-        _ => None,
+        _ => 10,
     }
 }
 
-pub fn resolve_skill_panel_font_index(c: char) -> Option<usize> {
+pub fn resolve_skill_panel_font_index(c: char) -> usize {
     match c {
-        '%' => Some(0),
+        '%' => 0,
         '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-            Some(((c as u32) - ('0' as u32)) as usize + 1)
+            ((c as u32) - ('0' as u32)) as usize + 1
         }
-        '-' => Some(11),
+        '-' => 11,
         'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O'
         | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' => {
-            Some(((c as u32) - ('A' as u32)) as usize + 12)
+            ((c as u32) - ('A' as u32)) as usize + 12
         }
-        _ => None,
+        _ => 38,
     }
 }

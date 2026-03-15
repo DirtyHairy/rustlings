@@ -1,4 +1,4 @@
-use crate::game_data::{Bitmap, SCREEN_WIDTH, Sprite};
+use crate::game_data::{Bitmap, NUM_SKILLS, SCREEN_WIDTH, Sprite};
 
 pub use crate::game_data::file::main::{
     resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
@@ -19,6 +19,13 @@ pub const MINIMAP_VIEW_WIDTH: usize = 100;
 pub const MINIMAP_VIEW_HEIGHT: usize = 18;
 pub const MINIMAP_VIEW_X: usize = MINIMAP_AREA_X + 2;
 pub const MINIMAP_VIEW_Y: usize = MINIMAP_AREA_Y + 1;
+
+pub const SKILL_TILE_WIDTH: usize = 16;
+pub const SKILL_TILE_Y: usize = 16;
+pub const SKILL_TILE_LABEL_X: usize = 4;
+pub const SKILL_TILE_LABEL_Y: usize = 1;
+pub const SKILL_TILE_LABEL_WIDTH: usize = 8;
+pub const SKILL_TILE_LABEL_HEIGHT: usize = 8;
 
 #[derive(Clone)]
 pub struct SkillPanel {

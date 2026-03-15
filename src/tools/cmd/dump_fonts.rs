@@ -5,8 +5,8 @@ use rustlings::game_data::{
     read_game_data, resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
 };
 
-const CHARS_SKILL_PANEL: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%-";
-const CHARS_SKILL: &str = "0123456789";
+const CHARS_SKILL_PANEL: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%- ";
+const CHARS_SKILL: &str = "0123456789 ";
 
 pub fn main(path: &Path) -> Result<()> {
     let game_data = read_game_data(path)?;
@@ -16,8 +16,7 @@ pub fn main(path: &Path) -> Result<()> {
     println!();
 
     for c in CHARS_SKILL_PANEL.chars() {
-        let index = resolve_skill_panel_font_index(c)
-            .ok_or(format_err!("char not in skill panel font: {}", c))?;
+        let index = resolve_skill_panel_font_index(c);
 
         let bitmap = game_data
             .skill_panel
@@ -44,8 +43,7 @@ pub fn main(path: &Path) -> Result<()> {
     println!();
 
     for c in CHARS_SKILL.chars() {
-        let index = resolve_skill_panel_skill_font_index(c)
-            .ok_or(format_err!("char not in skill panel font: {}", c))?;
+        let index = resolve_skill_panel_skill_font_index(c);
 
         let bitmap = game_data
             .skill_panel

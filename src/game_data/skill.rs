@@ -11,15 +11,16 @@ pub const SKILLS: [Skill; NUM_SKILLS] = [
     Skill::Digger,
 ];
 
+#[derive(Clone, Copy)]
 pub enum Skill {
-    Climber,
-    Floater,
-    Bomber,
-    Blocker,
-    Builder,
-    Basher,
-    Miner,
-    Digger,
+    Climber = 0,
+    Floater = 1,
+    Bomber = 2,
+    Blocker = 3,
+    Builder = 4,
+    Basher = 5,
+    Miner = 6,
+    Digger = 7,
 }
 
 impl std::string::ToString for Skill {

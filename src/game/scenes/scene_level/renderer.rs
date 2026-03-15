@@ -29,13 +29,17 @@ use sdl3::{
     sys::blendmode::SDL_BLENDMODE_NONE,
 };
 
-use crate::{geometry::Rect, state::SceneStateLevel};
+use crate::{
+    geometry::Rect, scenes::scene_level::skill_panel_renderer::SkillPanelRenderer,
+    state::SceneStateLevel,
+};
 
 bitflags::bitflags! {
     #[derive(Clone, Copy)]
     pub struct Redraw: u32 {
         const LEVEL = 0x01;
         const SCREEN = 0x02;
+        const SKILL_PANEL = 0x04;
         const ALL = !0;
     }
 }
@@ -69,7 +73,6 @@ pub struct Renderer<'texture_creator> {
     redraw: Redraw,
 
     texture_terrain: Texture<'texture_creator>,
-    texture_skill_panel: Texture<'texture_creator>,
     texture_minimap_frame: Texture<'texture_creator>,
     texture_level: Texture<'texture_creator>,
     texture_screen: Texture<'texture_creator>,
@@ -80,6 +83,8 @@ pub struct Renderer<'texture_creator> {
 
     blend_mode_merge: SDL_BlendMode,
     blend_mode_background: SDL_BlendMode,
+
+    skill_panel_renderer: SkillPanelRenderer<'texture_creator>,
 
     render_strategy: RenderStrategy<'texture_creator>,
 }
@@ -95,12 +100,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let palette_skill_panel = game_data.resolve_skill_panel_palette(0);
 
         let texture_terrain = texture_from_bitmap(&scene_state.terrain, &palette, texture_creator)?;
-
-        let texture_skill_panel = texture_from_bitmap(
-            &game_data.skill_panel.panel,
-            &palette_skill_panel,
-            texture_creator,
-        )?;
 
         let texture_minimap_frame = texture_from_bitmap(
             &game_data.skill_panel.minimap_frame,
@@ -133,6 +132,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
             create_objects(&game_data, &palette, level, texture_creator, |o| {
                 !o.draw_only_over_terrain && o.do_not_overwrite
             })?;
+
+        let skill_panel_renderer =
+            SkillPanelRenderer::new(level, Rc::clone(&game_data), texture_creator)?;
 
         let blend_mode_merge = SDL_ComposeCustomBlendMode(
             SDL_BLENDFACTOR_DST_ALPHA,
@@ -191,7 +193,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
             redraw: Redraw::ALL,
 
             texture_terrain,
-            texture_skill_panel,
             texture_minimap_frame,
             texture_level,
             texture_screen,
@@ -202,6 +203,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             blend_mode_merge,
             blend_mode_background,
+
+            skill_panel_renderer,
 
             render_strategy: render_mode,
         })
@@ -252,12 +255,12 @@ impl<'texture_creator> Renderer<'texture_creator> {
     }
 
     pub fn draw(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<bool> {
-        let redraw = self.redraw;
-        self.redraw = Redraw::empty();
-
-        if redraw.is_empty() {
+        if self.redraw.is_empty() {
             return Ok(false);
         }
+
+        let mut redraw = self.redraw;
+        self.redraw = Redraw::empty();
 
         if redraw.contains(Redraw::LEVEL) {
             match self.render_strategy {
@@ -267,9 +270,17 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 }
                 _ => self.draw_level_strategy_stencil(state, canvas)?,
             };
+
+            redraw.insert(Redraw::SCREEN);
         }
 
-        self.draw_screen(state, canvas)?;
+        if redraw.contains(Redraw::SKILL_PANEL) && self.skill_panel_renderer.draw(state, canvas)? {
+            redraw.insert(Redraw::SCREEN);
+        }
+
+        if redraw.contains(Redraw::SCREEN) {
+            self.draw_screen(state, canvas)?;
+        }
 
         Ok(true)
     }
@@ -400,10 +411,14 @@ impl<'texture_creator> Renderer<'texture_creator> {
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0xff));
             canvas.clear();
 
-            self.texture_skill_panel.set_blend_mode(BlendMode::None);
-            self.texture_skill_panel.set_scale_mode(ScaleMode::Nearest);
+            self.skill_panel_renderer
+                .texture
+                .set_blend_mode(BlendMode::None);
+            self.skill_panel_renderer
+                .texture
+                .set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
-                &self.texture_skill_panel,
+                &self.skill_panel_renderer.texture,
                 None,
                 SdlRect::new(
                     0,

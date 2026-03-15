@@ -61,6 +61,12 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     terrain: game_data.compose_terrain(&level)?,
                     object_state: vec![Default::default(); level.objects.len()],
                     current_clock_msec: 0,
+                    remaining_skills: level.parameters.skills.map(|x| x as usize),
+                    lemmings_in: 0,
+                    lemmings_out: 0,
+                    release_rate: level.parameters.release_rate as usize,
+                    cursor_state: None,
+                    remaining_time_seconds: level.parameters.time_limit as usize * 60,
                 };
 
                 simulation.initialize(&mut state);
