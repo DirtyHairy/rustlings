@@ -31,7 +31,7 @@ pub struct SkillPanelRenderer<'texture_creator> {
 
     lemmings_out: usize,
     lemmings_in: usize,
-    lemmings_required: usize,
+    lemmings_released: usize,
     release_rate: usize,
     release_rate_min: usize,
 
@@ -90,7 +90,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             remaining_skills: [0; NUM_ASSIGNABLE_SKILLS],
             lemmings_out: 0,
             lemmings_in: 0,
-            lemmings_required: level.parameters.required as usize,
+            lemmings_released: level.parameters.released as usize,
             release_rate: 0,
             release_rate_min: level.parameters.release_rate as usize,
             remaining_time_seconds: 0,
@@ -141,7 +141,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 || state.remaining_time_seconds != self.remaining_time_seconds
                 || self.force_redraw
             {
-                format_stats(&mut self.stats_new, state, self.lemmings_required);
+                format_stats(&mut self.stats_new, state, self.lemmings_released);
 
                 draw_stats(
                     canvas,
@@ -249,7 +249,7 @@ fn skill_name(skill: Skill) -> &'static str {
     }
 }
 
-fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_required: usize) {
+fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: usize) {
     str.clear();
 
     // 12 characters for the cursor
@@ -269,10 +269,15 @@ fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_required: us
     write!(str, "OUT {:2}    ", state.lemmings_out).unwrap();
 
     // 9 characteres for lemmings in
-    if lemmings_required == state.lemmings_in {
+    if lemmings_released == state.lemmings_in {
         write!(str, "IN 100%  ").unwrap();
     } else {
-        write!(str, "IN {:2}%   ", state.lemmings_in / lemmings_required).unwrap();
+        write!(
+            str,
+            "IN {:2}%   ",
+            (state.lemmings_in * 100) / lemmings_released
+        )
+        .unwrap();
     }
 
     // 9 characters for time
