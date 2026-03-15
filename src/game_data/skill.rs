@@ -1,6 +1,6 @@
-pub const NUM_ASIGNABLE_SKILLS: usize = 8;
+pub const NUM_ASSIGNABLE_SKILLS: usize = 8;
 
-pub const ASSIGNABLE_SKILLS: [Skill; NUM_ASIGNABLE_SKILLS] = [
+pub const ASSIGNABLE_SKILLS: [Skill; NUM_ASSIGNABLE_SKILLS] = [
     Skill::Climber,
     Skill::Floater,
     Skill::Bomber,

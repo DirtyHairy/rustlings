@@ -1,4 +1,4 @@
-use rustlings::game_data::{Bitmap, NUM_ASIGNABLE_SKILLS, Skill};
+use rustlings::game_data::{Bitmap, NUM_ASSIGNABLE_SKILLS, Skill};
 
 #[derive(Default, Clone)]
 pub enum Screen {
@@ -32,7 +32,7 @@ pub struct SceneStateLevel {
 
     pub current_clock_msec: u64,
 
-    pub remaining_skills: [usize; NUM_ASIGNABLE_SKILLS],
+    pub remaining_skills: [usize; NUM_ASSIGNABLE_SKILLS],
 
     pub lemmings_out: usize,
     pub lemmings_in: usize,

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use anyhow::{Result, bail};
 use rustlings::{
     game_data::{
-        GameData, Level, NUM_ASIGNABLE_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
+        GameData, Level, NUM_ASSIGNABLE_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
         SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, Skill,
         resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
@@ -27,7 +27,7 @@ pub struct SkillPanelRenderer<'texture_creator> {
 
     force_redraw: bool,
 
-    remaining_skills: [usize; NUM_ASIGNABLE_SKILLS],
+    remaining_skills: [usize; NUM_ASSIGNABLE_SKILLS],
 
     lemmings_out: usize,
     lemmings_in: usize,
@@ -87,7 +87,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             font,
             font_skills,
             force_redraw: true,
-            remaining_skills: [0; NUM_ASIGNABLE_SKILLS],
+            remaining_skills: [0; NUM_ASSIGNABLE_SKILLS],
             lemmings_out: 0,
             lemmings_in: 0,
             lemmings_required: level.parameters.required as usize,
@@ -124,7 +124,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 updated = true;
             }
 
-            for i in 0..NUM_ASIGNABLE_SKILLS {
+            for i in 0..NUM_ASSIGNABLE_SKILLS {
                 if state.remaining_skills[i] == self.remaining_skills[i] && !self.force_redraw {
                     continue;
                 }

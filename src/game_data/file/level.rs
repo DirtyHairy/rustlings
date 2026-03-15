@@ -5,7 +5,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::read::{read_byte, read_word_le};
-use crate::game_data::skill::{ASSIGNABLE_SKILLS, NUM_ASIGNABLE_SKILLS};
+use crate::game_data::skill::{ASSIGNABLE_SKILLS, NUM_ASSIGNABLE_SKILLS};
 
 const ODDTABLE_ENTRIES: usize = 80;
 const ODDTABLE_ENTRY_SIZE: usize = 0x38;
@@ -32,18 +32,18 @@ pub struct Object {
 }
 
 #[derive(Clone)]
-pub struct LevelParamters {
+pub struct LevelParameters {
     pub release_rate: u32,
     pub released: u32,
     pub required: u32,
     pub time_limit: u32,
-    pub skills: [u32; NUM_ASIGNABLE_SKILLS],
+    pub skills: [u32; NUM_ASSIGNABLE_SKILLS],
     pub name: String,
 }
 
 #[derive(Clone)]
 pub struct Level {
-    pub parameters: LevelParamters,
+    pub parameters: LevelParameters,
     pub start_x: u32,
     pub graphics_set: u32,
     pub extended_graphics_set: u32,
@@ -75,7 +75,7 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     Ok(levels)
 }
 
-pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParamters>> {
+pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParameters>> {
     println!("reading {}", ODDTABLE_FILENAME);
 
     let oddtable_data = fs::read(path.join(ODDTABLE_FILENAME).as_os_str())?;
@@ -84,7 +84,7 @@ pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParamters>> {
         bail!("invalid {}", ODDTABLE_FILENAME);
     }
 
-    let mut oddtable: Vec<LevelParamters> = Vec::with_capacity(ODDTABLE_ENTRIES);
+    let mut oddtable: Vec<LevelParameters> = Vec::with_capacity(ODDTABLE_ENTRIES);
     for i in 0..80 {
         oddtable.push(decode_oddtable_entry(
             &oddtable_data[i * ODDTABLE_ENTRY_SIZE..(i + 1) * ODDTABLE_ENTRY_SIZE],
@@ -99,8 +99,8 @@ fn decode_level(data: &[u8]) -> Result<Level> {
         bail!("not a level: invalid length");
     }
 
-    let mut skills = [0 as u32; NUM_ASIGNABLE_SKILLS];
-    for i in 0..NUM_ASIGNABLE_SKILLS {
+    let mut skills = [0 as u32; NUM_ASSIGNABLE_SKILLS];
+    for i in 0..NUM_ASSIGNABLE_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }
 
@@ -119,7 +119,7 @@ fn decode_level(data: &[u8]) -> Result<Level> {
     }
 
     Ok(Level {
-        parameters: LevelParamters {
+        parameters: LevelParameters {
             release_rate: read16(data, 0)? as u32,
             released: read16(data, 0x02)? as u32,
             required: read16(data, 0x04)? as u32,
@@ -135,13 +135,13 @@ fn decode_level(data: &[u8]) -> Result<Level> {
     })
 }
 
-fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParamters> {
-    let mut skills = [0 as u32; NUM_ASIGNABLE_SKILLS];
-    for i in 0..NUM_ASIGNABLE_SKILLS {
+fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParameters> {
+    let mut skills = [0 as u32; NUM_ASSIGNABLE_SKILLS];
+    for i in 0..NUM_ASSIGNABLE_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }
 
-    Ok(LevelParamters {
+    Ok(LevelParameters {
         release_rate: read16(data, 0)? as u32,
         released: read16(data, 0x02)? as u32,
         required: read16(data, 0x04)? as u32,

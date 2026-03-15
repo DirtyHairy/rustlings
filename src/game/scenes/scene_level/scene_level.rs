@@ -2,7 +2,7 @@ use std::{cmp, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, Level, LevelParamters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
+    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -40,7 +40,7 @@ pub struct SceneLevel<'texture_creator> {
     scroll_controller: ScrollController,
     simulation: Simulation,
 
-    level_parameters: LevelParamters,
+    level_parameters: LevelParameters,
     clock_offset_msec: u64,
 }
 
