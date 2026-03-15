@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::rc::Rc;
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use rustlings::{
     game_data::{
         GameData, Level, NUM_ASSIGNABLE_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
@@ -20,7 +20,7 @@ use crate::state::{CursorState, SceneStateLevel};
 
 pub struct SkillPanelRenderer<'texture_creator> {
     texture_skill_panel: Texture<'texture_creator>,
-    pub texture: Texture<'texture_creator>,
+    texture: Texture<'texture_creator>,
 
     font: SDLSprite<'texture_creator>,
     font_skills: SDLSprite<'texture_creator>,
@@ -100,6 +100,10 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
         })
     }
 
+    pub fn texture(&mut self) -> &mut Texture<'texture_creator> {
+        &mut self.texture
+    }
+
     pub fn draw(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<bool> {
         let mut updated = false;
 
@@ -169,11 +173,9 @@ fn draw_tile_label<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     font: &SDLSprite,
     tile_index: usize,
-    value: usize,
+    mut value: usize,
 ) -> Result<()> {
-    if value > 99 {
-        bail!("value {} exceeds bounds", value);
-    }
+    value = value.min(99);
 
     let (char_10, char_1) = match (value / 10, value % 10) {
         (0, 0) => (' ', ' '),
@@ -210,13 +212,13 @@ fn draw_tile_label<T: RenderTarget>(
 fn draw_stats<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     font: &SDLSprite,
-    stats_current: &String,
-    stats_new: &String,
+    stats_current: &str,
+    stats_new: &str,
     force_redraw: bool,
 ) -> Result<()> {
     for i in 0..40 {
-        let char_current = stats_current.chars().nth(i).unwrap_or(' ');
-        let char_new = stats_new.chars().nth(i).unwrap_or(' ');
+        let char_current = stats_current.as_bytes().get(i).copied().unwrap_or(b' ') as char;
+        let char_new = stats_new.as_bytes().get(i).copied().unwrap_or(b' ') as char;
 
         if char_current == char_new && !force_redraw {
             continue;
@@ -275,7 +277,9 @@ fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: us
         write!(
             str,
             "IN {:2}%   ",
-            (state.lemmings_in * 100) / lemmings_released
+            (state.lemmings_in * 100)
+                .checked_div(lemmings_released)
+                .unwrap_or(0)
         )
         .unwrap();
     }

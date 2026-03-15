@@ -195,18 +195,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn next_tick_at_msec(&self) -> u64 {
-        let next_tick_engine = ((self
-            .state
-            .current_clock_msec
-            .saturating_sub(self.clock_offset_msec)
-            / ENGINE_TICK_MSEC)
-            + 1)
-            * ENGINE_TICK_MSEC;
+        let next_tick_engine =
+            ((self.state.current_clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
         match self.scroll_controller.next_tick_at_msec(&self.state) {
             None => next_tick_engine,
             Some(next_tick_scroll) => cmp::min(next_tick_engine, next_tick_scroll),
         }
+        .saturating_sub(self.clock_offset_msec)
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {

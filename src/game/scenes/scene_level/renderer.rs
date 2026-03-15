@@ -411,14 +411,11 @@ impl<'texture_creator> Renderer<'texture_creator> {
             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0xff));
             canvas.clear();
 
-            self.skill_panel_renderer
-                .texture
-                .set_blend_mode(BlendMode::None);
-            self.skill_panel_renderer
-                .texture
-                .set_scale_mode(ScaleMode::Nearest);
+            let skill_panel_texture = self.skill_panel_renderer.texture();
+            skill_panel_texture.set_blend_mode(BlendMode::None);
+            skill_panel_texture.set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
-                &self.skill_panel_renderer.texture,
+                skill_panel_texture,
                 None,
                 SdlRect::new(
                     0,
