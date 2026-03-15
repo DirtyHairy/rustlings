@@ -263,13 +263,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         self.redraw = Redraw::empty();
 
         if redraw.contains(Redraw::LEVEL) {
-            match self.render_strategy {
-                RenderStrategy::Blend => self.draw_level_strategy_blend(state, canvas)?,
-                RenderStrategy::Stencil(..) if self.objects_merge.len() == 0 => {
-                    self.draw_level_strategy_stencil_no_mergeables(state, canvas)?
-                }
-                _ => self.draw_level_strategy_stencil(state, canvas)?,
-            };
+            self.draw_level(state, canvas)?;
 
             redraw.insert(Redraw::SCREEN);
         }
@@ -283,6 +277,18 @@ impl<'texture_creator> Renderer<'texture_creator> {
         }
 
         Ok(true)
+    }
+
+    fn draw_level(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<()> {
+        match self.render_strategy {
+            RenderStrategy::Blend => self.draw_level_strategy_blend(state, canvas)?,
+            RenderStrategy::Stencil(..) if self.objects_merge.len() == 0 => {
+                self.draw_level_strategy_stencil_no_mergeables(state, canvas)?
+            }
+            _ => self.draw_level_strategy_stencil(state, canvas)?,
+        };
+
+        Ok(())
     }
 
     fn draw_level_strategy_blend(
