@@ -15,6 +15,7 @@ use crate::{
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
         simulation::Simulation,
+        skill_panel_controller::SkillPanelController,
     },
 };
 use crate::{
@@ -38,6 +39,7 @@ pub struct SceneLevel<'texture_creator> {
 
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
+    skill_panel_controller: SkillPanelController,
     simulation: Simulation,
 
     level_parameters: LevelParameters,
@@ -64,6 +66,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     terrain: game_data.compose_terrain(&level)?,
                     object_state: vec![Default::default(); level.objects.len()],
                     current_clock_msec: 0,
+                    selected_skill: None,
                     remaining_skills: level.parameters.skills.map(|x| x as usize),
                     lemmings_in: 0,
                     lemmings_out: 0,
@@ -78,6 +81,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         };
 
         let renderer = Renderer::new(&level, &state, Rc::clone(&game_data), texture_creator)?;
+        let skill_panel_controller = SkillPanelController::new(&level);
         let scroll_controller = ScrollController::new();
 
         Ok(SceneLevel {
@@ -87,6 +91,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             status: Status::Running,
             renderer,
             scroll_controller,
+            skill_panel_controller,
             simulation,
             level_parameters: level.parameters,
         })
@@ -160,6 +165,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 {
                     self.renderer.mark_for_redraw(Redraw::SCREEN);
                 }
+
+                if self
+                    .skill_panel_controller
+                    .dispatch_event(event, &mut self.state)
+                {
+                    self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+                }
             }
         }
     }
@@ -181,6 +193,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         for _ in engine_ticks_current..engine_ticks {
             self.simulation.tick(&mut self.state);
             self.renderer.mark_for_redraw(Redraw::LEVEL);
+
+            if self.skill_panel_controller.tick(&mut self.state) {
+                self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+            }
         }
 
         self.state.current_clock_msec = clock_msec;

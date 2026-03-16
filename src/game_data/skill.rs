@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 pub const NUM_SKILLS: usize = 8;
 
 pub const SKILLS: [Skill; NUM_SKILLS] = [
@@ -23,8 +25,8 @@ pub enum Skill {
     Digger = 7,
 }
 
-impl std::string::ToString for Skill {
-    fn to_string(&self) -> String {
+impl Display for Skill {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Skill::Climber => "Climber",
             Skill::Floater => "Floater",
@@ -36,6 +38,6 @@ impl std::string::ToString for Skill {
             Skill::Digger => "Digger",
         };
 
-        String::from(str)
+        write!(f, "{}", str)
     }
 }
