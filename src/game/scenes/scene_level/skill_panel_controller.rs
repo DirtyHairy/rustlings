@@ -1,6 +1,7 @@
 use std::ops::Add;
 
 use rustlings::game_data::{Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS};
+use sdl3::keyboard::Keycode;
 
 use crate::{
     scene::{MouseCoordinates, SceneEvent},
@@ -34,6 +35,28 @@ impl SkillPanelController {
                 self.handle_mouse_down(x, y, state)
             }
             SceneEvent::MouseUp(..) => self.handle_mouse_up(state),
+            SceneEvent::KeyDown { keycode, .. } => match keycode {
+                Keycode::Plus => {
+                    self.start_increment(state);
+                    false
+                }
+                Keycode::Minus => {
+                    self.start_decrement(state);
+                    false
+                }
+                _ => false,
+            },
+            SceneEvent::KeyUp { keycode, .. } => match keycode {
+                Keycode::Plus => {
+                    self.stop_increment(state);
+                    true
+                }
+                Keycode::Minus => {
+                    self.stop_decrement(state);
+                    true
+                }
+                _ => false,
+            },
             _ => false,
         }
     }
@@ -59,48 +82,59 @@ impl SkillPanelController {
 
         match tile_index {
             0 => {
-                self.decrementing = true;
-                self.decremented = 0;
-
-                true
+                self.start_decrement(state);
             }
             1 => {
-                self.incrementing = true;
-                self.incremented = 0;
-
-                true
+                self.start_increment(state);
             }
             2..10 => {
                 println!("selected {}", SKILLS[tile_index - 2]);
-                false
             }
             10 => {
                 println!("pause");
-                false
             }
             11 => {
                 println!("armageddon");
-                false
             }
-            _ => false,
+            _ => (),
         }
+
+        false
     }
 
     fn handle_mouse_up(&mut self, state: &mut SceneStateLevel) -> bool {
+        let redraw = self.incrementing || self.decrementing;
+
+        self.stop_decrement(state);
+        self.stop_increment(state);
+
+        redraw
+    }
+
+    fn start_increment(&mut self, state: &mut SceneStateLevel) {
+        self.incrementing = true;
+        self.incremented = 0;
+    }
+
+    fn stop_increment(&mut self, state: &mut SceneStateLevel) {
         if self.incrementing && self.incremented == 0 {
             self.increase_release(state);
         }
 
-        if self.decrementing && self.incremented == 0 {
+        self.incrementing = false;
+    }
+
+    fn start_decrement(&mut self, state: &mut SceneStateLevel) {
+        self.decrementing = true;
+        self.decremented = 0;
+    }
+
+    fn stop_decrement(&mut self, state: &mut SceneStateLevel) {
+        if self.decrementing && self.decremented == 0 {
             self.decrement_release(state);
         }
 
-        let redraw = self.incrementing || self.decrementing;
-
         self.decrementing = false;
-        self.incrementing = false;
-
-        redraw
     }
 
     fn increase_release(&mut self, state: &mut SceneStateLevel) {
