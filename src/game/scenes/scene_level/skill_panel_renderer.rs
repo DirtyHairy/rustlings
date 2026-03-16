@@ -4,9 +4,9 @@ use std::rc::Rc;
 use anyhow::Result;
 use rustlings::{
     game_data::{
-        GameData, Level, NUM_ASSIGNABLE_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
-        SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, Skill,
-        resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
+        GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_LABEL_X,
+        SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, resolve_skill_panel_font_index,
+        resolve_skill_panel_skill_font_index,
     },
     sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
 };
@@ -16,7 +16,7 @@ use sdl3::{
     video::Window,
 };
 
-use crate::state::{CursorState, SceneStateLevel};
+use crate::state::{CursorState, Profession, SceneStateLevel};
 
 pub struct SkillPanelRenderer<'texture_creator> {
     texture_skill_panel: Texture<'texture_creator>,
@@ -27,7 +27,7 @@ pub struct SkillPanelRenderer<'texture_creator> {
 
     force_redraw: bool,
 
-    remaining_skills: [usize; NUM_ASSIGNABLE_SKILLS],
+    remaining_skills: [usize; NUM_SKILLS],
 
     lemmings_out: usize,
     lemmings_in: usize,
@@ -87,7 +87,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             font,
             font_skills,
             force_redraw: true,
-            remaining_skills: [0; NUM_ASSIGNABLE_SKILLS],
+            remaining_skills: [0; NUM_SKILLS],
             lemmings_out: 0,
             lemmings_in: 0,
             lemmings_released: level.parameters.released as usize,
@@ -128,7 +128,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 updated = true;
             }
 
-            for i in 0..NUM_ASSIGNABLE_SKILLS {
+            for i in 0..NUM_SKILLS {
                 if state.remaining_skills[i] == self.remaining_skills[i] && !self.force_redraw {
                     continue;
                 }
@@ -242,17 +242,18 @@ fn draw_stats<T: RenderTarget>(
     Ok(())
 }
 
-fn skill_name(skill: Skill) -> &'static str {
+fn skill_name(skill: Profession) -> &'static str {
     match skill {
-        Skill::Climber => "CLIMBER",
-        Skill::Floater => "FLOATER",
-        Skill::Bomber => "BOMBER",
-        Skill::Blocker => "BLOCKER",
-        Skill::Builder => "BUILDER",
-        Skill::Basher => "BASHER",
-        Skill::Miner => "MINER",
-        Skill::Digger => "DIGGER",
-        Skill::Faller => "FALLER",
+        Profession::Climber => "CLIMBER",
+        Profession::Floater => "FLOATER",
+        Profession::Bomber => "BOMBER",
+        Profession::Blocker => "BLOCKER",
+        Profession::Builder => "BUILDER",
+        Profession::Basher => "BASHER",
+        Profession::Miner => "MINER",
+        Profession::Digger => "DIGGER",
+        Profession::Faller => "FALLER",
+        Profession::Walker => "WALKER",
     }
 }
 
@@ -264,7 +265,7 @@ fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: us
         write!(
             str,
             "{:7} {:<2}  ",
-            skill_name(cursor_state.leading_skill),
+            skill_name(cursor_state.leading_profession),
             cursor_state.lemming_count
         )
         .unwrap();

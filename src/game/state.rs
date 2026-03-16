@@ -1,4 +1,4 @@
-use rustlings::game_data::{Bitmap, NUM_ASSIGNABLE_SKILLS, Skill};
+use rustlings::game_data::{Bitmap, NUM_SKILLS};
 
 #[derive(Default, Clone)]
 pub enum Screen {
@@ -19,9 +19,23 @@ pub struct ObjectState {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+pub enum Profession {
+    Climber,
+    Floater,
+    Bomber,
+    Blocker,
+    Builder,
+    Basher,
+    Miner,
+    Digger,
+    Faller,
+    Walker,
+}
+
+#[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
     pub lemming_count: usize,
-    pub leading_skill: Skill,
+    pub leading_profession: Profession,
 }
 
 #[derive(Clone)]
@@ -32,7 +46,7 @@ pub struct SceneStateLevel {
 
     pub current_clock_msec: u64,
 
-    pub remaining_skills: [usize; NUM_ASSIGNABLE_SKILLS],
+    pub remaining_skills: [usize; NUM_SKILLS],
 
     pub lemmings_out: usize,
     pub lemmings_in: usize,
