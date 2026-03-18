@@ -8,7 +8,7 @@ pub const SKILL_PANEL_HEIGHT: usize = 40;
 
 pub const MINIMAP_FRAME_HEIGHT: usize = 20;
 pub const MINIMAP_FRAME_WIDTH: usize = 22;
-const MINIMAP_FRAME_COLOR: u8 = 3;
+const FRAME_COLOR: u8 = 3;
 
 pub const MINIMAP_AREA_WIDTH: usize = 104;
 pub const MINIMAP_AREA_HEIGHT: usize = 20;
@@ -21,6 +21,7 @@ pub const MINIMAP_VIEW_X: usize = MINIMAP_AREA_X + 2;
 pub const MINIMAP_VIEW_Y: usize = MINIMAP_AREA_Y + 1;
 
 pub const SKILL_TILE_WIDTH: usize = 16;
+pub const SKILL_TILE_HEIGHT: usize = 24;
 pub const SKILL_TILE_Y: usize = 16;
 pub const SKILL_TILE_LABEL_X: usize = 4;
 pub const SKILL_TILE_LABEL_Y: usize = 1;
@@ -31,6 +32,7 @@ pub const SKILL_TILE_LABEL_HEIGHT: usize = 8;
 pub struct SkillPanel {
     pub panel: Bitmap,
     pub minimap_frame: Bitmap,
+    pub skill_tile_frame: Bitmap,
     pub font_skills: Sprite,
     pub font: Sprite,
 }
@@ -45,22 +47,23 @@ impl SkillPanel {
 
         SkillPanel {
             panel,
-            minimap_frame: create_minimap_frame(),
+            minimap_frame: create_frame(MINIMAP_FRAME_WIDTH, MINIMAP_FRAME_HEIGHT),
+            skill_tile_frame: create_frame(SKILL_TILE_WIDTH, SKILL_PANEL_HEIGHT),
             font,
             font_skills,
         }
     }
 }
 
-fn create_minimap_frame() -> Bitmap {
-    let mut data: Vec<u8> = vec![0; MINIMAP_FRAME_WIDTH * MINIMAP_FRAME_HEIGHT + 1];
-    let mut transparency: Vec<bool> = vec![true; MINIMAP_FRAME_WIDTH * MINIMAP_FRAME_HEIGHT + 1];
+fn create_frame(width: usize, height: usize) -> Bitmap {
+    let mut data: Vec<u8> = vec![0; width * height + 1];
+    let mut transparency: Vec<bool> = vec![true; width * height + 1];
 
     let mut i: usize = 0;
-    for y in 0..MINIMAP_FRAME_HEIGHT {
-        for x in 0..MINIMAP_FRAME_WIDTH {
-            if x == 0 || x == MINIMAP_FRAME_WIDTH - 1 || y == 0 || y == MINIMAP_FRAME_HEIGHT - 1 {
-                data[i] = MINIMAP_FRAME_COLOR;
+    for y in 0..height {
+        for x in 0..width {
+            if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
+                data[i] = FRAME_COLOR;
                 transparency[i] = false;
             }
 
@@ -69,8 +72,8 @@ fn create_minimap_frame() -> Bitmap {
     }
 
     Bitmap {
-        width: MINIMAP_FRAME_WIDTH,
-        height: MINIMAP_FRAME_HEIGHT,
+        width: width,
+        height: height,
         data,
         transparency,
     }

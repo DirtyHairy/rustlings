@@ -4,14 +4,15 @@ use std::rc::Rc;
 use anyhow::Result;
 use rustlings::{
     game_data::{
-        GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_LABEL_X,
-        SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, resolve_skill_panel_font_index,
-        resolve_skill_panel_skill_font_index,
+        GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_HEIGHT,
+        SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, SKILLS, Skill,
+        resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
     sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
-    pixels::PixelFormat,
+    pixels::{Color, PixelFormat},
+    rect::Rect,
     render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureCreator},
     video::Window,
 };
@@ -20,27 +21,48 @@ use crate::state::{CursorState, Profession, SceneStateLevel};
 
 pub struct SkillPanelRenderer<'texture_creator> {
     texture_skill_panel: Texture<'texture_creator>,
+    texture_font_overlay: Texture<'texture_creator>,
+    texture_selected_skill_frame: Texture<'texture_creator>,
     texture: Texture<'texture_creator>,
 
     font: SDLSprite<'texture_creator>,
     font_skills: SDLSprite<'texture_creator>,
 
-    force_redraw: bool,
+    full_redraw: bool,
 
+    lemmings_released_total: usize,
+    release_rate_min: usize,
+    selected_skill: Skill,
+
+    text_model: SkillPanelTextModel,
+
+    stats_current: String,
+    stats_new: String,
+}
+
+#[derive(PartialEq, Default)]
+struct SkillPanelTextModel {
     remaining_skills: [usize; NUM_SKILLS],
 
     lemmings_out: usize,
     lemmings_in: usize,
-    lemmings_released: usize,
     release_rate: usize,
-    release_rate_min: usize,
 
     remaining_time_seconds: usize,
-
     cursor_state: Option<CursorState>,
+}
 
-    stats_current: String,
-    stats_new: String,
+impl SkillPanelTextModel {
+    fn from_state(state: &SceneStateLevel) -> Self {
+        Self {
+            remaining_skills: state.remaining_skills.clone(),
+            lemmings_out: state.lemmings_out,
+            lemmings_in: state.lemmings_in,
+            release_rate: state.release_rate,
+            remaining_time_seconds: state.remaining_time_seconds,
+            cursor_state: state.cursor_state,
+        }
+    }
 }
 
 impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
@@ -55,6 +77,18 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             &game_data.skill_panel.panel,
             &palette_skill_panel,
             texture_creator,
+        )?;
+
+        let texture_selected_skill_frame = texture_from_bitmap(
+            &game_data.skill_panel.skill_tile_frame,
+            &palette_skill_panel,
+            texture_creator,
+        )?;
+
+        let texture_font_overlay = texture_creator.create_texture_target(
+            PixelFormat::RGBA8888,
+            SCREEN_WIDTH as u32,
+            SKILL_PANEL_HEIGHT as u32,
         )?;
 
         let texture = texture_creator.create_texture_target(
@@ -83,18 +117,16 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
         Ok(Self {
             texture_skill_panel,
+            texture_selected_skill_frame,
+            texture_font_overlay,
             texture,
             font,
             font_skills,
-            force_redraw: true,
-            remaining_skills: [0; NUM_SKILLS],
-            lemmings_out: 0,
-            lemmings_in: 0,
-            lemmings_released: level.parameters.released as usize,
-            release_rate: 0,
+            full_redraw: true,
+            lemmings_released_total: level.parameters.released as usize,
             release_rate_min: level.parameters.release_rate as usize,
-            remaining_time_seconds: 0,
-            cursor_state: None,
+            selected_skill: SKILLS[0],
+            text_model: Default::default(),
             stats_current: String::with_capacity(40),
             stats_new: String::with_capacity(40),
         })
@@ -107,70 +139,114 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
     pub fn draw(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<bool> {
         let mut updated = false;
 
-        with_texture_canvas(canvas, &mut self.texture, |canvas| {
-            if self.force_redraw {
+        let text_model = SkillPanelTextModel::from_state(state);
+
+        if text_model != self.text_model || self.full_redraw {
+            self.draw_text_overlay(&text_model, canvas)?;
+
+            self.text_model = text_model;
+            updated = true;
+        }
+
+        if updated || state.selected_skill != self.selected_skill {
+            with_texture_canvas(canvas, &mut self.texture, |canvas| {
                 self.texture_skill_panel
                     .set_blend_mode(sdl3::render::BlendMode::None);
                 self.texture_skill_panel.set_scale_mode(ScaleMode::Nearest);
-                canvas.copy(&mut self.texture_skill_panel, None, None)?;
+                canvas.copy(&self.texture_skill_panel, None, None)?;
+
+                self.texture_font_overlay.set_blend_mode(BlendMode::Blend);
+                self.texture_font_overlay.set_scale_mode(ScaleMode::Nearest);
+                canvas.copy(&self.texture_font_overlay, None, None)?;
+
+                self.texture_selected_skill_frame
+                    .set_blend_mode(BlendMode::Blend);
+                self.texture_selected_skill_frame
+                    .set_scale_mode(ScaleMode::Nearest);
+                canvas.copy(
+                    &self.texture_selected_skill_frame,
+                    None,
+                    Rect::new(
+                        (state.selected_skill as i32 + 2) * SKILL_TILE_WIDTH as i32,
+                        16,
+                        SKILL_TILE_WIDTH as u32,
+                        SKILL_TILE_HEIGHT as u32,
+                    ),
+                )?;
 
                 updated = true;
+                self.selected_skill = state.selected_skill;
+
+                Ok(())
+            })?;
+        }
+
+        self.full_redraw = false;
+        Ok(updated)
+    }
+
+    fn draw_text_overlay(
+        &mut self,
+        text_model: &SkillPanelTextModel,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<()> {
+        with_texture_canvas(canvas, &mut self.texture_font_overlay, |canvas| {
+            if self.full_redraw {
+                canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                canvas.clear();
             }
 
-            if self.force_redraw {
+            if self.full_redraw {
                 draw_tile_label(canvas, &self.font_skills, 0, self.release_rate_min)?;
-                updated = true;
             }
 
-            if state.release_rate != self.release_rate || self.force_redraw {
-                draw_tile_label(canvas, &self.font_skills, 1, state.release_rate)?;
-                self.release_rate = state.release_rate;
-                updated = true;
+            if text_model.release_rate != self.text_model.release_rate || self.full_redraw {
+                draw_tile_label(canvas, &self.font_skills, 1, text_model.release_rate)?;
             }
 
             for i in 0..NUM_SKILLS {
-                if state.remaining_skills[i] == self.remaining_skills[i] && !self.force_redraw {
+                if text_model.remaining_skills[i] == self.text_model.remaining_skills[i]
+                    && !self.full_redraw
+                {
                     continue;
                 }
 
-                draw_tile_label(canvas, &self.font_skills, i + 2, state.remaining_skills[i])?;
-                self.remaining_skills[i] = state.remaining_skills[i];
-
-                updated = true;
+                draw_tile_label(
+                    canvas,
+                    &self.font_skills,
+                    i + 2,
+                    text_model.remaining_skills[i],
+                )?;
             }
 
-            if state.lemmings_in != self.lemmings_in
-                || state.lemmings_out != self.lemmings_out
-                || state.cursor_state != self.cursor_state
-                || state.remaining_time_seconds != self.remaining_time_seconds
-                || self.force_redraw
+            if text_model.lemmings_in != self.text_model.lemmings_in
+                || text_model.lemmings_out != self.text_model.lemmings_out
+                || text_model.cursor_state != self.text_model.cursor_state
+                || text_model.remaining_time_seconds != self.text_model.remaining_time_seconds
+                || self.full_redraw
             {
-                format_stats(&mut self.stats_new, state, self.lemmings_released);
+                format_stats(
+                    &mut self.stats_new,
+                    text_model,
+                    self.lemmings_released_total,
+                );
 
                 draw_stats(
                     canvas,
                     &self.font,
                     &self.stats_current,
                     &self.stats_new,
-                    self.force_redraw,
+                    self.full_redraw,
                 )?;
 
                 self.stats_current.clear();
                 self.stats_current.push_str(&self.stats_new);
-
-                self.lemmings_in = state.lemmings_in;
-                self.lemmings_out = state.lemmings_out;
-                self.cursor_state = state.cursor_state;
-                self.remaining_time_seconds = state.remaining_time_seconds;
-
-                updated = true;
             }
 
             Ok(())
         })?;
 
-        self.force_redraw = false;
-        Ok(updated)
+        Ok(())
     }
 }
 
@@ -257,11 +333,11 @@ fn skill_name(skill: Profession) -> &'static str {
     }
 }
 
-fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: usize) {
+fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released: usize) {
     str.clear();
 
     // 12 characters for the cursor
-    if let Some(cursor_state) = &state.cursor_state {
+    if let Some(cursor_state) = &model.cursor_state {
         write!(
             str,
             "{:7} {:<2}  ",
@@ -274,16 +350,16 @@ fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: us
     }
 
     // 10 characters for lemmings out
-    write!(str, "OUT {:2}    ", state.lemmings_out).unwrap();
+    write!(str, "OUT {:2}    ", model.lemmings_out).unwrap();
 
     // 9 characteres for lemmings in
-    if lemmings_released == state.lemmings_in {
+    if lemmings_released == model.lemmings_in {
         write!(str, "IN 100%  ").unwrap();
     } else {
         write!(
             str,
             "IN {:2}%   ",
-            (state.lemmings_in * 100)
+            (model.lemmings_in * 100)
                 .checked_div(lemmings_released)
                 .unwrap_or(0)
         )
@@ -294,8 +370,8 @@ fn format_stats(str: &mut String, state: &SceneStateLevel, lemmings_released: us
     write!(
         str,
         "TIME {:1}-{:0>2}",
-        state.remaining_time_seconds / 60,
-        state.remaining_time_seconds % 60
+        model.remaining_time_seconds / 60,
+        model.remaining_time_seconds % 60
     )
     .unwrap();
 }

@@ -234,8 +234,8 @@ impl<'sdl> Stage<'sdl> {
             / render_state.layout.scene.height as f32
             * scene.height() as f32;
 
-        let x = (x_frac.round() as isize).clamp(0, scene.width() as isize - 1) as usize;
-        let y = (y_frac.round() as isize).clamp(0, scene.height() as isize - 1) as usize;
+        let x = (x_frac.floor() as isize).clamp(0, scene.width() as isize - 1) as usize;
+        let y = (y_frac.floor() as isize).clamp(0, scene.height() as isize - 1) as usize;
 
         MouseCoordinates {
             x,

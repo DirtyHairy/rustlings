@@ -2,7 +2,8 @@ use std::{cmp, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
+    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, SKILLS,
+    decode_level_index,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -66,7 +67,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     terrain: game_data.compose_terrain(&level)?,
                     object_state: vec![Default::default(); level.objects.len()],
                     current_clock_msec: 0,
-                    selected_skill: None,
+                    selected_skill: SKILLS[0],
                     remaining_skills: level.parameters.skills.map(|x| x as usize),
                     lemmings_in: 0,
                     lemmings_out: 0,

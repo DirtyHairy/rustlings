@@ -46,7 +46,7 @@ pub struct SceneStateLevel {
 
     pub current_clock_msec: u64,
 
-    pub selected_skill: Option<Skill>,
+    pub selected_skill: Skill,
     pub remaining_skills: [usize; NUM_SKILLS],
 
     pub lemmings_out: usize,
