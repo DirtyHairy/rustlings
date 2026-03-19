@@ -127,8 +127,13 @@ impl ScrollController {
         }
     }
 
-    pub fn tick(&mut self, clock_msec: u64, state: &mut SceneStateLevel) -> bool {
-        let scroll_ticks_current = state.clock_msec / SCROLL_MSEC_PER_PIXEL;
+    pub fn tick(
+        &mut self,
+        clock_msec: u64,
+        clock_msec_old: u64,
+        state: &mut SceneStateLevel,
+    ) -> bool {
+        let scroll_ticks_old = clock_msec_old / SCROLL_MSEC_PER_PIXEL;
         let scroll_ticks_new = clock_msec / SCROLL_MSEC_PER_PIXEL;
         let scroll_speedup = if self.fast_scroll {
             FAST_SCROLL_SPEEDUP
@@ -140,7 +145,7 @@ impl ScrollController {
         let dirty = match self.current_scroll_mode {
             ScrollMode::Left => {
                 state.level_x = state.level_x.saturating_sub(
-                    scroll_ticks_new.saturating_sub(scroll_ticks_current) as usize * scroll_speedup,
+                    scroll_ticks_new.saturating_sub(scroll_ticks_old) as usize * scroll_speedup,
                 );
 
                 current_level_x != state.level_x
@@ -149,7 +154,7 @@ impl ScrollController {
                 state.level_x = cmp::min(
                     LEVEL_X_MAX,
                     state.level_x
-                        + (scroll_ticks_new.saturating_sub(scroll_ticks_current)) as usize
+                        + (scroll_ticks_new.saturating_sub(scroll_ticks_old)) as usize
                             * scroll_speedup,
                 );
 

@@ -193,7 +193,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             return;
         }
 
-        if self.scroll_controller.tick(clock_msec, &mut self.state) {
+        if self
+            .scroll_controller
+            .tick(clock_msec, clock_msec_old, &mut self.state)
+        {
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
