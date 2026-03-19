@@ -40,16 +40,14 @@ impl Simulation {
 
                 let animation_type = if info.animation_end == 1 {
                     AnimationType::Static
+                } else if info.animation_loops {
+                    AnimationType::Loop
                 } else {
-                    if info.animation_loops {
-                        AnimationType::Loop
-                    } else {
-                        AnimationType::Triggered
-                    }
+                    AnimationType::Triggered
                 };
 
                 Ok(Object {
-                    animation_type: animation_type,
+                    animation_type,
                     interaction_type: info.interaction_type,
                     animation_start: info.animation_start,
                     last_frame: info.animation_end.saturating_sub(1),

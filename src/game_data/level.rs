@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 pub const NUM_LEVELS: usize = 120;
 pub const LEVELS_PER_DIFFICULTY: usize = 30;
 
@@ -9,14 +11,16 @@ pub enum DifficultyRating {
     Mayhem,
 }
 
-impl ToString for DifficultyRating {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Fun => "Fun".to_string(),
-            Self::Tricky => "Tricky".to_string(),
-            Self::Taxing => "Taxing".to_string(),
-            Self::Mayhem => "Mayhem".to_string(),
-        }
+impl Display for DifficultyRating {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Self::Fun => "Fun",
+            Self::Tricky => "Tricky",
+            Self::Taxing => "Taxing",
+            Self::Mayhem => "Mayhem",
+        };
+
+        write!(f, "{}", name)
     }
 }
 

@@ -172,7 +172,7 @@ impl<'sdl> Stage<'sdl> {
         event_collector: &mut EventCollector,
     ) -> Result<Option<StopReason>> {
         let mut toggle_fullscreen = false;
-        for event in event_collector.decoded_events().as_ref() {
+        for event in event_collector.decoded_events() {
             match *event {
                 GameEvent::Quit => return Ok(Some(StopReason::Quit)),
                 GameEvent::RenderReset => return Ok(Some(StopReason::RenderReset)),
@@ -250,7 +250,7 @@ impl<'sdl> Stage<'sdl> {
         event_collector: &EventCollector,
         render_state: &mut RenderState,
     ) {
-        for event in event_collector.decoded_events().as_ref() {
+        for event in event_collector.decoded_events() {
             match *event {
                 GameEvent::MouseMove { x, y }
                 | GameEvent::MouseDown { x, y }

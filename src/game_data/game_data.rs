@@ -68,16 +68,16 @@ impl GameData {
             .ok_or(format_err!("invalid level_index {}", level_index))?;
 
         if (entry & 0x01) == 0 {
-            return Ok(level.clone());
+            Ok(level.clone())
         } else {
-            return Ok(Level {
+            Ok(Level {
                 parameters: self
                     .oddtable
                     .get(oddtable_index as usize)
                     .ok_or(format_err!("invalid oddtable_index {}", oddtable_index))?
                     .clone(),
                 ..level.clone()
-            });
+            })
         }
     }
 
@@ -174,9 +174,9 @@ impl GameData {
 fn compose_tile_onto_background(
     tile: &TerrainTile,
     bitmap: &Bitmap,
-    data: &mut Vec<u8>,
-    transparency: &mut Vec<bool>,
-) -> () {
+    data: &mut [u8],
+    transparency: &mut [bool],
+) {
     for y in 0..bitmap.height {
         for x in 0..bitmap.width {
             let y_transformed = if tile.flip_y {
@@ -207,11 +207,9 @@ fn compose_tile_onto_background(
                 if !bitmap.transparency[src_index] {
                     transparency[dest_index] = true;
                 }
-            } else {
-                if !bitmap.transparency[src_index] {
-                    data[dest_index] = bitmap.data[src_index];
-                    transparency[dest_index] = false;
-                }
+            } else if !bitmap.transparency[src_index] {
+                data[dest_index] = bitmap.data[src_index];
+                transparency[dest_index] = false;
             }
         }
     }

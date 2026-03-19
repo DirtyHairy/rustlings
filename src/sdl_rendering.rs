@@ -24,18 +24,13 @@ fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
         data32 = x;
     }
 
-    let mut i = 0;
-    for _ in 0..bitmap.width {
-        for _ in 0..bitmap.height {
-            data32[i] = if bitmap.transparency[i] {
-                0
-            } else {
-                let (r, g, b) = palette[bitmap.data[i] as usize];
-                mapping(Color::RGBA(r, g, b, 0xff)).to_u32(&PixelFormat::RGBA8888)
-            };
-
-            i += 1;
-        }
+    for i in 0..bitmap.width * bitmap.height {
+        data32[i] = if bitmap.transparency[i] {
+            0
+        } else {
+            let (r, g, b) = palette[bitmap.data[i] as usize];
+            mapping(Color::RGBA(r, g, b, 0xff)).to_u32(&PixelFormat::RGBA8888)
+        };
     }
 
     Ok(())

@@ -256,6 +256,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 fn print_level(current_level: usize, level: &Level) {
     let (difficulty, index) = decode_level_index(current_level);
     println!();
-    println!("{} {}", difficulty.to_string(), index);
+    println!("{} {}", difficulty, index);
     println!("{}", level);
 }

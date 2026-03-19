@@ -23,10 +23,7 @@ fn main() -> Result<()> {
     let matches = command.get_matches();
 
     let config = Config {
-        data_dir: matches
-            .get_one::<String>("DATA DIRECTORY")
-            .expect("unreachable")
-            .clone(),
+        data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().clone(),
     };
 
     let run_result = game::run(&config);

@@ -282,7 +282,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
     fn draw_level(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<()> {
         match self.render_strategy {
             RenderStrategy::Blend => self.draw_level_strategy_blend(state, canvas)?,
-            RenderStrategy::Stencil(..) if self.objects_merge.len() == 0 => {
+            RenderStrategy::Stencil(..) if self.objects_merge.is_empty() => {
                 self.draw_level_strategy_stencil_no_mergeables(state, canvas)?
             }
             _ => self.draw_level_strategy_stencil(state, canvas)?,
@@ -328,9 +328,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         state: &SceneStateLevel,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
-        if let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy
-            && self.objects_merge.len() == 0
-        {
+        if let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
                 canvas.clear();
@@ -350,11 +348,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 )?;
 
                 Ok(())
-            })?;
-
-            Ok(())
+            })
         } else {
-            bail!("unreachable")
+            unreachable!()
         }
     }
 
@@ -367,7 +363,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
             stencil_terrain,
             intermediate_terrain,
         }) = &mut self.render_strategy
-            && self.objects_merge.len() > 0
         {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
                 copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_NONE)?;
@@ -402,11 +397,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 )?;
 
                 Ok(())
-            })?;
-
-            Ok(())
+            })
         } else {
-            bail!("unreachable")
+            unreachable!()
         }
     }
 
