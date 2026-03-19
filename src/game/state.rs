@@ -44,7 +44,9 @@ pub struct SceneStateLevel {
     pub terrain: Bitmap,
     pub object_state: Vec<ObjectState>,
 
-    pub current_clock_msec: u64,
+    pub clock_msec: u64,
+    pub simulation_clock_offset: i64,
+    pub paused: bool,
 
     pub selected_skill: Skill,
     pub remaining_skills: [usize; NUM_SKILLS],

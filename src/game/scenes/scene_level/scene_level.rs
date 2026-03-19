@@ -66,7 +66,9 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     level_x: level.start_x as usize,
                     terrain: game_data.compose_terrain(&level)?,
                     object_state: vec![Default::default(); level.objects.len()],
-                    current_clock_msec: 0,
+                    clock_msec: 0,
+                    simulation_clock_offset: 0,
+                    paused: false,
                     selected_skill: SKILLS[0],
                     remaining_skills: level.parameters.skills.map(|x| x as usize),
                     lemmings_in: 0,
@@ -86,7 +88,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let scroll_controller = ScrollController::new();
 
         Ok(SceneLevel {
-            clock_offset_msec: state.current_clock_msec,
+            clock_offset_msec: state.clock_msec,
             game_state,
             state,
             status: Status::Running,
@@ -180,7 +182,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn tick(&mut self, mut clock_msec: u64) {
         clock_msec += self.clock_offset_msec;
 
-        if clock_msec <= self.state.current_clock_msec {
+        let clock_msec_old = self.state.clock_msec;
+        self.state.clock_msec = clock_msec;
+
+        if self.state.paused {
+            self.state.simulation_clock_offset += clock_msec_old as i64 - clock_msec as i64;
+        }
+
+        if clock_msec <= clock_msec_old {
             return;
         }
 
@@ -188,22 +197,24 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_current = self.state.current_clock_msec / ENGINE_TICK_MSEC;
+        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
         let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
 
-        for _ in engine_ticks_current..engine_ticks {
-            self.simulation.tick(&mut self.state);
-            self.renderer.mark_for_redraw(Redraw::LEVEL);
+        for _ in engine_ticks_old..engine_ticks {
+            if !self.state.paused {
+                self.simulation.tick(&mut self.state);
+                self.renderer.mark_for_redraw(Redraw::LEVEL);
+            }
 
             if self.skill_panel_controller.tick(&mut self.state) {
                 self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
             }
         }
 
-        self.state.current_clock_msec = clock_msec;
-
         let remaining_time_seconds = ((self.level_parameters.time_limit * 60) as usize)
-            .saturating_sub((clock_msec / 1000) as usize);
+            .saturating_sub(
+                ((clock_msec as i64 + self.state.simulation_clock_offset).max(0) / 1000) as usize,
+            );
 
         if remaining_time_seconds != self.state.remaining_time_seconds {
             self.state.remaining_time_seconds = remaining_time_seconds;
@@ -212,8 +223,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn next_tick_at_msec(&self) -> u64 {
-        let next_tick_engine =
-            ((self.state.current_clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
+        let next_tick_engine = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
         match self.scroll_controller.next_tick_at_msec(&self.state) {
             None => next_tick_engine,

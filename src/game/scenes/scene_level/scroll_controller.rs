@@ -128,7 +128,7 @@ impl ScrollController {
     }
 
     pub fn tick(&mut self, clock_msec: u64, state: &mut SceneStateLevel) -> bool {
-        let scroll_ticks_current = state.current_clock_msec / SCROLL_MSEC_PER_PIXEL;
+        let scroll_ticks_current = state.clock_msec / SCROLL_MSEC_PER_PIXEL;
         let scroll_ticks_new = clock_msec / SCROLL_MSEC_PER_PIXEL;
         let scroll_speedup = if self.fast_scroll {
             FAST_SCROLL_SPEEDUP
@@ -165,9 +165,9 @@ impl ScrollController {
 
     pub fn next_tick_at_msec(&self, state: &SceneStateLevel) -> Option<u64> {
         match self.scroll_mode() {
-            ScrollMode::Left | ScrollMode::Right => Some(
-                ((state.current_clock_msec / SCROLL_MSEC_PER_PIXEL) + 1) * SCROLL_MSEC_PER_PIXEL,
-            ),
+            ScrollMode::Left | ScrollMode::Right => {
+                Some(((state.clock_msec / SCROLL_MSEC_PER_PIXEL) + 1) * SCROLL_MSEC_PER_PIXEL)
+            }
             _ => None,
         }
     }

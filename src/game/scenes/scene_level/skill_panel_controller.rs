@@ -74,6 +74,10 @@ impl SkillPanelController {
                     state.selected_skill = SKILLS[7];
                     true
                 }
+                Keycode::P => {
+                    state.paused = !state.paused;
+                    true
+                }
                 _ => false,
             },
             SceneEvent::KeyUp { keycode, .. } => match keycode {
@@ -124,8 +128,8 @@ impl SkillPanelController {
                 true
             }
             10 => {
-                println!("pause");
-                false
+                state.paused = !state.paused;
+                true
             }
             11 => {
                 println!("armageddon");

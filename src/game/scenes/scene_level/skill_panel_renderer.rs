@@ -49,6 +49,7 @@ struct SkillPanelTextModel {
     release_rate: usize,
 
     remaining_time_seconds: usize,
+    paused: bool,
     cursor_state: Option<CursorState>,
 }
 
@@ -60,6 +61,7 @@ impl SkillPanelTextModel {
             lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,
             remaining_time_seconds: state.remaining_time_seconds,
+            paused: state.paused,
             cursor_state: state.cursor_state,
         }
     }
@@ -223,6 +225,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 || text_model.lemmings_out != self.text_model.lemmings_out
                 || text_model.cursor_state != self.text_model.cursor_state
                 || text_model.remaining_time_seconds != self.text_model.remaining_time_seconds
+                || text_model.paused != self.text_model.paused
                 || self.full_redraw
             {
                 format_stats(
@@ -352,13 +355,13 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
     // 10 characters for lemmings out
     write!(str, "OUT {:2}    ", model.lemmings_out).unwrap();
 
-    // 9 characteres for lemmings in
+    // 8 characteres for lemmings in
     if lemmings_released == model.lemmings_in {
-        write!(str, "IN 100%  ").unwrap();
+        write!(str, "IN 100% ").unwrap();
     } else {
         write!(
             str,
-            "IN {:2}%   ",
+            "IN {:2}%  ",
             (model.lemmings_in * 100)
                 .checked_div(lemmings_released)
                 .unwrap_or(0)
@@ -366,10 +369,11 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
         .unwrap();
     }
 
-    // 9 characters for time
+    // 1 characters for time
     write!(
         str,
-        "TIME {:1}-{:0>2}",
+        "{} {:1}-{:0>2}",
+        if model.paused { "PAUSE" } else { " TIME" },
         model.remaining_time_seconds / 60,
         model.remaining_time_seconds % 60
     )
