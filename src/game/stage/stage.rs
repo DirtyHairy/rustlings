@@ -23,7 +23,7 @@ use crate::stage::event_collector::{EventCollector, GameEvent};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
-const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 0;
+const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 1;
 const FALLBACK_REFRESH_RATE: f32 = 100.;
 
 pub enum StopReason {
