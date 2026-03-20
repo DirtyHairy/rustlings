@@ -30,14 +30,27 @@ pub enum GameEvent {
     LeaveFullscreen,
 }
 
+pub enum MouseOwnerChange {
+    Enter,
+    Leave,
+}
+
+#[derive(Default)]
+pub struct EventAggregate {
+    pub mouse_coordinates: Option<(f32, f32)>,
+    pub mouse_owner_change: Option<MouseOwnerChange>,
+}
+
 pub struct EventCollector {
     decoded_events: Vec<GameEvent>,
+    aggregate: EventAggregate,
 }
 
 impl EventCollector {
     pub fn new() -> Self {
         Self {
             decoded_events: Vec::with_capacity(INITIAL_CAPACITY),
+            aggregate: Default::default(),
         }
     }
 
@@ -50,7 +63,9 @@ impl EventCollector {
         event_pump: &mut EventPump,
     ) {
         let ts_reference = Instant::now();
+
         self.decoded_events.clear();
+        self.aggregate = Default::default();
 
         let mut first_iteration = true;
 
@@ -77,12 +92,14 @@ impl EventCollector {
 
             if let Some(event) = event_pump.wait_event_timeout(wait_timeout as u32) {
                 if let Some(decoded_event) = decode_sdl_event(&event) {
+                    self.aggregate_event(&decoded_event);
                     self.decoded_events.push(decoded_event);
                 }
             }
 
             for event in event_pump.poll_iter() {
                 if let Some(decoded_event) = decode_sdl_event(&event) {
+                    self.aggregate_event(&decoded_event);
                     self.decoded_events.push(decoded_event);
                 }
             }
@@ -93,6 +110,27 @@ impl EventCollector {
 
     pub fn decoded_events(&self) -> &[GameEvent] {
         &self.decoded_events
+    }
+
+    pub fn aggregated_events(&self) -> &EventAggregate {
+        return &self.aggregate;
+    }
+
+    fn aggregate_event(&mut self, event: &GameEvent) {
+        match event {
+            GameEvent::MouseMove { x, y }
+            | GameEvent::MouseDown { x, y }
+            | GameEvent::MouseUp { x, y } => {
+                self.aggregate.mouse_coordinates = Some((*x, *y));
+            }
+            GameEvent::MouseEnter => {
+                self.aggregate.mouse_owner_change = Some(MouseOwnerChange::Enter);
+            }
+            GameEvent::MouseLeave => {
+                self.aggregate.mouse_owner_change = Some(MouseOwnerChange::Leave);
+            }
+            _ => (),
+        }
     }
 }
 

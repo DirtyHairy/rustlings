@@ -19,7 +19,7 @@ use sdl3::{
 };
 
 use crate::scene::{CursorType, MouseCoordinates, Scene, SceneEvent};
-use crate::stage::event_collector::{EventCollector, GameEvent};
+use crate::stage::event_collector::{EventCollector, GameEvent, MouseOwnerChange};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
@@ -250,25 +250,24 @@ impl<'sdl> Stage<'sdl> {
         event_collector: &EventCollector,
         render_state: &mut RenderState,
     ) {
-        for event in event_collector.decoded_events() {
-            match *event {
-                GameEvent::MouseMove { x, y }
-                | GameEvent::MouseDown { x, y }
-                | GameEvent::MouseUp { x, y } => {
-                    render_state.mouse_x = x;
-                    render_state.mouse_y = y;
-                    self.rerender = true;
-                }
-                GameEvent::MouseEnter => {
-                    render_state.mouse_enabled = true;
-                    self.rerender = true;
-                }
-                GameEvent::MouseLeave => {
-                    render_state.mouse_enabled = false;
-                    self.rerender = true;
-                }
-                _ => (),
+        let aggregated_events = event_collector.aggregated_events();
+
+        if let Some((x, y)) = aggregated_events.mouse_coordinates {
+            render_state.mouse_x = x;
+            render_state.mouse_y = y;
+            self.rerender = true;
+        }
+
+        match aggregated_events.mouse_owner_change {
+            Some(MouseOwnerChange::Enter) => {
+                render_state.mouse_enabled = true;
+                self.rerender = true;
             }
+            Some(MouseOwnerChange::Leave) => {
+                render_state.mouse_enabled = false;
+                self.rerender = true;
+            }
+            None => (),
         }
     }
 
