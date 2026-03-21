@@ -51,7 +51,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             })
             .collect();
 
-        let main_handle = s.spawn(move || read_main(path));
+        let main_handle = s.spawn(|| read_main(path));
 
         let levels: Vec<Level> = (0..NUM_LEVELS_FILES).try_fold::<_, _, Result<Vec<Level>>>(
             Vec::with_capacity(LEVELS_PER_FILE * NUM_LEVELS_FILES),
