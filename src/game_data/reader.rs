@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::thread::{self, JoinHandle, ScopedJoinHandle};
 
 use anyhow::Result;
 
@@ -17,59 +18,83 @@ const NUM_TILESETS: usize = 5;
 const NUM_SPECIAL_BACKGROUND: usize = 4;
 
 pub fn read_game_data(path: &Path) -> Result<GameData> {
-    let mut levels: Vec<Level> = Vec::with_capacity(LEVELS_PER_FILE * NUM_LEVELS_FILES);
+    thread::scope(|s| {
+        let tileset_handles: Vec<ScopedJoinHandle<Result<TileSet>>> = (0..NUM_TILESETS)
+            .map(|i| {
+                s.spawn(move || -> Result<TileSet> {
+                    let ground_dat = read_ground(path, i)?;
+                    let vgagr =
+                        read_vgagr(path, i, &ground_dat.object_info, &ground_dat.terrain_info)?;
 
-    for i in 0..NUM_LEVELS_FILES {
-        levels.append(&mut read_level_file(path, i)?)
-    }
+                    Ok(TileSet {
+                        object_info: ground_dat.object_info,
+                        terrain_info: ground_dat.terrain_info,
+                        palettes: ground_dat.palettes,
+                        object_sprites: vgagr.object_sprites,
+                        tiles: vgagr.tiles,
+                    })
+                })
+            })
+            .collect();
 
-    let oddtable = read_oddtable(path)?;
+        let special_background_handles: Vec<ScopedJoinHandle<Result<Image>>> = (0
+            ..NUM_SPECIAL_BACKGROUND)
+            .map(|i| {
+                s.spawn(move || -> Result<Image> {
+                    let vgaspec = read_vgaspec(path, i)?;
 
-    let mut tilesets: Vec<TileSet> = Vec::with_capacity(NUM_TILESETS);
+                    Ok(Image {
+                        palette: vgaspec.palette,
+                        bitmap: vgaspec.bitmap,
+                    })
+                })
+            })
+            .collect();
 
-    for i in 0..NUM_TILESETS {
-        let ground_dat = read_ground(path, i)?;
-        let vgagr = read_vgagr(path, i, &ground_dat.object_info, &ground_dat.terrain_info)?;
+        let main_handle = s.spawn(move || read_main(path));
 
-        tilesets.push(TileSet {
-            object_info: ground_dat.object_info,
-            terrain_info: ground_dat.terrain_info,
-            palettes: ground_dat.palettes,
-            object_sprites: vgagr.object_sprites,
-            tiles: vgagr.tiles,
+        let levels: Vec<Level> = (0..NUM_LEVELS_FILES).try_fold::<_, _, Result<Vec<Level>>>(
+            Vec::with_capacity(LEVELS_PER_FILE * NUM_LEVELS_FILES),
+            |mut acc, i| {
+                acc.append(&mut read_level_file(path, i)?);
+                Ok(acc)
+            },
+        )?;
+
+        let oddtable = read_oddtable(path)?;
+
+        let mut static_palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
+        for i in 0..PALETTE_SIZE {
+            static_palette[i] = LOWER_PALETTE_FIXED[i % LOWER_PALETTE_FIXED.len()];
+        }
+
+        let tilesets: Vec<TileSet> = tileset_handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .collect::<Result<Vec<TileSet>>>()?;
+
+        let special_backgrounds: Vec<Image> = special_background_handles
+            .into_iter()
+            .map(|h| h.join().unwrap())
+            .collect::<Result<Vec<Image>>>()?;
+
+        let main = main_handle.join().unwrap()?;
+
+        println!();
+
+        Ok(GameData {
+            levels,
+            oddtable,
+            tilesets,
+            special_backgrounds,
+            static_palette,
+            skill_panel: SkillPanel::new(
+                main.skill_panel,
+                main.font_skill_panel,
+                main.font_skill_panel_skills,
+            ),
+            lemming_sprites: main.lemming_sprites,
+            cursors: Cursors::new(),
         })
-    }
-
-    let mut special_backgrounds: Vec<Image> = Vec::with_capacity(NUM_SPECIAL_BACKGROUND);
-
-    for i in 0..NUM_SPECIAL_BACKGROUND {
-        let vgaspec = read_vgaspec(path, i)?;
-
-        special_backgrounds.push(Image {
-            palette: vgaspec.palette,
-            bitmap: vgaspec.bitmap,
-        });
-    }
-
-    let main = read_main(path)?;
-
-    let mut static_palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
-    for i in 0..PALETTE_SIZE {
-        static_palette[i] = LOWER_PALETTE_FIXED[i % LOWER_PALETTE_FIXED.len()];
-    }
-
-    Ok(GameData {
-        levels,
-        oddtable,
-        tilesets,
-        special_backgrounds,
-        static_palette,
-        skill_panel: SkillPanel::new(
-            main.skill_panel,
-            main.font_skill_panel,
-            main.font_skill_panel_skills,
-        ),
-        lemming_sprites: main.lemming_sprites,
-        cursors: Cursors::new(),
     })
 }

@@ -57,7 +57,7 @@ pub struct Content {
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
-    println!("reading main.dat\n");
+    println!("reading main.dat");
     let maindata = fs::read(path.join("main.dat").as_os_str())?;
 
     let datfile::Content { sections } = datfile::parse(&maindata)?;
