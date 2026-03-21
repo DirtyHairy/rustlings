@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::thread::{self, JoinHandle, ScopedJoinHandle};
+use std::thread::{self, ScopedJoinHandle};
 
 use anyhow::Result;
 
