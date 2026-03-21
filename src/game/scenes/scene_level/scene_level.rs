@@ -12,6 +12,7 @@ use sdl3::{
 };
 
 use crate::{
+    code::code_for_level,
     scene::{CursorType, Scene, SceneEvent},
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
@@ -260,5 +261,9 @@ fn print_level(current_level: usize, level: &Level) {
     let (difficulty, index) = decode_level_index(current_level);
     println!();
     println!("{} {}", difficulty, index);
+    println!(
+        "code: {}",
+        code_for_level(current_level, None, None).unwrap_or("[invalid]".into())
+    );
     println!("{}", level);
 }

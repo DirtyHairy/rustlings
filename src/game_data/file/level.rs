@@ -99,7 +99,7 @@ fn decode_level(data: &[u8]) -> Result<Level> {
         bail!("not a level: invalid length");
     }
 
-    let mut skills = [0 as u32; NUM_SKILLS];
+    let mut skills = [0u32; NUM_SKILLS];
     for i in 0..NUM_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }
@@ -136,7 +136,7 @@ fn decode_level(data: &[u8]) -> Result<Level> {
 }
 
 fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParameters> {
-    let mut skills = [0 as u32; NUM_SKILLS];
+    let mut skills = [0u32; NUM_SKILLS];
     for i in 0..NUM_SKILLS {
         skills[i] = read16(data, 0x08 + 2 * i)? as u32;
     }

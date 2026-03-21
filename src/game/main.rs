@@ -3,6 +3,7 @@ use clap::{Arg, Command};
 
 use crate::game::Config;
 
+mod code;
 mod game;
 mod geometry;
 mod scene;
