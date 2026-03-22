@@ -13,8 +13,9 @@ pub const SKILLS: [Skill; NUM_SKILLS] = [
     Skill::Digger,
 ];
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Default)]
 pub enum Skill {
+    #[default]
     Climber = 0,
     Floater = 1,
     Bomber = 2,

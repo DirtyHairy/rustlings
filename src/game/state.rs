@@ -1,5 +1,7 @@
 use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill};
 
+pub const MAX_LEMMING_COUNT: usize = 100;
+
 #[derive(Default, Clone)]
 pub enum Screen {
     #[default]
@@ -18,11 +20,11 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum Profession {
+#[derive(Clone, Copy, PartialEq, Default)]
+pub enum Activity {
+    #[default]
     Climber,
     Floater,
-    Bomber,
     Blocker,
     Builder,
     Basher,
@@ -30,15 +32,30 @@ pub enum Profession {
     Digger,
     Faller,
     Walker,
+    Splatter,
+    Drowner,
 }
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
     pub lemming_count: usize,
-    pub leading_profession: Profession,
+    pub leading_lemming: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
+pub struct LemmingState {
+    pub x: usize,
+    pub y: usize,
+
+    pub activity: Activity,
+    pub frame: usize,
+
+    pub countdown: Option<usize>,
+    pub floater: bool,
+    pub climber: bool,
+}
+
+#[derive(Clone, Default)]
 pub struct SceneStateLevel {
     pub level_x: usize,
     pub terrain: Bitmap,
@@ -51,13 +68,17 @@ pub struct SceneStateLevel {
     pub selected_skill: Skill,
     pub remaining_skills: [usize; NUM_SKILLS],
 
-    pub lemmings_out: usize,
+    pub lemmings_out_total: usize,
     pub lemmings_in: usize,
     pub release_rate: usize,
 
     pub remaining_time_seconds: usize,
 
     pub cursor_state: Option<CursorState>,
+
+    pub lemmings: Vec<LemmingState>,
+    pub lemming_count: usize,
+    pub lemming_offset: usize,
 }
 
 #[derive(Default, Clone)]

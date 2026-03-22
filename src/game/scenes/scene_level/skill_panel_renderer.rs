@@ -17,7 +17,7 @@ use sdl3::{
     video::Window,
 };
 
-use crate::state::{CursorState, Profession, SceneStateLevel};
+use crate::state::{Activity, CursorState, LemmingState, SceneStateLevel};
 
 pub struct SkillPanelRenderer<'texture_creator> {
     texture_skill_panel: Texture<'texture_creator>,
@@ -57,7 +57,7 @@ impl SkillPanelTextModel {
     fn from_state(state: &SceneStateLevel) -> Self {
         Self {
             remaining_skills: state.remaining_skills.clone(),
-            lemmings_out: state.lemmings_out,
+            lemmings_out: state.lemming_count,
             lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,
             remaining_time_seconds: state.remaining_time_seconds,
@@ -144,7 +144,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
         let text_model = SkillPanelTextModel::from_state(state);
 
         if text_model != self.text_model || self.full_redraw {
-            self.draw_text_overlay(&text_model, canvas)?;
+            self.draw_text_overlay(state, &text_model, canvas)?;
 
             self.text_model = text_model;
             updated = true;
@@ -189,6 +189,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
     fn draw_text_overlay(
         &mut self,
+        state: &SceneStateLevel,
         text_model: &SkillPanelTextModel,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
@@ -230,6 +231,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             {
                 format_stats(
                     &mut self.stats_new,
+                    state,
                     text_model,
                     self.lemmings_released_total,
                 );
@@ -321,22 +323,36 @@ fn draw_stats<T: RenderTarget>(
     Ok(())
 }
 
-fn skill_name(skill: Profession) -> &'static str {
-    match skill {
-        Profession::Climber => "CLIMBER",
-        Profession::Floater => "FLOATER",
-        Profession::Bomber => "BOMBER",
-        Profession::Blocker => "BLOCKER",
-        Profession::Builder => "BUILDER",
-        Profession::Basher => "BASHER",
-        Profession::Miner => "MINER",
-        Profession::Digger => "DIGGER",
-        Profession::Faller => "FALLER",
-        Profession::Walker => "WALKER",
+fn describe_lemming(lemming: &LemmingState) -> &'static str {
+    if lemming.floater && lemming.climber {
+        "ATHLETE"
+    } else if lemming.climber {
+        "CLIMBER"
+    } else if lemming.floater {
+        "FLOATER"
+    } else {
+        match lemming.activity {
+            Activity::Climber => "CLIMBER",
+            Activity::Floater => "FLOATER",
+            Activity::Blocker => "BLOCKER",
+            Activity::Builder => "BUILDER",
+            Activity::Basher => "BASHER",
+            Activity::Miner => "MINER",
+            Activity::Digger => "DIGGER",
+            Activity::Faller => "FALLER",
+            Activity::Walker => "WALKER",
+            Activity::Drowner => "WALKER",
+            Activity::Splatter => "FALLER",
+        }
     }
 }
 
-fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released: usize) {
+fn format_stats(
+    str: &mut String,
+    state: &SceneStateLevel,
+    model: &SkillPanelTextModel,
+    lemmings_released: usize,
+) {
     str.clear();
 
     // 12 characters for the cursor
@@ -344,7 +360,7 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
         write!(
             str,
             "{:7} {:<2}  ",
-            skill_name(cursor_state.leading_profession),
+            describe_lemming(&state.lemmings[cursor_state.leading_lemming]),
             cursor_state.lemming_count
         )
         .unwrap();
@@ -353,7 +369,7 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
     }
 
     // 10 characters for lemmings out
-    write!(str, "OUT {:2}    ", model.lemmings_out).unwrap();
+    write!(str, "OUT {:3}  ", model.lemmings_out).unwrap();
 
     // 8 characteres for lemmings in
     if lemmings_released == model.lemmings_in {
@@ -361,7 +377,7 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
     } else {
         write!(
             str,
-            "IN {:2}%  ",
+            "IN {:2}%   ",
             (model.lemmings_in * 100)
                 .checked_div(lemmings_released)
                 .unwrap_or(0)
@@ -369,7 +385,7 @@ fn format_stats(str: &mut String, model: &SkillPanelTextModel, lemmings_released
         .unwrap();
     }
 
-    // 1 characters for time
+    // 10 characters for time
     write!(
         str,
         "{} {:1}-{:0>2}",

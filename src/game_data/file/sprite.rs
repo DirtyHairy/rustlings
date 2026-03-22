@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::{Result, anyhow, bail};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Bitmap {
     pub width: usize,
     pub height: usize,
