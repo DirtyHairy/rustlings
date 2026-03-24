@@ -30,8 +30,9 @@ use sdl3::{
 };
 
 use crate::{
-    geometry::Rect, scenes::scene_level::skill_panel_renderer::SkillPanelRenderer,
-    state::SceneStateLevel,
+    geometry::Rect,
+    scenes::scene_level::skill_panel_renderer::SkillPanelRenderer,
+    state::{LemmingAnimation, SceneStateLevel},
 };
 
 bitflags::bitflags! {
@@ -77,6 +78,8 @@ pub struct Renderer<'texture_creator> {
     texture_level: Texture<'texture_creator>,
     texture_screen: Texture<'texture_creator>,
 
+    lemming_sprites: Vec<SDLSprite<'texture_creator>>,
+
     objects_background: Vec<Object<'texture_creator>>,
     objects_foreground: Vec<Object<'texture_creator>>,
     objects_merge: Vec<Object<'texture_creator>>,
@@ -118,6 +121,19 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
         )?;
+
+        let lemming_sprites = LemmingAnimation::ALL
+            .iter()
+            .copied()
+            .map(LemmingAnimation::sprite)
+            .map(|sprite| {
+                SDLSprite::from_sprite(
+                    &game_data.lemming_sprites[sprite as usize],
+                    &palette,
+                    texture_creator,
+                )
+            })
+            .collect::<Result<Vec<SDLSprite>>>()?;
 
         let objects_merge = create_objects(&game_data, &palette, level, texture_creator, |o| {
             o.draw_only_over_terrain
@@ -196,6 +212,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             texture_minimap_frame,
             texture_level,
             texture_screen,
+            lemming_sprites,
 
             objects_merge,
             objects_foreground,

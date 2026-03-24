@@ -332,17 +332,17 @@ fn describe_lemming(lemming: &LemmingState) -> &'static str {
         "FLOATER"
     } else {
         match lemming.activity {
-            Activity::Climber => "CLIMBER",
-            Activity::Floater => "FLOATER",
-            Activity::Blocker => "BLOCKER",
-            Activity::Builder => "BUILDER",
-            Activity::Basher => "BASHER",
-            Activity::Miner => "MINER",
-            Activity::Digger => "DIGGER",
-            Activity::Faller => "FALLER",
-            Activity::Walker => "WALKER",
-            Activity::Drowner => "WALKER",
-            Activity::Splatter => "FALLER",
+            Activity::Climbing => "CLIMBER",
+            Activity::Floating => "FLOATER",
+            Activity::Blocking => "BLOCKER",
+            Activity::Building => "BUILDER",
+            Activity::Bashing => "BASHER",
+            Activity::Mining => "MINER",
+            Activity::Digging => "DIGGER",
+            Activity::Falling | Activity::Splatting => "FALLER",
+            Activity::Walking | Activity::Drowning | Activity::Frying | Activity::Exitting => {
+                "WALKER"
+            }
         }
     }
 }

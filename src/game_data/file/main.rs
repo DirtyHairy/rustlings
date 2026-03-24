@@ -49,6 +49,41 @@ const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
     (1, 32, 32, 3),
 ];
 
+#[derive(Copy, Clone, PartialEq, Default)]
+pub enum LemmingSprite {
+    #[default]
+    WalkingR = 0,
+    JumpingR = 1,
+    WalkingL = 2,
+    JumpingL = 3,
+    Digging = 4,
+    ClimbingR = 5,
+    ClimbingL = 6,
+    Drowning = 7,
+    PostClimbR = 8,
+    PostClimbL = 9,
+    BuildingR = 10,
+    BuildingL = 11,
+    BashingR = 12,
+    BashingL = 13,
+    MiningR = 14,
+    MiningL = 15,
+    FallingR = 16,
+    FallingL = 17,
+    PreUmbrellaR = 18,
+    UmbrellaR = 19,
+    PreUmbrellaL = 20,
+    UmbrellaL = 21,
+    Splatting = 22,
+    Exitting = 23,
+    Frying = 24,
+    Blocking = 25,
+    ShruggingR = 26,
+    ShruggingL = 27,
+    OhNo = 28,
+    Explosion = 29,
+}
+
 pub struct Content {
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
     pub skill_panel: Bitmap,

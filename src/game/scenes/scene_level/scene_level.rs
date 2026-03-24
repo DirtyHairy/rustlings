@@ -2,8 +2,7 @@ use std::{cmp, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, SKILLS,
-    decode_level_index,
+    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
