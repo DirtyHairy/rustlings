@@ -8,7 +8,12 @@ use rustlings::{
     },
     sdl_rendering::texture_from_bitmap,
 };
-use sdl3::render::{ScaleMode, Texture, TextureCreator};
+use sdl3::{
+    pixels::{Color, PixelFormat},
+    rect::Rect,
+    render::{BlendMode, ScaleMode, Texture, TextureCreator},
+    surface::Surface,
+};
 
 use crate::{
     geometry,
@@ -109,6 +114,7 @@ impl<'texture_creator> Cursors<'texture_creator> {
 pub struct RenderState<'texture_creator> {
     pub layers: Vec<Layer<'texture_creator>>,
     pub cursors: Cursors<'texture_creator>,
+    pub overlay: Texture<'texture_creator>,
     pub layout: Layout,
 
     pub scene_width: usize,
@@ -126,9 +132,17 @@ impl<'texture_creator> RenderState<'texture_creator> {
         game_data: &GameData,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
+        let mut overlay_surface = Surface::new(1, 1, PixelFormat::RGBA8888)?;
+        overlay_surface.fill_rect(Rect::new(0, 0, 1, 1), Color::RGBA(0, 0, 0, 255))?;
+
+        let mut overlay = texture_creator.create_texture_from_surface(&overlay_surface)?;
+        overlay.set_blend_mode(BlendMode::Blend);
+        overlay.set_scale_mode(ScaleMode::Linear);
+
         Ok(RenderState {
             layers: Vec::new(),
             cursors: Cursors::new(game_data, texture_creator)?,
+            overlay,
             layout: Default::default(),
             scene_width: scene.width(),
             scene_height: scene.height(),

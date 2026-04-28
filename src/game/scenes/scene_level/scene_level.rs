@@ -24,7 +24,8 @@ use crate::{
     state::{GameState, SceneState, SceneStateLevel},
 };
 
-const ENGINE_TICK_MSEC: u64 = 66; // 15.15 FPS
+const ENGINE_TICK_MSEC: u64 = 1000 / 17; // 17 FPS
+const FADE_IN_MSEC: u64 = 1000;
 
 #[derive(PartialEq)]
 enum Status {
@@ -45,6 +46,8 @@ pub struct SceneLevel<'texture_creator> {
 
     level_parameters: LevelParameters,
     clock_offset_msec: u64,
+
+    last_draw_at_clock_msec: u64,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -92,6 +95,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             skill_panel_controller,
             simulation,
             level_parameters: level.parameters,
+            last_draw_at_clock_msec: 0,
         })
     }
 }
@@ -122,6 +126,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
     fn aspect(&self) -> f32 {
         1.2
+    }
+
+    fn opacity(&self) -> u8 {
+        ((self.state.clock_msec * 255) / FADE_IN_MSEC).min(255) as u8
     }
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
@@ -235,7 +243,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
-        self.renderer.draw(&self.state, canvas)
+        let last_draw_at_clock_msec = self.last_draw_at_clock_msec;
+        self.last_draw_at_clock_msec = self.state.clock_msec;
+
+        self.renderer.draw(&self.state, canvas).map(|updated| {
+            updated
+                | (self.state.clock_msec != last_draw_at_clock_msec
+                    && self.state.clock_msec <= FADE_IN_MSEC)
+        })
     }
 
     fn will_redraw(&self) -> bool {

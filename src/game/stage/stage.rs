@@ -157,6 +157,7 @@ impl<'sdl> Stage<'sdl> {
         render_state: &mut RenderState<'sdl>,
     ) -> Result<()> {
         let scene_changed = scene.draw(&mut self.canvas)?;
+
         if self.rerender || scene_changed {
             self.render(render_state, scene, scene_changed)?;
             self.rerender = false;
@@ -305,6 +306,12 @@ impl<'sdl> Stage<'sdl> {
             let texture = self.prescale_layer(scene, layer, needs_redraw)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);
             self.canvas.copy(texture, None, Some(dest.into()))?;
+        }
+
+        let scene_opacity = scene.opacity();
+        if scene_opacity != 255 {
+            render_state.overlay.set_alpha_mod(255 - scene_opacity);
+            self.canvas.copy(&render_state.overlay, None, None)?;
         }
 
         if render_state.mouse_enabled && scene.cursor_type() != CursorType::None {

@@ -23,6 +23,8 @@ pub struct Simulation {
     objects: Vec<Object>,
 }
 
+const TICK_OPEN_ENTRANCES: u64 = 34;
+
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
         let objects = level
@@ -62,17 +64,40 @@ impl Simulation {
         for (i, object) in self.objects.iter().enumerate() {
             let object_state = &mut state.object_state[i];
 
-            if object.interaction_type == InteractionType::Entrance {
-                object_state.triggered = true;
-                object_state.frame = object.animation_start;
+            object_state.triggered = false;
+            object_state.frame = if object.interaction_type == InteractionType::Entrance {
+                object.animation_start
             } else {
-                object_state.triggered = false;
-                object_state.frame = 0;
-            }
+                0
+            };
         }
     }
 
     pub fn tick(&mut self, state: &mut SceneStateLevel) {
+        let current_tick = state.tick;
+        state.tick += 1;
+
+        if current_tick == TICK_OPEN_ENTRANCES {
+            self.open_entrances(state);
+        }
+
+        self.tick_objects(state);
+    }
+
+    fn open_entrances(&self, state: &mut SceneStateLevel) {
+        for (i, object) in self.objects.iter().enumerate() {
+            if object.interaction_type != InteractionType::Entrance {
+                continue;
+            }
+
+            let object_state = &mut state.object_state[i];
+
+            object_state.triggered = true;
+            object_state.frame = object.animation_start;
+        }
+    }
+
+    fn tick_objects(&self, state: &mut SceneStateLevel) {
         for (i, object) in self.objects.iter().enumerate() {
             let object_state = &mut state.object_state[i];
 

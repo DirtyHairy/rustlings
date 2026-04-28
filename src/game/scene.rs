@@ -51,6 +51,7 @@ pub trait Scene<'texture_creator> {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     fn aspect(&self) -> f32;
+    fn opacity(&self) -> u8;
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool);
     fn set_mouse_enabled(&mut self, mouse_enabled: bool);
