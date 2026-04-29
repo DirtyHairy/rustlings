@@ -36,7 +36,7 @@ const TICK_START_SPAWN: u64 = 44;
 
 const SPAWN_COUNTDOWN_DEFAULT: usize = 20;
 const SPAWN_X: usize = 23;
-const SPAWN_Y: usize = 16;
+const SPAWN_Y: usize = 13;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -115,11 +115,11 @@ impl Simulation {
             _ => (),
         }
 
-        self.tick_lemmings(state);
-
         if state.level_state == LevelState::Spawn {
             self.tick_spawn(state);
         }
+
+        self.tick_lemmings(state);
 
         self.tick_objects(state);
     }
@@ -155,7 +155,6 @@ impl Simulation {
         debug_assert!(index < state.lemming_count);
 
         if index < state.lemming_count / 2 {
-            println!("kill!");
             state.lemmings.copy_within(
                 state.lemming_offset..(state.lemming_offset + index),
                 state.lemming_offset + 1,
