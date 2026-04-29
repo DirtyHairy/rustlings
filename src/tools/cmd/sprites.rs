@@ -48,6 +48,7 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
                     iframe,
                     4,
                     false,
+                    false,
                 )?;
             }
 

@@ -16,7 +16,7 @@ const COLOR_BLACK: u8 = 0x00;
 const COLOR_DARK_GREEN: u8 = 0x02;
 const COLOR_LIGHT_GREEN: u8 = 0x09;
 
-const LEMMING_SPRITES: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
+pub const LEMMING_SPRITE_LAYOUT: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
     (8, 16, 10, 2),
     (1, 16, 10, 2),
     (8, 16, 10, 2),
@@ -103,7 +103,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let mut lemming_sprites: Vec<Sprite> = Vec::new();
     let mut offset = 0;
 
-    for (frame_count, width, height, bpp) in LEMMING_SPRITES {
+    for (frame_count, width, height, bpp) in LEMMING_SPRITE_LAYOUT {
         lemming_sprites.push(Sprite::read_planar(
             frame_count,
             width,

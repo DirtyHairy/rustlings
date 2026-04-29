@@ -210,6 +210,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             if !self.state.paused {
                 self.simulation.tick(&mut self.state);
                 self.renderer.mark_for_redraw(Redraw::LEVEL);
+                self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
             }
 
             if self.skill_panel_controller.tick(&mut self.state) {

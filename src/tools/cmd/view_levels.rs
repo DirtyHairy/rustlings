@@ -257,6 +257,7 @@ where
                 object.y,
                 (frame % sprite.frame_count as u64) as usize,
                 1,
+                false,
                 object.flip_y,
             )?;
         }

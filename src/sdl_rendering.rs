@@ -142,6 +142,7 @@ impl<'a> SDLSprite<'a> {
         y: i32,
         iframe: usize,
         scale: usize,
+        flip_x: bool,
         flip_y: bool,
     ) -> Result<()> {
         canvas
@@ -161,7 +162,7 @@ impl<'a> SDLSprite<'a> {
                 ),
                 0.,
                 None,
-                false,
+                flip_x,
                 flip_y,
             )
             .map_err(anyhow::Error::from)

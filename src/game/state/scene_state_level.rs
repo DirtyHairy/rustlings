@@ -1,18 +1,9 @@
-use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill, file::main::LemmingSprite};
+use rustlings::game_data::{
+    Bitmap, NUM_SKILLS, Skill,
+    file::main::{LEMMING_SPRITE_LAYOUT, LemmingSprite},
+};
 
 pub const MAX_LEMMING_COUNT: usize = 100;
-
-#[derive(Default, Clone)]
-pub enum Screen {
-    #[default]
-    Level,
-}
-
-#[derive(Default, Clone)]
-pub struct GameState {
-    pub screen: Screen,
-    pub current_level: usize,
-}
 
 #[derive(Clone, Default)]
 pub struct ObjectState {
@@ -21,19 +12,22 @@ pub struct ObjectState {
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
+pub struct ActivityStateFalling {
+    pub delta_y: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Default)]
 pub enum Activity {
     #[default]
     Climbing,
-    Hoisting,
     Floating,
     Blocking,
     Building,
     Bashing,
     Mining,
     Digging,
-    Falling,
+    Falling(ActivityStateFalling),
     Walking,
-    Jumping,
     Splatting,
     Drowning,
     Frying,
@@ -94,6 +88,21 @@ impl LemmingAnimation {
         Self::Splatting,
     ];
 
+    pub const fn foot(self) -> (usize, usize) {
+        match self {
+            Self::Digging => (7, 11),
+            Self::Explosion => (15, 24),
+            _ => (
+                LEMMING_SPRITE_LAYOUT[self as usize].1 / 2 - 1,
+                LEMMING_SPRITE_LAYOUT[self as usize].2 - 1,
+            ),
+        }
+    }
+
+    pub const fn frame_count(self) -> usize {
+        LEMMING_SPRITE_LAYOUT[self as usize].0
+    }
+
     pub fn mirror(self, direction: Direction) -> bool {
         direction == Direction::Left && (self as usize) < (Self::Exitting as usize)
     }
@@ -129,7 +138,7 @@ pub struct CursorState {
     pub leading_lemming: usize,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct LemmingState {
     pub x: usize,
     pub y: usize,
@@ -144,8 +153,19 @@ pub struct LemmingState {
     pub climber: bool,
 }
 
+#[derive(Clone, Copy, PartialEq, Default)]
+pub enum LevelState {
+    #[default]
+    Intro,
+    Open,
+    Spawn,
+    Late,
+}
+
 #[derive(Clone, Default)]
 pub struct SceneStateLevel {
+    pub level_state: LevelState,
+
     pub level_x: usize,
     pub terrain: Bitmap,
     pub object_state: Vec<ObjectState>,
@@ -158,7 +178,7 @@ pub struct SceneStateLevel {
     pub selected_skill: Skill,
     pub remaining_skills: [usize; NUM_SKILLS],
 
-    pub lemmings_out_total: usize,
+    pub lemmings_out: usize,
     pub lemmings_in: usize,
     pub release_rate: usize,
 
@@ -169,11 +189,6 @@ pub struct SceneStateLevel {
     pub lemmings: Vec<LemmingState>,
     pub lemming_count: usize,
     pub lemming_offset: usize,
-}
 
-#[derive(Default, Clone)]
-pub enum SceneState {
-    #[default]
-    None,
-    Level(SceneStateLevel),
+    pub spawn_countdown: usize,
 }

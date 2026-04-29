@@ -334,6 +334,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 SDL_BLENDMODE_BLEND,
             )?;
 
+            draw_lemmings(canvas, state, &self.lemming_sprites)?;
+
             Ok(())
         })?;
 
@@ -363,6 +365,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.objects_foreground,
                     SDL_BLENDMODE_BLEND,
                 )?;
+
+                draw_lemmings(canvas, state, &self.lemming_sprites)?;
 
                 Ok(())
             })
@@ -412,6 +416,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.objects_foreground,
                     SDL_BLENDMODE_BLEND,
                 )?;
+
+                draw_lemmings(canvas, state, &self.lemming_sprites)?;
 
                 Ok(())
             })
@@ -547,7 +553,33 @@ fn blit_objects<T: RenderTarget>(
             object.y as i32,
             state.object_state[object.id].frame,
             1,
+            false,
             object.flip,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn draw_lemmings<T: RenderTarget>(
+    canvas: &mut Canvas<T>,
+    state: &SceneStateLevel,
+    sprites: &Vec<SDLSprite>,
+) -> Result<()> {
+    for index in state.lemming_offset..(state.lemming_count + state.lemming_offset) {
+        let lemming = &state.lemmings[index];
+
+        let sprite = &sprites[lemming.animation as usize];
+        let (foot_x, foot_y) = lemming.animation.foot();
+
+        sprite.blit(
+            canvas,
+            lemming.x as i32 - foot_x as i32,
+            lemming.y as i32 - foot_y as i32,
+            lemming.frame,
+            1,
+            lemming.animation.mirror(lemming.direction),
+            false,
         )?;
     }
 

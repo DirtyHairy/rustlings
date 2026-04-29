@@ -65,7 +65,7 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
                     y = y + 2 * (height + 1);
                 }
 
-                sprite.blit(&mut canvas, x, y, iframe, 2, false)?;
+                sprite.blit(&mut canvas, x, y, iframe, 2, false, false)?;
 
                 x = x + (sprite.width as i32 + 1) * 2;
                 height = max(height as usize, sprite.height + 1) as i32;

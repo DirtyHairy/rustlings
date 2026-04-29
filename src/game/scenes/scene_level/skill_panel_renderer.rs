@@ -17,7 +17,9 @@ use sdl3::{
     video::Window,
 };
 
-use crate::state::{Activity, CursorState, LemmingState, SceneStateLevel};
+use crate::state::{
+    SceneStateLevel, {Activity, CursorState, LemmingState},
+};
 
 pub struct SkillPanelRenderer<'texture_creator> {
     texture_skill_panel: Texture<'texture_creator>,
@@ -281,6 +283,7 @@ fn draw_tile_label<T: RenderTarget>(
         resolve_skill_panel_skill_font_index(char_10),
         1,
         false,
+        false,
     )?;
 
     font.blit(
@@ -289,6 +292,7 @@ fn draw_tile_label<T: RenderTarget>(
         y as i32,
         resolve_skill_panel_skill_font_index(char_1),
         1,
+        false,
         false,
     )?;
 
@@ -317,6 +321,7 @@ fn draw_stats<T: RenderTarget>(
             resolve_skill_panel_font_index(char_new),
             1,
             false,
+            false,
         )?;
     }
 
@@ -332,19 +337,17 @@ fn describe_lemming(lemming: &LemmingState) -> &'static str {
         "FLOATER"
     } else {
         match lemming.activity {
-            Activity::Climbing | Activity::Hoisting => "CLIMBER",
+            Activity::Climbing => "CLIMBER",
             Activity::Floating => "FLOATER",
             Activity::Blocking => "BLOCKER",
             Activity::Building => "BUILDER",
             Activity::Bashing => "BASHER",
             Activity::Mining => "MINER",
             Activity::Digging => "DIGGER",
-            Activity::Falling | Activity::Splatting => "FALLER",
-            Activity::Walking
-            | Activity::Jumping
-            | Activity::Drowning
-            | Activity::Frying
-            | Activity::Exitting => "WALKER",
+            Activity::Falling(_) | Activity::Splatting => "FALLER",
+            Activity::Walking | Activity::Drowning | Activity::Frying | Activity::Exitting => {
+                "WALKER"
+            }
         }
     }
 }
