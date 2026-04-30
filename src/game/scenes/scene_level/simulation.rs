@@ -3,9 +3,7 @@ use std::rc::Rc;
 use anyhow::{Result, format_err};
 use rustlings::game_data::{GameData, LEVEL_HEIGHT, Level, file::ground::InteractionType};
 
-use crate::state::{
-    Activity, ActivityStateFalling, LemmingAnimation, LemmingState, LevelState, SceneStateLevel,
-};
+use crate::state::{Activity, LemmingAnimation, LemmingState, LevelState, SceneStateLevel};
 
 #[derive(PartialEq, Clone, Copy)]
 enum AnimationType {
@@ -33,8 +31,8 @@ const TICK_OPEN_ENTRANCES: u64 = 34;
 const TICK_START_SPAWN: u64 = 44;
 
 const SPAWN_COUNTDOWN_DEFAULT: usize = 20;
-const SPAWN_X: usize = 23;
-const SPAWN_Y: usize = 13;
+const SPAWN_X: usize = 24;
+const SPAWN_Y: usize = 14;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -193,8 +191,8 @@ impl Simulation {
 
 impl LemmingState {
     pub fn tick(&mut self) -> bool {
-        let mut kill = match self.activity {
-            Activity::Falling(mut activity_state) => self.tick_faller(&mut activity_state),
+        let mut kill = match &self.activity {
+            Activity::Falling(_) => self.tick_faller(),
             _ => false,
         };
 
@@ -209,12 +207,16 @@ impl LemmingState {
         self.frame = 0;
     }
 
-    fn tick_faller(&mut self, activity_state: &mut ActivityStateFalling) -> bool {
-        self.frame = (self.frame + 1) % self.animation.frame_count();
-        self.y += 3;
+    fn tick_faller(&mut self) -> bool {
+        if let Activity::Falling(state) = &mut self.activity {
+            self.frame = (self.frame + 1) % self.animation.frame_count();
+            self.y += 3;
 
-        activity_state.delta_y += 3;
+            state.delta_y += 3;
 
-        false
+            false
+        } else {
+            unreachable!()
+        }
     }
 }

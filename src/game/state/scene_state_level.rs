@@ -90,11 +90,11 @@ impl LemmingAnimation {
 
     pub const fn foot(self) -> (usize, usize) {
         match self {
-            Self::Digging => (7, 11),
-            Self::Explosion => (15, 24),
+            Self::Digging => (8, 12),
+            Self::Explosion => (16, 25),
             _ => (
-                LEMMING_SPRITE_LAYOUT[self as usize].1 / 2 - 1,
-                LEMMING_SPRITE_LAYOUT[self as usize].2 - 1,
+                LEMMING_SPRITE_LAYOUT[self as usize].1 / 2,
+                LEMMING_SPRITE_LAYOUT[self as usize].2,
             ),
         }
     }
