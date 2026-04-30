@@ -566,9 +566,7 @@ fn draw_lemmings<T: RenderTarget>(
     state: &SceneStateLevel,
     sprites: &Vec<SDLSprite>,
 ) -> Result<()> {
-    for index in state.lemming_offset..(state.lemming_count + state.lemming_offset) {
-        let lemming = &state.lemmings[index];
-
+    for lemming in &state.lemmings {
         let sprite = &sprites[lemming.animation as usize];
         let (foot_x, foot_y) = lemming.animation.foot();
 

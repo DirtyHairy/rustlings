@@ -1,4 +1,4 @@
-use std::{cmp, rc::Rc};
+use std::{cmp, collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
@@ -69,7 +69,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     level_x: level.start_x as usize,
                     terrain: game_data.compose_terrain(&level)?,
                     object_state: vec![Default::default(); level.objects.len()],
-                    lemmings: vec![Default::default(); level.parameters.released as usize],
+                    lemmings: VecDeque::with_capacity(level.parameters.released as usize),
                     remaining_skills: level.parameters.skills.map(|x| x as usize),
                     release_rate: level.parameters.release_rate as usize,
                     remaining_time_seconds: level.parameters.time_limit as usize * 60,

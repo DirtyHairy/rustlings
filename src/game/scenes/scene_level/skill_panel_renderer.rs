@@ -59,7 +59,7 @@ impl SkillPanelTextModel {
     fn from_state(state: &SceneStateLevel) -> Self {
         Self {
             remaining_skills: state.remaining_skills.clone(),
-            lemmings_out: state.lemming_count,
+            lemmings_out: state.lemmings.len(),
             lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,
             remaining_time_seconds: state.remaining_time_seconds,

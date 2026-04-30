@@ -1,9 +1,9 @@
+use std::collections::VecDeque;
+
 use rustlings::game_data::{
     Bitmap, NUM_SKILLS, Skill,
     file::main::{LEMMING_SPRITE_LAYOUT, LemmingSprite},
 };
-
-pub const MAX_LEMMING_COUNT: usize = 100;
 
 #[derive(Clone, Default)]
 pub struct ObjectState {
@@ -186,9 +186,7 @@ pub struct SceneStateLevel {
 
     pub cursor_state: Option<CursorState>,
 
-    pub lemmings: Vec<LemmingState>,
-    pub lemming_count: usize,
-    pub lemming_offset: usize,
+    pub lemmings: VecDeque<LemmingState>,
 
     pub spawn_countdown: usize,
 }

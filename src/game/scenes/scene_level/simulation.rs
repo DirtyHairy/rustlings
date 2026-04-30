@@ -1,9 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::{Result, format_err};
-use rustlings::game_data::{
-    GameData, LEVEL_HEIGHT, Level, LevelParameters, file::ground::InteractionType,
-};
+use rustlings::game_data::{GameData, LEVEL_HEIGHT, Level, file::ground::InteractionType};
 
 use crate::state::{
     Activity, ActivityStateFalling, LemmingAnimation, LemmingState, LevelState, SceneStateLevel,
@@ -75,7 +73,7 @@ impl Simulation {
         let entrances: Vec<usize> = objects
             .iter()
             .enumerate()
-            .filter(|(i, o)| o.interaction_type == InteractionType::Entrance)
+            .filter(|(_, o)| o.interaction_type == InteractionType::Entrance)
             .map(|(i, _)| i)
             .collect();
 
@@ -138,37 +136,16 @@ impl Simulation {
     }
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
-        let mut i = 0;
-        while i < state.lemming_count {
-            let kill = state.lemmings[state.lemming_offset + i].tick();
+        let mut index = 0;
+        while index < state.lemmings.len() {
+            let kill = state.lemmings[index].tick();
 
             if kill {
-                self.remove_lemming(state, i);
+                state.lemmings.remove(index);
             } else {
-                i += 1;
+                index += 1;
             }
         }
-    }
-
-    fn remove_lemming(&self, state: &mut SceneStateLevel, index: usize) {
-        debug_assert!(state.lemming_count > 0);
-        debug_assert!(index < state.lemming_count);
-
-        if index < state.lemming_count / 2 {
-            state.lemmings.copy_within(
-                state.lemming_offset..(state.lemming_offset + index),
-                state.lemming_offset + 1,
-            );
-
-            state.lemming_offset += 1;
-        } else {
-            state.lemmings.copy_within(
-                (state.lemming_offset + index + 1)..(state.lemming_offset + state.lemming_count),
-                state.lemming_offset + index,
-            );
-        }
-
-        state.lemming_count -= 1;
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
@@ -179,18 +156,16 @@ impl Simulation {
 
         let entrance = &self.objects[self.entrances[state.lemmings_out % self.entrances.len()]];
 
-        state.lemming_count += 1;
-        state.lemmings_out += 1;
-
-        let lemming = &mut state.lemmings[state.lemming_offset + state.lemming_count - 1];
-
-        *lemming = LemmingState {
+        let mut lemming = LemmingState {
             x: entrance.x + SPAWN_X,
             y: entrance.y + SPAWN_Y,
             ..Default::default()
         };
 
         lemming.start_falling();
+
+        state.lemmings.push_back(lemming);
+        state.lemmings_out += 1;
 
         if state.lemmings_out == self.released_total {
             state.level_state = LevelState::Late;
