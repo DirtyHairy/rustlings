@@ -40,14 +40,7 @@ impl Simulation {
             .objects
             .iter()
             .map(|o| -> Result<Object> {
-                let tileset = game_data
-                    .tilesets
-                    .get(level.graphics_set as usize)
-                    .ok_or(format_err!("invalid tileset {}", level.graphics_set))?;
-                let info = tileset
-                    .object_info
-                    .get(o.id as usize)
-                    .ok_or(format_err!("invalid object {}", o.id))?;
+                let info = game_data.resolve_object(o.id as usize, level.graphics_set as usize)?;
 
                 let animation_type = if info.animation_end == 1 {
                     AnimationType::Static

@@ -13,6 +13,9 @@ path = "src/tools/main.rs"
 
 [dependencies]
 anyhow = "1.0.101"
+bitfield-struct = "0.13.0"
 bitflags = "2.11.0"
 clap = "4.5.57"
 sdl3 = "0.17.3"
+strum = { version = "0.28.0", features = ["derive"] }
+strum_macros = "0.28.0"

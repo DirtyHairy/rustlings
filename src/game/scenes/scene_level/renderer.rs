@@ -28,6 +28,7 @@ use sdl3::{
     render::{BlendMode, RenderTarget},
     sys::blendmode::SDL_BLENDMODE_NONE,
 };
+use strum::VariantArray;
 
 use crate::{
     geometry::Rect,
@@ -122,7 +123,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SCREEN_HEIGHT as u32,
         )?;
 
-        let lemming_sprites = LemmingAnimation::ALL
+        let lemming_sprites = LemmingAnimation::VARIANTS
             .iter()
             .copied()
             .map(LemmingAnimation::sprite)

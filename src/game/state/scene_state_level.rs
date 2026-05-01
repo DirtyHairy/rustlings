@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 
-use rustlings::game_data::{
-    Bitmap, NUM_SKILLS, Skill,
-    file::main::{LEMMING_SPRITE_LAYOUT, LemmingSprite},
-};
+use bitfield_struct::bitfield;
+use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill};
+
+use crate::state::LemmingAnimation;
 
 #[derive(Clone, Default)]
 pub struct ObjectState {
@@ -41,97 +41,6 @@ pub enum Direction {
     Left,
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
-pub enum LemmingAnimation {
-    #[default]
-    Walking,
-    Jumping,
-    Climbing,
-    Hoisting,
-    Building,
-    Bashing,
-    Mining,
-    Falling,
-    PreUmbrella,
-    Umbrella,
-    Shrugging, // last assymetric animation
-    Exitting,  // first symmetric animation
-    Frying,
-    Blocking,
-    OhNo,
-    Explosion,
-    Digging,
-    Drowning,
-    Splatting,
-}
-
-impl LemmingAnimation {
-    pub const ALL: &[LemmingAnimation] = &[
-        Self::Walking,
-        Self::Jumping,
-        Self::Climbing,
-        Self::Hoisting,
-        Self::Building,
-        Self::Bashing,
-        Self::Mining,
-        Self::Falling,
-        Self::PreUmbrella,
-        Self::Umbrella,
-        Self::Shrugging,
-        Self::Exitting,
-        Self::Frying,
-        Self::Blocking,
-        Self::OhNo,
-        Self::Explosion,
-        Self::Digging,
-        Self::Drowning,
-        Self::Splatting,
-    ];
-
-    pub const fn foot(self) -> (usize, usize) {
-        match self {
-            Self::Digging => (8, 12),
-            Self::Explosion => (16, 25),
-            _ => (
-                LEMMING_SPRITE_LAYOUT[self as usize].1 / 2,
-                LEMMING_SPRITE_LAYOUT[self as usize].2,
-            ),
-        }
-    }
-
-    pub const fn frame_count(self) -> usize {
-        LEMMING_SPRITE_LAYOUT[self as usize].0
-    }
-
-    pub fn mirror(self, direction: Direction) -> bool {
-        direction == Direction::Left && (self as usize) < (Self::Exitting as usize)
-    }
-
-    pub fn sprite(self) -> LemmingSprite {
-        match self {
-            Self::Walking => LemmingSprite::WalkingR,
-            Self::Jumping => LemmingSprite::JumpingR,
-            Self::Climbing => LemmingSprite::ClimbingR,
-            Self::Hoisting => LemmingSprite::HoistingR,
-            Self::Building => LemmingSprite::BuildingR,
-            Self::Bashing => LemmingSprite::BashingR,
-            Self::Mining => LemmingSprite::MiningR,
-            Self::Falling => LemmingSprite::FallingR,
-            Self::PreUmbrella => LemmingSprite::PreUmbrellaR,
-            Self::Umbrella => LemmingSprite::UmbrellaR,
-            Self::Exitting => LemmingSprite::Exitting,
-            Self::Shrugging => LemmingSprite::ShruggingR,
-            Self::Frying => LemmingSprite::Frying,
-            Self::Blocking => LemmingSprite::Blocking,
-            Self::OhNo => LemmingSprite::OhNo,
-            Self::Explosion => LemmingSprite::Explosion,
-            Self::Digging => LemmingSprite::Digging,
-            Self::Drowning => LemmingSprite::Drowning,
-            Self::Splatting => LemmingSprite::Splatting,
-        }
-    }
-}
-
 #[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
     pub lemming_count: usize,
@@ -162,12 +71,26 @@ pub enum LevelState {
     Late,
 }
 
+#[bitfield(u16)]
+pub struct TerrainProps {
+    pub solid: bool,
+    pub steel: bool,
+    pub one_way_left: bool,
+    pub one_way_right: bool,
+    pub exit: bool,
+    pub drown: bool,
+    pub disintegrate: bool,
+    pub trap: bool,
+    pub object_index: u8,
+}
+
 #[derive(Clone, Default)]
 pub struct SceneStateLevel {
     pub level_state: LevelState,
 
     pub level_x: usize,
     pub terrain: Bitmap,
+    pub terrain_map: Vec<TerrainProps>,
     pub object_state: Vec<ObjectState>,
 
     pub clock_msec: u64,

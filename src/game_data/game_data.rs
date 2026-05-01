@@ -81,6 +81,15 @@ impl GameData {
         }
     }
 
+    pub fn resolve_object(&self, object_id: usize, tileset_id: usize) -> Result<&ObjectInfo> {
+        self.tilesets
+            .get(tileset_id)
+            .ok_or(format_err!("invalid tileset {}", tileset_id))?
+            .object_info
+            .get(object_id)
+            .ok_or(format_err!("invalid object ID {}", object_id))
+    }
+
     pub fn resolve_skill_panel_palette(&self, tileset: usize) -> [PaletteEntry; PALETTE_SIZE] {
         let mut palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
 

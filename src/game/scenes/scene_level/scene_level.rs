@@ -2,7 +2,8 @@ use std::{cmp, collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, decode_level_index,
+    Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT,
+    SCREEN_WIDTH, decode_level_index, file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -12,12 +13,14 @@ use sdl3::{
 
 use crate::{
     code::code_for_level,
+    game,
     scene::{CursorType, Scene, SceneEvent},
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
         simulation::Simulation,
         skill_panel_controller::SkillPanelController,
     },
+    state::TerrainProps,
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
@@ -68,6 +71,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                 let mut state = SceneStateLevel {
                     level_x: level.start_x as usize,
                     terrain: game_data.compose_terrain(&level)?,
+                    terrain_map: vec![Default::default(); LEVEL_WIDTH * LEVEL_HEIGHT],
                     object_state: vec![Default::default(); level.objects.len()],
                     lemmings: VecDeque::with_capacity(level.parameters.released as usize),
                     remaining_skills: level.parameters.skills.map(|x| x as usize),
@@ -76,6 +80,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     ..Default::default()
                 };
 
+                init_terrain_map(&state.terrain, &level, &game_data, &mut state.terrain_map)?;
                 simulation.initialize(&mut state);
                 state
             }
@@ -276,4 +281,46 @@ fn print_level(current_level: usize, level: &Level) {
         code_for_level(current_level, None, None).unwrap_or("[invalid]".into())
     );
     println!("{}", level);
+}
+
+fn init_terrain_map(
+    terrain: &Bitmap,
+    level: &Level,
+    game_data: &GameData,
+    terrain_map: &mut [TerrainProps],
+) -> Result<()> {
+    for i in 0..LEVEL_WIDTH * LEVEL_HEIGHT {
+        terrain_map[i].set_solid(!terrain.transparency[i]);
+    }
+
+    for (index, object) in level.objects.iter().enumerate() {
+        let object_info =
+            game_data.resolve_object(object.id as usize, level.graphics_set as usize)?;
+
+        let object_x = (object.x as isize + object_info.trigger_left).max(0) as usize;
+        let object_y = (object.y as isize + object_info.trigger_top).max(0) as usize;
+        let object_width = object_info.trigger_width;
+        let object_height = object_info.trigger_width;
+
+        for y in object_y..(object_y + object_height).min(LEVEL_HEIGHT) {
+            for x in object_x..(object_x + object_width).min(LEVEL_WIDTH) {
+                let props = &mut terrain_map[y * LEVEL_WIDTH + x];
+
+                match object_info.interaction_type {
+                    InteractionType::Disintegrate => props.set_disintegrate(true),
+                    InteractionType::Drown => props.set_drown(true),
+                    InteractionType::Exit => props.set_exit(true),
+                    InteractionType::OneWayLeft => props.set_one_way_left(true),
+                    InteractionType::OneWayRight => props.set_one_way_right(true),
+                    InteractionType::Trap => {
+                        props.set_trap(true);
+                        props.set_object_index(index as u8);
+                    }
+                    InteractionType::Entrance | InteractionType::None => (),
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
