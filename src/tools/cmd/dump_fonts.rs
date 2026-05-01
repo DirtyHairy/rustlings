@@ -1,6 +1,6 @@
-use anyhow::{Result, format_err};
 use std::path::Path;
 
+use anyhow::{Result, format_err};
 use rustlings::game_data::{
     read_game_data, resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
 };
@@ -22,7 +22,7 @@ pub fn main(path: &Path) -> Result<()> {
             .skill_panel
             .font
             .frames
-            .get(index)
+            .get(index as usize)
             .ok_or(format_err!("invalid skill panel font index {}", index))?;
 
         println!("'{}‘", c);
@@ -49,7 +49,7 @@ pub fn main(path: &Path) -> Result<()> {
             .skill_panel
             .font_skills
             .frames
-            .get(index)
+            .get(index as usize)
             .ok_or(format_err!("invalid skill panel font index {}", index))?;
 
         println!("'{}‘", c);

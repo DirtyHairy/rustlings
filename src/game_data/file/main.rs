@@ -175,25 +175,21 @@ pub fn read_main(path: &Path) -> Result<Content> {
     })
 }
 
-pub fn resolve_skill_panel_skill_font_index(c: char) -> usize {
+pub fn resolve_skill_panel_skill_font_index(c: char) -> u32 {
     match c {
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-            ((c as u32) - ('0' as u32)) as usize
-        }
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => (c as u32) - ('0' as u32),
         _ => 10,
     }
 }
 
-pub fn resolve_skill_panel_font_index(c: char) -> usize {
+pub fn resolve_skill_panel_font_index(c: char) -> u32 {
     match c {
         '%' => 0,
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-            ((c as u32) - ('0' as u32)) as usize + 1
-        }
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => (c as u32) - ('0' as u32) + 1,
         '-' => 11,
         'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O'
         | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' => {
-            ((c as u32) - ('A' as u32)) as usize + 12
+            (c as u32) - ('A' as u32) + 12
         }
         _ => 38,
     }

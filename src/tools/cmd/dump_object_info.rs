@@ -1,6 +1,6 @@
-use anyhow::Result;
 use std::path::Path;
 
+use anyhow::Result;
 use rustlings::game_data::read_game_data;
 
 pub fn main(path: &Path) -> Result<()> {

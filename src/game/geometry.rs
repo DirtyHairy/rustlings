@@ -2,14 +2,14 @@ use std::fmt::Display;
 
 #[derive(Default, Clone, Copy)]
 pub struct Rect {
-    pub x: usize,
-    pub y: usize,
-    pub width: usize,
-    pub height: usize,
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl Rect {
-    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
+    pub fn new(x: u32, y: u32, width: u32, height: u32) -> Self {
         Rect {
             x,
             y,

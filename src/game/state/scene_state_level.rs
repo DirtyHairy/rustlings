@@ -8,12 +8,12 @@ use crate::state::LemmingAnimation;
 #[derive(Clone, Default)]
 pub struct ObjectState {
     pub triggered: bool,
-    pub frame: usize,
+    pub frame: u32,
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
 pub struct ActivityStateFalling {
-    pub delta_y: usize,
+    pub delta_y: u32,
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
@@ -43,21 +43,21 @@ pub enum Direction {
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
-    pub lemming_count: usize,
-    pub leading_lemming: usize,
+    pub lemming_count: u32,
+    pub leading_lemming: u32,
 }
 
 #[derive(Clone, Copy, Default)]
 pub struct LemmingState {
-    pub x: usize,
-    pub y: usize,
+    pub x: u32,
+    pub y: u32,
 
     pub activity: Activity,
     pub direction: Direction,
     pub animation: LemmingAnimation,
-    pub frame: usize,
+    pub frame: u32,
 
-    pub countdown: Option<usize>,
+    pub countdown: Option<u32>,
     pub floater: bool,
     pub climber: bool,
 }
@@ -88,7 +88,7 @@ pub struct TerrainProps {
 pub struct SceneStateLevel {
     pub level_state: LevelState,
 
-    pub level_x: usize,
+    pub level_x: u32,
     pub terrain: Bitmap,
     pub terrain_map: Vec<TerrainProps>,
     pub object_state: Vec<ObjectState>,
@@ -99,17 +99,17 @@ pub struct SceneStateLevel {
     pub tick: u64,
 
     pub selected_skill: Skill,
-    pub remaining_skills: [usize; NUM_SKILLS],
+    pub remaining_skills: [u32; NUM_SKILLS],
 
-    pub lemmings_out: usize,
-    pub lemmings_in: usize,
-    pub release_rate: usize,
+    pub lemmings_out: u32,
+    pub lemmings_in: u32,
+    pub release_rate: u32,
 
-    pub remaining_time_seconds: usize,
+    pub remaining_time_seconds: u32,
 
     pub cursor_state: Option<CursorState>,
 
     pub lemmings: VecDeque<LemmingState>,
 
-    pub spawn_countdown: usize,
+    pub spawn_countdown: u32,
 }

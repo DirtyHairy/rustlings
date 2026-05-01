@@ -46,7 +46,7 @@ bitflags::bitflags! {
     }
 }
 
-const SKILL_PANEL_Y: usize = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
+const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
@@ -54,8 +54,8 @@ const TEXTURE_ID_MINIMAP: usize = 1;
 struct Object<'texture_creator> {
     id: usize,
 
-    x: usize,
-    y: usize,
+    x: u32,
+    y: u32,
     flip: bool,
 
     sprite: SDLSprite<'texture_creator>,
@@ -113,14 +113,14 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
         let texture_level = texture_creator.create_texture_target(
             PixelFormat::RGBA8888,
-            LEVEL_WIDTH as u32,
-            LEVEL_HEIGHT as u32,
+            LEVEL_WIDTH,
+            LEVEL_HEIGHT,
         )?;
 
         let texture_screen = texture_creator.create_texture_target(
             PixelFormat::RGBA8888,
-            SCREEN_WIDTH as u32,
-            SCREEN_HEIGHT as u32,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
         )?;
 
         let lemming_sprites = LemmingAnimation::VARIANTS
@@ -196,8 +196,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             let intermediate_terrain = texture_creator.create_texture_target(
                 PixelFormat::RGBA8888,
-                LEVEL_WIDTH as u32,
-                LEVEL_HEIGHT as u32,
+                LEVEL_WIDTH,
+                LEVEL_HEIGHT,
             )?;
 
             RenderStrategy::Stencil(StencilTextures {
@@ -257,7 +257,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         );
     }
 
-    fn minimap_frame_position(&self, state: &SceneStateLevel) -> (usize, usize) {
+    fn minimap_frame_position(&self, state: &SceneStateLevel) -> (u32, u32) {
         (
             MINIMAP_VIEW_X + (state.level_x * MINIMAP_VIEW_WIDTH) / LEVEL_WIDTH - 1,
             SKILL_PANEL_Y + MINIMAP_AREA_Y,
@@ -440,25 +440,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
             canvas.copy(
                 skill_panel_texture,
                 None,
-                SdlRect::new(
-                    0,
-                    LEVEL_HEIGHT as i32,
-                    SCREEN_WIDTH as u32,
-                    SKILL_PANEL_HEIGHT as u32,
-                ),
+                SdlRect::new(0, LEVEL_HEIGHT as i32, SCREEN_WIDTH, SKILL_PANEL_HEIGHT),
             )?;
 
             self.texture_level.set_blend_mode(BlendMode::None);
             self.texture_level.set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
                 &self.texture_level,
-                SdlRect::new(
-                    state.level_x as i32,
-                    0,
-                    SCREEN_WIDTH as u32,
-                    LEVEL_HEIGHT as u32,
-                ),
-                SdlRect::new(0, 0, SCREEN_WIDTH as u32, LEVEL_HEIGHT as u32),
+                SdlRect::new(state.level_x as i32, 0, SCREEN_WIDTH, LEVEL_HEIGHT),
+                SdlRect::new(0, 0, SCREEN_WIDTH, LEVEL_HEIGHT),
             )?;
 
             self.texture_minimap_frame.set_blend_mode(Blend);
@@ -470,8 +460,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 SdlRect::new(
                     frame_x as i32,
                     frame_y as i32,
-                    MINIMAP_FRAME_WIDTH as u32,
-                    MINIMAP_FRAME_HEIGHT as u32,
+                    MINIMAP_FRAME_WIDTH,
+                    MINIMAP_FRAME_HEIGHT,
                 ),
             )?;
 
@@ -511,8 +501,8 @@ fn create_objects<'texture_creator, P: Fn(&&level::Object) -> bool, T>(
 
             Ok(Object {
                 id,
-                x: o.x as usize,
-                y: o.y as usize,
+                x: o.x as u32,
+                y: o.y as u32,
                 flip: o.flip_y,
                 sprite: sdl_sprite,
             })

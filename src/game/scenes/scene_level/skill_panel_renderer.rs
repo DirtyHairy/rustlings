@@ -32,8 +32,8 @@ pub struct SkillPanelRenderer<'texture_creator> {
 
     full_redraw: bool,
 
-    lemmings_released_total: usize,
-    release_rate_min: usize,
+    lemmings_released_total: u32,
+    release_rate_min: u32,
     selected_skill: Skill,
 
     text_model: SkillPanelTextModel,
@@ -44,13 +44,13 @@ pub struct SkillPanelRenderer<'texture_creator> {
 
 #[derive(PartialEq, Default)]
 struct SkillPanelTextModel {
-    remaining_skills: [usize; NUM_SKILLS],
+    remaining_skills: [u32; NUM_SKILLS],
 
-    lemmings_out: usize,
-    lemmings_in: usize,
-    release_rate: usize,
+    lemmings_out: u32,
+    lemmings_in: u32,
+    release_rate: u32,
 
-    remaining_time_seconds: usize,
+    remaining_time_seconds: u32,
     paused: bool,
     cursor_state: Option<CursorState>,
 }
@@ -59,7 +59,7 @@ impl SkillPanelTextModel {
     fn from_state(state: &SceneStateLevel) -> Self {
         Self {
             remaining_skills: state.remaining_skills.clone(),
-            lemmings_out: state.lemmings.len(),
+            lemmings_out: state.lemmings.len() as u32,
             lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,
             remaining_time_seconds: state.remaining_time_seconds,
@@ -91,14 +91,14 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
         let texture_font_overlay = texture_creator.create_texture_target(
             PixelFormat::RGBA8888,
-            SCREEN_WIDTH as u32,
-            SKILL_PANEL_HEIGHT as u32,
+            SCREEN_WIDTH,
+            SKILL_PANEL_HEIGHT,
         )?;
 
         let texture = texture_creator.create_texture_target(
             PixelFormat::RGBA8888,
-            SCREEN_WIDTH as u32,
-            SKILL_PANEL_HEIGHT as u32,
+            SCREEN_WIDTH,
+            SKILL_PANEL_HEIGHT,
         )?;
 
         let mut font = SDLSprite::from_sprite(
@@ -127,8 +127,8 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             font,
             font_skills,
             full_redraw: true,
-            lemmings_released_total: level.parameters.released as usize,
-            release_rate_min: level.parameters.release_rate as usize,
+            lemmings_released_total: level.parameters.released,
+            release_rate_min: level.parameters.release_rate,
             selected_skill: SKILLS[0],
             text_model: Default::default(),
             stats_current: String::with_capacity(40),
@@ -171,10 +171,10 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                     &self.texture_selected_skill_frame,
                     None,
                     Rect::new(
-                        (state.selected_skill as i32 + 2) * SKILL_TILE_WIDTH as i32,
+                        ((state.selected_skill as u32 + 2) * SKILL_TILE_WIDTH) as i32,
                         16,
-                        SKILL_TILE_WIDTH as u32,
-                        SKILL_TILE_HEIGHT as u32,
+                        SKILL_TILE_WIDTH,
+                        SKILL_TILE_HEIGHT,
                     ),
                 )?;
 
@@ -219,7 +219,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 draw_tile_label(
                     canvas,
                     &self.font_skills,
-                    i + 2,
+                    i as u32 + 2,
                     text_model.remaining_skills[i],
                 )?;
             }
@@ -260,16 +260,16 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 fn draw_tile_label<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     font: &SDLSprite,
-    tile_index: usize,
-    mut value: usize,
+    tile_index: u32,
+    mut value: u32,
 ) -> Result<()> {
     value = value.min(99);
 
     let (char_10, char_1) = match (value / 10, value % 10) {
         (0, 0) => (' ', ' '),
         (value_10, value_1) => (
-            char::from_digit(value_10 as u32, 10).unwrap(),
-            char::from_digit(value_1 as u32, 10).unwrap(),
+            char::from_digit(value_10, 10).unwrap(),
+            char::from_digit(value_1, 10).unwrap(),
         ),
     };
 
@@ -356,7 +356,7 @@ fn format_stats(
     str: &mut String,
     state: &SceneStateLevel,
     model: &SkillPanelTextModel,
-    lemmings_released: usize,
+    lemmings_released: u32,
 ) {
     str.clear();
 
@@ -365,7 +365,7 @@ fn format_stats(
         write!(
             str,
             "{:7} {:<2}  ",
-            describe_lemming(&state.lemmings[cursor_state.leading_lemming]),
+            describe_lemming(&state.lemmings[cursor_state.leading_lemming as usize]),
             cursor_state.lemming_count
         )
         .unwrap();

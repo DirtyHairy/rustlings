@@ -13,7 +13,6 @@ use sdl3::{
 
 use crate::{
     code::code_for_level,
-    game,
     scene::{CursorType, Scene, SceneEvent},
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
@@ -69,14 +68,14 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             SceneState::Level(state_level) => state_level,
             _ => {
                 let mut state = SceneStateLevel {
-                    level_x: level.start_x as usize,
+                    level_x: level.start_x,
                     terrain: game_data.compose_terrain(&level)?,
-                    terrain_map: vec![Default::default(); LEVEL_WIDTH * LEVEL_HEIGHT],
+                    terrain_map: vec![Default::default(); (LEVEL_WIDTH * LEVEL_HEIGHT) as usize],
                     object_state: vec![Default::default(); level.objects.len()],
                     lemmings: VecDeque::with_capacity(level.parameters.released as usize),
-                    remaining_skills: level.parameters.skills.map(|x| x as usize),
-                    release_rate: level.parameters.release_rate as usize,
-                    remaining_time_seconds: level.parameters.time_limit as usize * 60,
+                    remaining_skills: level.parameters.skills,
+                    release_rate: level.parameters.release_rate,
+                    remaining_time_seconds: level.parameters.time_limit * 60,
                     ..Default::default()
                 };
 
@@ -121,11 +120,11 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
     }
 
-    fn width(&self) -> usize {
+    fn width(&self) -> u32 {
         SCREEN_WIDTH
     }
 
-    fn height(&self) -> usize {
+    fn height(&self) -> u32 {
         SCREEN_HEIGHT
     }
 
@@ -223,10 +222,9 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             }
         }
 
-        let remaining_time_seconds = ((self.level_parameters.time_limit * 60) as usize)
-            .saturating_sub(
-                ((clock_msec as i64 + self.state.simulation_clock_offset).max(0) / 1000) as usize,
-            );
+        let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
+            ((clock_msec as i64 + self.state.simulation_clock_offset).max(0) / 1000) as u32,
+        );
 
         if remaining_time_seconds != self.state.remaining_time_seconds {
             self.state.remaining_time_seconds = remaining_time_seconds;
@@ -289,7 +287,7 @@ fn init_terrain_map(
     game_data: &GameData,
     terrain_map: &mut [TerrainProps],
 ) -> Result<()> {
-    for i in 0..LEVEL_WIDTH * LEVEL_HEIGHT {
+    for i in 0..(LEVEL_WIDTH * LEVEL_HEIGHT) as usize {
         terrain_map[i].set_solid(!terrain.transparency[i]);
     }
 
@@ -297,14 +295,14 @@ fn init_terrain_map(
         let object_info =
             game_data.resolve_object(object.id as usize, level.graphics_set as usize)?;
 
-        let object_x = (object.x as isize + object_info.trigger_left).max(0) as usize;
-        let object_y = (object.y as isize + object_info.trigger_top).max(0) as usize;
+        let object_x = (object.x + object_info.trigger_left).max(0) as u32;
+        let object_y = (object.y + object_info.trigger_top).max(0) as u32;
         let object_width = object_info.trigger_width;
         let object_height = object_info.trigger_width;
 
         for y in object_y..(object_y + object_height).min(LEVEL_HEIGHT) {
             for x in object_x..(object_x + object_width).min(LEVEL_WIDTH) {
-                let props = &mut terrain_map[y * LEVEL_WIDTH + x];
+                let props = &mut terrain_map[(y * LEVEL_WIDTH + x) as usize];
 
                 match object_info.interaction_type {
                     InteractionType::Disintegrate => props.set_disintegrate(true),

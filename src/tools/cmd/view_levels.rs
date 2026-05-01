@@ -255,7 +255,7 @@ where
                 canvas,
                 object.x,
                 object.y,
-                (frame % sprite.frame_count as u64) as usize,
+                (frame % sprite.frame_count as u64) as u32,
                 1,
                 false,
                 object.flip_y,

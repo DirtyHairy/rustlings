@@ -38,11 +38,11 @@ G............G
 GGWW..BB..WWGG
 ";
 
-pub const CURSOR_SIZE: usize = 14;
+pub const CURSOR_SIZE: u32 = 14;
 pub const CURSOR_CENTER_X: f32 = 7.5;
 pub const CURSOR_CENTER_Y: f32 = 7.5;
-pub const CURSOR_NATIVE_SCREEN_WIDTH: usize = 320;
-pub const CURSOR_NATIVE_SCREEN_HEIGHT: usize = 200;
+pub const CURSOR_NATIVE_SCREEN_WIDTH: u32 = 320;
+pub const CURSOR_NATIVE_SCREEN_HEIGHT: u32 = 200;
 pub const CURSOR_NATIVE_ASPECT: f32 = 1.2;
 
 fn compile_char(c: char) -> Option<u8> {
@@ -56,8 +56,9 @@ fn compile_char(c: char) -> Option<u8> {
 }
 
 fn compile(input: &str) -> Bitmap {
-    let mut data: Vec<u8> = vec![0; CURSOR_SIZE * CURSOR_SIZE];
-    let mut transparency: Vec<bool> = vec![true; CURSOR_SIZE * CURSOR_SIZE];
+    let cursor_size = CURSOR_SIZE as usize;
+    let mut data: Vec<u8> = vec![0; cursor_size * cursor_size];
+    let mut transparency: Vec<bool> = vec![true; cursor_size * cursor_size];
 
     let mut i = 0;
     for c in input.chars() {
@@ -73,8 +74,8 @@ fn compile(input: &str) -> Bitmap {
     }
 
     Bitmap {
-        width: CURSOR_SIZE,
-        height: CURSOR_SIZE,
+        width: cursor_size,
+        height: cursor_size,
         data,
         transparency,
     }

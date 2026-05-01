@@ -28,8 +28,8 @@ pub enum LemmingAnimation {
 }
 
 impl LemmingAnimation {
-    const FOOT: [(usize, usize); LemmingAnimation::COUNT] = {
-        let mut foot = [(0, 0); LemmingAnimation::COUNT];
+    const FOOT: [(u32, u32); LemmingAnimation::COUNT] = {
+        let mut foot = [(0u32, 0u32); LemmingAnimation::COUNT];
 
         let mut i = 0;
         while i < LemmingAnimation::COUNT {
@@ -38,8 +38,8 @@ impl LemmingAnimation {
                 Self::Digging => (8, 12),
                 Self::Explosion => (16, 25),
                 _ => (
-                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].1 / 2,
-                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].2,
+                    (LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].1 / 2) as u32,
+                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].2 as u32,
                 ),
             };
 
@@ -49,12 +49,12 @@ impl LemmingAnimation {
         foot
     };
 
-    pub fn foot(self) -> (usize, usize) {
+    pub fn foot(self) -> (u32, u32) {
         Self::FOOT[self as usize]
     }
 
-    pub const fn frame_count(self) -> usize {
-        LEMMING_SPRITE_LAYOUT[self as usize].0
+    pub const fn frame_count(self) -> u32 {
+        LEMMING_SPRITE_LAYOUT[self as usize].0 as u32
     }
 
     pub fn mirror(self, direction: Direction) -> bool {

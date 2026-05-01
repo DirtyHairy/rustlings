@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{Result, format_err};
+use anyhow::Result;
 use rustlings::game_data::{GameData, LEVEL_HEIGHT, Level, file::ground::InteractionType};
 
 use crate::state::{Activity, LemmingAnimation, LemmingState, LevelState, SceneStateLevel};
@@ -15,24 +15,24 @@ enum AnimationType {
 struct Object {
     animation_type: AnimationType,
     interaction_type: InteractionType,
-    animation_start: usize,
-    last_frame: usize,
-    x: usize,
-    y: usize,
+    animation_start: u32,
+    last_frame: u32,
+    x: u32,
+    y: u32,
 }
 
 pub struct Simulation {
     objects: Vec<Object>,
     entrances: Vec<usize>,
-    released_total: usize,
+    released_total: u32,
 }
 
 const TICK_OPEN_ENTRANCES: u64 = 34;
 const TICK_START_SPAWN: u64 = 44;
 
-const SPAWN_COUNTDOWN_DEFAULT: usize = 20;
-const SPAWN_X: usize = 24;
-const SPAWN_Y: usize = 14;
+const SPAWN_COUNTDOWN_DEFAULT: u32 = 20;
+const SPAWN_X: u32 = 24;
+const SPAWN_Y: u32 = 14;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -55,8 +55,8 @@ impl Simulation {
                     interaction_type: info.interaction_type,
                     animation_start: info.animation_start,
                     last_frame: info.animation_end.saturating_sub(1),
-                    x: o.x as usize,
-                    y: o.y as usize,
+                    x: o.x as u32,
+                    y: o.y as u32,
                 })
             })
             .collect::<Result<Vec<Object>>>()?;
@@ -71,7 +71,7 @@ impl Simulation {
         Ok(Self {
             objects,
             entrances,
-            released_total: level.parameters.released as usize,
+            released_total: level.parameters.released,
         })
     }
 
@@ -145,7 +145,8 @@ impl Simulation {
             return;
         }
 
-        let entrance = &self.objects[self.entrances[state.lemmings_out % self.entrances.len()]];
+        let entrance =
+            &self.objects[self.entrances[state.lemmings_out as usize % self.entrances.len()]];
 
         let mut lemming = LemmingState {
             x: entrance.x + SPAWN_X,
@@ -161,7 +162,7 @@ impl Simulation {
         if state.lemmings_out == self.released_total {
             state.level_state = LevelState::Late;
         } else {
-            state.spawn_countdown = (99_usize).saturating_sub(state.release_rate) / 2 + 4;
+            state.spawn_countdown = 99u32.saturating_sub(state.release_rate) / 2 + 4;
         }
     }
 

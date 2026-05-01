@@ -1,5 +1,4 @@
 use anyhow::Result;
-
 use rustlings::{
     game_data::{
         Bitmap, CURSOR_CENTER_X, CURSOR_CENTER_Y, CURSOR_NATIVE_ASPECT,
@@ -23,7 +22,7 @@ use crate::{
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PrescalingMode {
     None(ScaleMode),
-    Quis(usize, usize),
+    Quis(u32, u32),
 }
 
 impl Default for PrescalingMode {
@@ -35,8 +34,8 @@ impl Default for PrescalingMode {
 pub struct Layer<'texture_creator> {
     pub texture_id: usize,
 
-    pub texture_width: usize,
-    pub texture_height: usize,
+    pub texture_width: u32,
+    pub texture_height: u32,
     pub destination: geometry::Rect,
 
     pub prescaling_mode: PrescalingMode,
@@ -46,19 +45,19 @@ pub struct Layer<'texture_creator> {
 
 #[derive(Default, Clone)]
 pub struct CursorLayout {
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
 
-    pub center_x: usize,
-    pub center_y: usize,
+    pub center_x: u32,
+    pub center_y: u32,
 
     pub prescaling_mode: PrescalingMode,
 }
 
 #[derive(Default)]
 pub struct Layout {
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
 
     pub scene: geometry::Rect,
     pub layers: Vec<geometry::Rect>,
@@ -117,8 +116,8 @@ pub struct RenderState<'texture_creator> {
     pub overlay: Texture<'texture_creator>,
     pub layout: Layout,
 
-    pub scene_width: usize,
-    pub scene_height: usize,
+    pub scene_width: u32,
+    pub scene_height: u32,
     pub scene_aspect: f32,
 
     pub mouse_x: f32,
@@ -164,7 +163,7 @@ impl<'texture_creator> RenderState<'texture_creator> {
         }
     }
 
-    pub fn update_layout(&mut self, width: usize, height: usize) {
+    pub fn update_layout(&mut self, width: u32, height: u32) {
         if self.layout.width == width && self.layout.height == height {
             return;
         }
@@ -181,7 +180,7 @@ impl<'texture_creator> RenderState<'texture_creator> {
         self.layout_cursor(scale_x, scale_y);
     }
 
-    fn layout_scene(&mut self, width: usize, height: usize) {
+    fn layout_scene(&mut self, width: u32, height: u32) {
         let w = width as f32;
         let h = height as f32;
         let w_scene = self.scene_width as f32;
@@ -191,16 +190,16 @@ impl<'texture_creator> RenderState<'texture_creator> {
             let width = w_scene * h / h_scene;
 
             self.layout.scene.height = height;
-            self.layout.scene.width = width.round() as usize;
+            self.layout.scene.width = width.round() as u32;
             self.layout.scene.y = 0;
-            self.layout.scene.x = ((w - width) / 2.).round() as usize;
+            self.layout.scene.x = ((w - width) / 2.).round() as u32;
         } else {
             let height = h_scene * w / w_scene;
 
             self.layout.scene.width = width;
-            self.layout.scene.height = height.round() as usize;
+            self.layout.scene.height = height.round() as u32;
             self.layout.scene.x = 0;
-            self.layout.scene.y = ((h - height) / 2.).round() as usize;
+            self.layout.scene.y = ((h - height) / 2.).round() as u32;
         }
     }
 
@@ -212,10 +211,10 @@ impl<'texture_creator> RenderState<'texture_creator> {
 
         for layer in &mut self.layers {
             let dest = geometry::Rect {
-                x: self.layout.scene.x + (layer.destination.x as f32 * scale_x).round() as usize,
-                y: self.layout.scene.y + (layer.destination.y as f32 * scale_y).round() as usize,
-                width: (layer.destination.width as f32 * scale_x).round() as usize,
-                height: (layer.destination.height as f32 * scale_y).round() as usize,
+                x: self.layout.scene.x + (layer.destination.x as f32 * scale_x).round() as u32,
+                y: self.layout.scene.y + (layer.destination.y as f32 * scale_y).round() as u32,
+                width: (layer.destination.width as f32 * scale_x).round() as u32,
+                height: (layer.destination.height as f32 * scale_y).round() as u32,
             };
 
             self.layout.layers.push(dest);
@@ -231,10 +230,10 @@ impl<'texture_creator> RenderState<'texture_creator> {
             * self.scene_aspect
             / CURSOR_NATIVE_ASPECT;
 
-        self.layout.cursor.width = (cursor_scale_x * CURSOR_SIZE as f32).round() as usize;
-        self.layout.cursor.height = (cursor_scale_y * CURSOR_SIZE as f32).round() as usize;
-        self.layout.cursor.center_x = (cursor_scale_x * CURSOR_CENTER_X).round() as usize;
-        self.layout.cursor.center_y = (cursor_scale_y * CURSOR_CENTER_Y).round() as usize;
+        self.layout.cursor.width = (cursor_scale_x * CURSOR_SIZE as f32).round() as u32;
+        self.layout.cursor.height = (cursor_scale_y * CURSOR_SIZE as f32).round() as u32;
+        self.layout.cursor.center_x = (cursor_scale_x * CURSOR_CENTER_X).round() as u32;
+        self.layout.cursor.center_y = (cursor_scale_y * CURSOR_CENTER_Y).round() as u32;
         self.layout.cursor.prescaling_mode = calculate_prescaling_mode(
             CURSOR_SIZE,
             CURSOR_SIZE,
@@ -243,12 +242,12 @@ impl<'texture_creator> RenderState<'texture_creator> {
     }
 }
 
-fn calculate_prescaling_mode(width: usize, height: usize, dest: &geometry::Rect) -> PrescalingMode {
+fn calculate_prescaling_mode(width: u32, height: u32, dest: &geometry::Rect) -> PrescalingMode {
     if width == 0 || height == 0 {
         return Default::default();
     }
-    let mut integer_scale_x = (dest.width as f32 / width as f32).round() as usize;
-    let mut integer_scale_y = (dest.height as f32 / height as f32).round() as usize;
+    let mut integer_scale_x = (dest.width as f32 / width as f32).round() as u32;
+    let mut integer_scale_y = (dest.height as f32 / height as f32).round() as u32;
 
     if (integer_scale_x == 0 && integer_scale_y <= 1)
         || (integer_scale_y == 0 && integer_scale_x <= 1)
@@ -285,8 +284,8 @@ impl Compositor for RenderState<'_> {
     fn add_layer(
         &mut self,
         texture_id: usize,
-        width: usize,
-        height: usize,
+        width: u32,
+        height: u32,
         destination: geometry::Rect,
     ) {
         self.layers.push(Layer {

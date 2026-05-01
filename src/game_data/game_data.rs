@@ -126,8 +126,9 @@ impl GameData {
     }
 
     pub fn compose_terrain(&self, level: &Level) -> Result<Bitmap> {
-        let mut data: Vec<u8> = vec![0; LEVEL_HEIGHT * LEVEL_WIDTH];
-        let mut transparency: Vec<bool> = vec![true; LEVEL_HEIGHT * LEVEL_WIDTH];
+        let level_size = (LEVEL_HEIGHT * LEVEL_WIDTH) as usize;
+        let mut data: Vec<u8> = vec![0; level_size];
+        let mut transparency: Vec<bool> = vec![true; level_size];
 
         if level.extended_graphics_set > 0 {
             let special_background = self
@@ -141,7 +142,7 @@ impl GameData {
             for y in 0..special_background.bitmap.height {
                 for x in 0..special_background.bitmap.width {
                     let i_src = y * special_background.bitmap.width + x;
-                    let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION + x;
+                    let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION as usize + x;
 
                     data[i_dest] = if special_background.bitmap.transparency[i_src] {
                         0
@@ -172,8 +173,8 @@ impl GameData {
         }
 
         Ok(Bitmap {
-            width: LEVEL_WIDTH,
-            height: LEVEL_HEIGHT,
+            width: LEVEL_WIDTH as usize,
+            height: LEVEL_HEIGHT as usize,
             data,
             transparency,
         })

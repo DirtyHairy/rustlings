@@ -13,8 +13,8 @@ use crate::{
 #[derive(Clone, Copy)]
 #[allow(unused)]
 pub struct MouseCoordinates {
-    pub x: usize,
-    pub y: usize,
+    pub x: u32,
+    pub y: u32,
     pub x_frac: f32,
     pub y_frac: f32,
 }
@@ -44,12 +44,12 @@ pub enum CursorType {
 }
 
 pub trait Compositor {
-    fn add_layer(&mut self, texture_id: usize, width: usize, height: usize, destination: Rect);
+    fn add_layer(&mut self, texture_id: usize, width: u32, height: u32, destination: Rect);
 }
 
 pub trait Scene<'texture_creator> {
-    fn width(&self) -> usize;
-    fn height(&self) -> usize;
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
     fn aspect(&self) -> f32;
     fn opacity(&self) -> u8;
 

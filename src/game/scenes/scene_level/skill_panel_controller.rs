@@ -9,20 +9,20 @@ use crate::{
 #[derive(Default)]
 pub struct SkillPanelController {
     incrementing: bool,
-    incremented: usize,
+    incremented: u32,
 
     decrementing: bool,
-    decremented: usize,
+    decremented: u32,
 
-    release_rate_min: usize,
+    release_rate_min: u32,
 }
 
-const SKILL_PANEL_Y: usize = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
+const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 impl SkillPanelController {
     pub fn new(level: &Level) -> Self {
         Self {
-            release_rate_min: level.parameters.release_rate as usize,
+            release_rate_min: level.parameters.release_rate,
             ..Default::default()
         }
     }
@@ -107,7 +107,7 @@ impl SkillPanelController {
         self.incrementing || self.decrementing
     }
 
-    fn handle_mouse_down(&mut self, state: &mut SceneStateLevel, x: usize, y: usize) -> bool {
+    fn handle_mouse_down(&mut self, state: &mut SceneStateLevel, x: u32, y: u32) -> bool {
         if y < SKILL_PANEL_Y + 16 {
             return false;
         }
@@ -124,7 +124,7 @@ impl SkillPanelController {
                 false
             }
             2..10 => {
-                state.selected_skill = SKILLS[tile_index - 2];
+                state.selected_skill = SKILLS[(tile_index - 2) as usize];
                 true
             }
             10 => {

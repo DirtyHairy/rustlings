@@ -24,7 +24,7 @@ pub enum InteractionType {
 }
 
 impl InteractionType {
-    fn new(trigger_effect: usize, animation_flags: usize) -> Self {
+    fn new(trigger_effect: u32, animation_flags: u32) -> Self {
         match trigger_effect {
             0 => {
                 if animation_flags == 0x03 {
@@ -64,22 +64,22 @@ impl fmt::Display for InteractionType {
 #[derive(Default, Clone)]
 pub struct ObjectInfo {
     pub interaction_type: InteractionType,
-    pub animation_flags: usize,
+    pub animation_flags: u32,
     pub animation_loops: bool,
-    pub animation_start: usize,
-    pub animation_end: usize,
-    pub width: usize,
-    pub height: usize,
+    pub animation_start: u32,
+    pub animation_end: u32,
+    pub width: u32,
+    pub height: u32,
     pub animation_frame_size: usize,
     pub mask_offset: usize,
-    pub trigger_left: isize,
-    pub trigger_top: isize,
-    pub trigger_width: usize,
-    pub trigger_height: usize,
-    pub trigger_effect: usize,
+    pub trigger_left: i32,
+    pub trigger_top: i32,
+    pub trigger_width: u32,
+    pub trigger_height: u32,
+    pub trigger_effect: u32,
     pub frames_offset: usize,
     pub preview_frame_offset: usize,
-    pub trap_sound_effect: usize,
+    pub trap_sound_effect: u32,
 }
 
 #[derive(Default, Clone)]
@@ -149,23 +149,23 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
 }
 
 fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)> {
-    let (animation_flags, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (animation_start, offset) = read_byte::<usize>(buffer, offset)?;
-    let (animation_end, offset) = read_byte::<usize>(buffer, offset)?;
-    let (width, offset) = read_byte::<usize>(buffer, offset)?;
-    let (height, offset) = read_byte::<usize>(buffer, offset)?;
+    let (animation_flags, offset) = read_word_be::<u32>(buffer, offset)?;
+    let (animation_start, offset) = read_byte::<u32>(buffer, offset)?;
+    let (animation_end, offset) = read_byte::<u32>(buffer, offset)?;
+    let (width, offset) = read_byte::<u32>(buffer, offset)?;
+    let (height, offset) = read_byte::<u32>(buffer, offset)?;
     let (animation_frame_size, offset) = read_word_be::<usize>(buffer, offset)?;
     let (mask_offset, offset) = read_word_be(buffer, offset)?;
     let offset = offset + 4;
-    let (trigger_left, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (trigger_top, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (trigger_width, offset) = read_byte::<usize>(buffer, offset)?;
-    let (trigger_height, offset) = read_byte::<usize>(buffer, offset)?;
-    let (trigger_effect, offset) = read_byte::<usize>(buffer, offset)?;
+    let (trigger_left, offset) = read_word_be::<u32>(buffer, offset)?;
+    let (trigger_top, offset) = read_word_be::<u32>(buffer, offset)?;
+    let (trigger_width, offset) = read_byte::<u32>(buffer, offset)?;
+    let (trigger_height, offset) = read_byte::<u32>(buffer, offset)?;
+    let (trigger_effect, offset) = read_byte::<u32>(buffer, offset)?;
     let (frames_offset, offset) = read_word_be::<usize>(buffer, offset)?;
     let (preview_frame_offset, offset) = read_word_be::<usize>(buffer, offset)?;
     let offset = offset + 2;
-    let (trap_sound_effect, offset) = read_byte::<usize>(buffer, offset)?;
+    let (trap_sound_effect, offset) = read_byte::<u32>(buffer, offset)?;
 
     Ok((
         ObjectInfo {
@@ -178,8 +178,8 @@ fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)>
             height,
             animation_frame_size,
             mask_offset,
-            trigger_left: (trigger_left * 4) as isize,
-            trigger_top: (trigger_top * 4) as isize - 4,
+            trigger_left: (trigger_left * 4) as i32,
+            trigger_top: (trigger_top * 4) as i32 - 4,
             trigger_width: trigger_width * 4,
             trigger_height: trigger_height * 4,
             trigger_effect,

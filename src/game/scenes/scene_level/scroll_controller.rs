@@ -20,7 +20,7 @@ pub struct ScrollController {
     is_fullscreen: bool,
     mouse_enabled: bool,
     mouse_down: bool,
-    mouse_x: Option<usize>,
+    mouse_x: Option<u32>,
 
     fast_scroll: bool,
     current_scroll_mode: ScrollMode,
@@ -36,8 +36,8 @@ enum ScrollMode {
 }
 
 const SCROLL_MSEC_PER_PIXEL: u64 = 5; // 3200 msec to scroll over the full width
-const FAST_SCROLL_SPEEDUP: usize = 3;
-const LEVEL_X_MAX: usize = LEVEL_WIDTH - SCREEN_WIDTH;
+const FAST_SCROLL_SPEEDUP: u32 = 3;
+const LEVEL_X_MAX: u32 = LEVEL_WIDTH - SCREEN_WIDTH;
 
 impl ScrollController {
     pub fn new() -> Self {
@@ -145,7 +145,7 @@ impl ScrollController {
         let dirty = match self.current_scroll_mode {
             ScrollMode::Left => {
                 state.level_x = state.level_x.saturating_sub(
-                    scroll_ticks_new.saturating_sub(scroll_ticks_old) as usize * scroll_speedup,
+                    scroll_ticks_new.saturating_sub(scroll_ticks_old) as u32 * scroll_speedup,
                 );
 
                 current_level_x != state.level_x
@@ -154,8 +154,7 @@ impl ScrollController {
                 state.level_x = cmp::min(
                     LEVEL_X_MAX,
                     state.level_x
-                        + (scroll_ticks_new.saturating_sub(scroll_ticks_old)) as usize
-                            * scroll_speedup,
+                        + scroll_ticks_new.saturating_sub(scroll_ticks_old) as u32 * scroll_speedup,
                 );
 
                 current_level_x != state.level_x
@@ -183,7 +182,7 @@ impl ScrollController {
                 / MINIMAP_VIEW_WIDTH as f32
                 * LEVEL_WIDTH as f32;
 
-        state.level_x = (x.round() as isize).clamp(0, LEVEL_X_MAX as isize) as usize;
+        state.level_x = (x.round() as i32).clamp(0, LEVEL_X_MAX as i32) as u32;
     }
 }
 

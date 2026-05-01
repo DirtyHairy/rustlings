@@ -73,9 +73,9 @@ pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
 }
 
 pub struct SDLSprite<'a> {
-    pub width: usize,
-    pub height: usize,
-    pub frame_count: usize,
+    pub width: u32,
+    pub height: u32,
+    pub frame_count: u32,
     texture: Texture<'a>,
 }
 
@@ -113,10 +113,10 @@ impl<'a> SDLSprite<'a> {
         texture.set_blend_mode(BlendMode::Blend);
 
         Ok(SDLSprite {
-            width: sprite.width,
-            height: sprite.height,
+            width: sprite.width as u32,
+            height: sprite.height as u32,
             texture,
-            frame_count: sprite.frames.len(),
+            frame_count: sprite.frames.len() as u32,
         })
     }
 
@@ -128,8 +128,8 @@ impl<'a> SDLSprite<'a> {
         let texture = texture_from_bitmap(bitmap, palette, texture_creator)?;
 
         Ok(SDLSprite {
-            width: bitmap.width,
-            height: bitmap.height,
+            width: bitmap.width as u32,
+            height: bitmap.height as u32,
             texture,
             frame_count: 1,
         })
@@ -140,8 +140,8 @@ impl<'a> SDLSprite<'a> {
         canvas: &mut Canvas<T>,
         x: i32,
         y: i32,
-        iframe: usize,
-        scale: usize,
+        iframe: u32,
+        scale: u32,
         flip_x: bool,
         flip_y: bool,
     ) -> Result<()> {
@@ -151,15 +151,10 @@ impl<'a> SDLSprite<'a> {
                 Rect::new(
                     ((iframe % self.frame_count) * self.width) as i32,
                     0,
-                    (self.width) as u32,
-                    self.height as u32,
+                    self.width,
+                    self.height,
                 ),
-                Rect::new(
-                    x,
-                    y,
-                    (scale * self.width) as u32,
-                    (scale * self.height) as u32,
-                ),
+                Rect::new(x, y, scale * self.width, scale * self.height),
                 0.,
                 None,
                 flip_x,

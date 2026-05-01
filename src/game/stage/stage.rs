@@ -235,8 +235,8 @@ impl<'sdl> Stage<'sdl> {
             / render_state.layout.scene.height as f32
             * scene.height() as f32;
 
-        let x = (x_frac.floor() as isize).clamp(0, scene.width() as isize - 1) as usize;
-        let y = (y_frac.floor() as isize).clamp(0, scene.height() as isize - 1) as usize;
+        let x = (x_frac.floor() as i32).clamp(0, scene.width() as i32 - 1) as u32;
+        let y = (y_frac.floor() as i32).clamp(0, scene.height() as i32 - 1) as u32;
 
         MouseCoordinates {
             x,
@@ -286,7 +286,7 @@ impl<'sdl> Stage<'sdl> {
         needs_redraw: bool,
     ) -> Result<()> {
         let (canvas_width, canvas_height) = self.canvas.output_size()?;
-        render_state.update_layout(canvas_width as usize, canvas_height as usize);
+        render_state.update_layout(canvas_width, canvas_height);
 
         self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         self.canvas.clear();
@@ -333,8 +333,8 @@ impl<'sdl> Stage<'sdl> {
                 SdlRect::new(
                     mouse_x as i32 - layout_cursor.center_x as i32,
                     mouse_y as i32 - layout_cursor.center_y as i32,
-                    layout_cursor.width as u32,
-                    layout_cursor.height as u32,
+                    layout_cursor.width,
+                    layout_cursor.height,
                 ),
             )?;
         }
@@ -396,7 +396,7 @@ impl<'sdl> Stage<'sdl> {
                 source_texture.set_scale_mode(scaling_mode);
                 return Ok(source_texture);
             }
-            PrescalingMode::Quis(width, height) => (width as u32, height as u32),
+            PrescalingMode::Quis(width, height) => (width, height),
         };
 
         let needs_recreate = match maybe_intermediate_texture.as_ref() {
