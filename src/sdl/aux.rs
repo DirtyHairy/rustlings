@@ -22,9 +22,7 @@ pub fn get_canvas_vsync(canvas: &Canvas<impl RenderTarget>) -> bool {
 }
 
 pub fn is_main_thread() -> bool {
-    unsafe {
-        return SDL_IsMainThread();
-    }
+    unsafe { SDL_IsMainThread() }
 }
 
 pub fn current_refresh_rate(window: &Window) -> Option<f32> {

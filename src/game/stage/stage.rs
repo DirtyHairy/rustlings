@@ -280,7 +280,7 @@ impl<'sdl> Stage<'sdl> {
     fn time_per_frame_msec(&mut self) -> u64 {
         let now = Instant::now();
 
-        if !self.cached_time_per_frame_msec.is_some()
+        if self.cached_time_per_frame_msec.is_none()
             || now
                 .duration_since(self.last_time_per_frame_update)
                 .as_millis()

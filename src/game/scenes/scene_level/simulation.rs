@@ -320,7 +320,7 @@ impl LemmingState {
     }
 }
 
-struct TerrainMap<'a>(&'a Vec<TerrainProps>);
+struct TerrainMap<'a>(&'a [TerrainProps]);
 
 impl<'a> TerrainMap<'a> {
     pub fn is_solid(&self, x: i32, y: i32) -> bool {

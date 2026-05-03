@@ -113,7 +113,7 @@ impl EventCollector {
     }
 
     pub fn aggregated_events(&self) -> &EventAggregate {
-        return &self.aggregate;
+        &self.aggregate
     }
 
     fn aggregate_event(&mut self, event: &GameEvent) {
