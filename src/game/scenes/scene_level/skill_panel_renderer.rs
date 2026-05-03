@@ -6,14 +6,16 @@ use rustlings::{
     game_data::{
         GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_HEIGHT,
         SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, SKILLS, Skill,
+        file::main::{FONT_SKILL_PANEL_SIZE, FONT_SKILL_PANEL_SKILLS_SIZE},
         resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
-    sdl::{SDLSprite, texture_from_bitmap, with_texture_canvas},
+    sdl::{SdlAtlas, SdlAtlasBuilder, texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect,
     render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureCreator},
+    sys::blendmode::SDL_BLENDMODE_NONE,
     video::Window,
 };
 
@@ -27,8 +29,7 @@ pub struct SkillPanelRenderer<'texture_creator> {
     texture_selected_skill_frame: Texture<'texture_creator>,
     texture: Texture<'texture_creator>,
 
-    font: SDLSprite<'texture_creator>,
-    font_skills: SDLSprite<'texture_creator>,
+    atlas: SdlAtlas<'texture_creator>,
 
     full_redraw: bool,
 
@@ -101,31 +102,21 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             SKILL_PANEL_HEIGHT,
         )?;
 
-        let mut font = SDLSprite::from_sprite(
-            &game_data.skill_panel.font,
-            &palette_skill_panel,
-            texture_creator,
-        )?;
+        let mut font_atlas_builder =
+            SdlAtlasBuilder::with_capacity(FONT_SKILL_PANEL_SKILLS_SIZE + FONT_SKILL_PANEL_SIZE);
 
-        font.texture().set_blend_mode(BlendMode::None);
-        font.texture().set_scale_mode(ScaleMode::Nearest);
+        font_atlas_builder.add_sprite(&game_data.skill_panel.font);
+        font_atlas_builder.add_sprite(&game_data.skill_panel.font_skills);
 
-        let mut font_skills = SDLSprite::from_sprite(
-            &game_data.skill_panel.font_skills,
-            &palette_skill_panel,
-            texture_creator,
-        )?;
-
-        font_skills.texture().set_blend_mode(BlendMode::None);
-        font_skills.texture().set_scale_mode(ScaleMode::Nearest);
+        let mut font_atlas = font_atlas_builder.build(&palette_skill_panel, texture_creator)?;
+        font_atlas.apply_blend_mode(SDL_BLENDMODE_NONE);
 
         Ok(Self {
             texture_skill_panel,
             texture_selected_skill_frame,
             texture_font_overlay,
             texture,
-            font,
-            font_skills,
+            atlas: font_atlas,
             full_redraw: true,
             lemmings_released_total: level.parameters.released,
             release_rate_min: level.parameters.release_rate,
@@ -202,11 +193,11 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             }
 
             if self.full_redraw {
-                draw_tile_label(canvas, &self.font_skills, 0, self.release_rate_min)?;
+                draw_tile_label(canvas, &self.atlas, 0, self.release_rate_min)?;
             }
 
             if text_model.release_rate != self.text_model.release_rate || self.full_redraw {
-                draw_tile_label(canvas, &self.font_skills, 1, text_model.release_rate)?;
+                draw_tile_label(canvas, &self.atlas, 1, text_model.release_rate)?;
             }
 
             for i in 0..NUM_SKILLS {
@@ -218,7 +209,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
                 draw_tile_label(
                     canvas,
-                    &self.font_skills,
+                    &self.atlas,
                     i as u32 + 2,
                     text_model.remaining_skills[i],
                 )?;
@@ -240,7 +231,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
                 draw_stats(
                     canvas,
-                    &self.font,
+                    &self.atlas,
                     &self.stats_current,
                     &self.stats_new,
                     self.full_redraw,
@@ -259,7 +250,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
 fn draw_tile_label<T: RenderTarget>(
     canvas: &mut Canvas<T>,
-    font: &SDLSprite,
+    atlas: &SdlAtlas,
     tile_index: u32,
     mut value: u32,
 ) -> Result<()> {
@@ -276,22 +267,22 @@ fn draw_tile_label<T: RenderTarget>(
     let x = tile_index * SKILL_TILE_WIDTH + SKILL_TILE_LABEL_X;
     let y = SKILL_TILE_Y + SKILL_TILE_LABEL_Y;
 
-    font.blit(
+    atlas.blit(
         canvas,
+        1,
         x as i32,
         y as i32,
         resolve_skill_panel_skill_font_index(char_10),
-        1,
         false,
         false,
     )?;
 
-    font.blit(
+    atlas.blit(
         canvas,
+        1,
         x as i32 + 4,
         y as i32,
         resolve_skill_panel_skill_font_index(char_1),
-        1,
         false,
         false,
     )?;
@@ -301,7 +292,7 @@ fn draw_tile_label<T: RenderTarget>(
 
 fn draw_stats<T: RenderTarget>(
     canvas: &mut Canvas<T>,
-    font: &SDLSprite,
+    atlas: &SdlAtlas,
     stats_current: &str,
     stats_new: &str,
     force_redraw: bool,
@@ -314,12 +305,12 @@ fn draw_stats<T: RenderTarget>(
             continue;
         }
 
-        font.blit(
+        atlas.blit(
             canvas,
+            0,
             i as i32 * 8,
             0,
             resolve_skill_panel_font_index(char_new),
-            1,
             false,
             false,
         )?;
