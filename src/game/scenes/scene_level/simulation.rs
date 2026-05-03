@@ -127,16 +127,7 @@ impl Simulation {
     }
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
-        let mut index = 0;
-        while index < state.lemmings.len() {
-            let kill = state.lemmings[index].tick();
-
-            if kill {
-                state.lemmings.remove(index);
-            } else {
-                index += 1;
-            }
-        }
+        state.lemmings.retain_mut(|lemming| !lemming.tick());
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
