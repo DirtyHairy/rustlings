@@ -127,7 +127,7 @@ impl Simulation {
     }
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
-        state.lemmings.retain_mut(|lemming| !lemming.tick());
+        state.lemmings.retain_mut(LemmingState::tick);
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
@@ -176,14 +176,14 @@ impl Simulation {
 
 impl LemmingState {
     pub fn tick(&mut self) -> bool {
-        let mut kill = match &self.activity {
+        let keep = match &self.activity {
             Activity::Falling(_) => self.tick_faller(),
-            _ => false,
+            _ => true,
         };
 
-        kill = kill || self.y >= LEVEL_HEIGHT + self.animation.foot().1;
+        let keep = keep && self.y < LEVEL_HEIGHT + self.animation.foot().1;
 
-        kill
+        keep
     }
 
     pub fn start_falling(&mut self) {
@@ -199,7 +199,7 @@ impl LemmingState {
 
             state.delta_y += 3;
 
-            false
+            true
         } else {
             unreachable!()
         }
