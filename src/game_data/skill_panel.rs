@@ -46,20 +46,18 @@ impl SkillPanel {
 
         SkillPanel {
             panel,
-            minimap_frame: create_frame(
-                MINIMAP_FRAME_WIDTH as usize,
-                MINIMAP_FRAME_HEIGHT as usize,
-            ),
-            skill_tile_frame: create_frame(SKILL_TILE_WIDTH as usize, SKILL_PANEL_HEIGHT as usize),
+            minimap_frame: create_frame(MINIMAP_FRAME_WIDTH, MINIMAP_FRAME_HEIGHT),
+            skill_tile_frame: create_frame(SKILL_TILE_WIDTH, SKILL_PANEL_HEIGHT),
             font,
             font_skills,
         }
     }
 }
 
-fn create_frame(width: usize, height: usize) -> Bitmap {
-    let mut data: Vec<u8> = vec![0; width * height + 1];
-    let mut transparency: Vec<bool> = vec![true; width * height + 1];
+fn create_frame(width: u32, height: u32) -> Bitmap {
+    let size = (width * height) as usize + 1;
+    let mut data: Vec<u8> = vec![0; size];
+    let mut transparency: Vec<bool> = vec![true; size];
 
     let mut i: usize = 0;
     for y in 0..height {
@@ -74,8 +72,8 @@ fn create_frame(width: usize, height: usize) -> Bitmap {
     }
 
     Bitmap {
-        width: width,
-        height: height,
+        width,
+        height,
         data,
         transparency,
     }

@@ -4,16 +4,16 @@ use anyhow::{Result, anyhow, bail};
 
 #[derive(Clone, Default)]
 pub struct Bitmap {
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
     pub data: Vec<u8>,
     pub transparency: Vec<bool>,
 }
 
 #[derive(Clone)]
 pub struct Sprite {
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
     pub frames: Vec<Bitmap>,
 }
 
@@ -26,18 +26,19 @@ pub enum TransparencyEncoding<'a> {
 }
 
 impl Bitmap {
-    pub fn filled(width: usize, height: usize, fill: u8, transparency: bool) -> Self {
+    pub fn filled(width: u32, height: u32, fill: u8, transparency: bool) -> Self {
+        let size = (width * height) as usize;
         Self {
             width,
             height,
-            data: vec![fill; width * height],
-            transparency: vec![transparency; width * height],
+            data: vec![fill; size],
+            transparency: vec![transparency; size],
         }
     }
 
     pub fn read_planar(
-        width: usize,
-        height: usize,
+        width: u32,
+        height: u32,
         bpp: usize,
         data: &[u8],
         transparency_encoding: TransparencyEncoding,
@@ -53,8 +54,8 @@ impl Bitmap {
     }
 
     pub fn read_planar_mapped<T: Fn(u8) -> u8>(
-        width: usize,
-        height: usize,
+        width: u32,
+        height: u32,
         bpp: usize,
         data: &[u8],
         transparency_encoding: TransparencyEncoding,
@@ -71,8 +72,8 @@ impl Bitmap {
     }
 
     fn read_planar_impl<T: Fn(u8) -> u8>(
-        width: usize,
-        height: usize,
+        width: u32,
+        height: u32,
         bpp: usize,
         data: &[u8],
         transparency_encoding: TransparencyEncoding,
@@ -82,17 +83,19 @@ impl Bitmap {
             bail!("bad bpp {}", bpp);
         }
 
-        if width * height % 8 != 0 {
+        let pixel_count = (width * height) as usize;
+
+        if pixel_count % 8 != 0 {
             bail!("bad dimensions {}x{}", width, height);
         }
 
-        let plane_size = width * height / 8;
+        let plane_size = pixel_count / 8;
 
         let mut bitmap = Bitmap {
             width,
             height,
-            data: vec![0; width * height],
-            transparency: vec![false; width * height],
+            data: vec![0; pixel_count],
+            transparency: vec![false; pixel_count],
         };
 
         for iplane in 0..bpp {
@@ -163,17 +166,18 @@ impl Bitmap {
         Ok(bitmap)
     }
 
-    pub fn sub(&self, x: usize, y: usize, width: usize, height: usize) -> Result<Self> {
+    pub fn sub(&self, x: u32, y: u32, width: u32, height: u32) -> Result<Self> {
         if x + width > self.width || y + height > self.height {
             bail!("invalid dimensions");
         }
 
-        let mut data: Vec<u8> = vec![0; width * height];
-        let mut transparency: Vec<bool> = vec![false; width * height];
+        let size = (width * height) as usize;
+        let mut data: Vec<u8> = vec![0; size];
+        let mut transparency: Vec<bool> = vec![false; size];
         for y_ in 0..height {
             for x_ in 0..width {
-                let i_source = (y + y_) * self.width + x + x_;
-                let i_dest = y_ * width + x_;
+                let i_source = ((y + y_) * self.width + x + x_) as usize;
+                let i_dest = (y_ * width + x_) as usize;
 
                 data[i_dest] = self.data[i_source];
                 transparency[i_dest] = self.transparency[i_source];
@@ -220,8 +224,8 @@ impl Display for Sprite {
 impl Sprite {
     pub fn read_planar(
         frame_count: usize,
-        width: usize,
-        height: usize,
+        width: u32,
+        height: u32,
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
@@ -252,7 +256,7 @@ impl Sprite {
         Ok(sprite)
     }
 
-    pub fn blank(width: usize, height: usize, capacity: usize) -> Self {
+    pub fn blank(width: u32, height: u32, capacity: usize) -> Self {
         Self {
             width,
             height,

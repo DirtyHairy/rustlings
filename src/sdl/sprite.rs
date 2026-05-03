@@ -26,33 +26,33 @@ impl<'a> SDLSprite<'a> {
         let mut texture = texture_creator.create_texture(
             PixelFormat::RGBA8888,
             TextureAccess::Static,
-            (sprite.width * sprite.frames.len()) as u32,
-            sprite.height as u32,
+            sprite.frames.len() as u32 * sprite.width,
+            sprite.height,
         )?;
         texture.set_scale_mode(ScaleMode::Nearest);
 
-        let mut texture_data = vec![0u8; sprite.width * sprite.height * 4];
+        let mut texture_data = vec![0u8; sprite.width as usize * sprite.height as usize * 4];
 
         for iframe in 0..sprite.frames.len() {
             copy_bitmap_to_texture_data(&sprite.frames[iframe], palette, &mut texture_data, |c| c)?;
 
             texture.update(
                 Rect::new(
-                    (iframe * sprite.width) as i32,
+                    (iframe as u32 * sprite.width) as i32,
                     0,
-                    (sprite.width) as u32,
-                    (sprite.height) as u32,
+                    sprite.width,
+                    sprite.height,
                 ),
                 &texture_data,
-                4 * sprite.width,
+                4 * sprite.width as usize,
             )?;
         }
 
         texture.set_blend_mode(BlendMode::Blend);
 
         Ok(SDLSprite {
-            width: sprite.width as u32,
-            height: sprite.height as u32,
+            width: sprite.width,
+            height: sprite.height,
             texture,
             frame_count: sprite.frames.len(),
         })
@@ -66,8 +66,8 @@ impl<'a> SDLSprite<'a> {
         let texture = texture_from_bitmap(bitmap, palette, texture_creator)?;
 
         Ok(SDLSprite {
-            width: bitmap.width as u32,
-            height: bitmap.height as u32,
+            width: bitmap.width,
+            height: bitmap.height,
             texture,
             frame_count: 1,
         })
@@ -78,7 +78,7 @@ impl<'a> SDLSprite<'a> {
         canvas: &mut Canvas<T>,
         x: i32,
         y: i32,
-        iframe: u32,
+        iframe: usize,
         scale: u32,
         flip_x: bool,
         flip_y: bool,
@@ -87,7 +87,7 @@ impl<'a> SDLSprite<'a> {
             .copy_ex(
                 &self.texture,
                 Rect::new(
-                    ((iframe % self.frame_count as u32) * self.width) as i32,
+                    ((iframe % self.frame_count) as u32 * self.width) as i32,
                     0,
                     self.width,
                     self.height,

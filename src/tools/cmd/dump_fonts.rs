@@ -22,14 +22,14 @@ pub fn main(path: &Path) -> Result<()> {
             .skill_panel
             .font
             .frames
-            .get(index as usize)
+            .get(index)
             .ok_or(format_err!("invalid skill panel font index {}", index))?;
 
-        println!("'{}‘", c);
+        println!("’{}’", c);
         println!("===");
         for y in 0..bitmap.height {
             for x in 0..bitmap.width {
-                print!("{:#04x} ", bitmap.data[y * bitmap.width + x]);
+                print!("{:#04x} ", bitmap.data[(y * bitmap.width + x) as usize]);
             }
 
             println!();
@@ -49,14 +49,14 @@ pub fn main(path: &Path) -> Result<()> {
             .skill_panel
             .font_skills
             .frames
-            .get(index as usize)
+            .get(index)
             .ok_or(format_err!("invalid skill panel font index {}", index))?;
 
-        println!("'{}‘", c);
+        println!("’{}’", c);
         println!("===");
         for y in 0..bitmap.height {
             for x in 0..bitmap.width {
-                print!("{:#04x} ", bitmap.data[y * bitmap.width + x]);
+                print!("{:#04x} ", bitmap.data[(y * bitmap.width + x) as usize]);
             }
 
             println!();

@@ -142,8 +142,8 @@ fn compose_level(
 
         for y in 0..special_background.bitmap.height {
             for x in 0..special_background.bitmap.width {
-                let i_src = y * special_background.bitmap.width + x;
-                let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION + x;
+                let i_src = (y * special_background.bitmap.width + x) as usize;
+                let i_dest = (y * LEVEL_WIDTH + VGASPEC_POSITION as u32 + x) as usize;
 
                 background_data[i_dest] = if special_background.bitmap.transparency[i_src] {
                     255
@@ -257,7 +257,7 @@ where
                 canvas,
                 object.x,
                 object.y,
-                (frame % sprite.frame_count as u64) as u32,
+                (frame as usize) % sprite.frame_count,
                 1,
                 false,
                 object.flip_y,

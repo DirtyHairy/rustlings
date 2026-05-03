@@ -8,7 +8,7 @@ use crate::state::LemmingAnimation;
 #[derive(Clone, Default)]
 pub struct ObjectState {
     pub triggered: bool,
-    pub frame: u32,
+    pub frame: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
@@ -55,7 +55,7 @@ pub struct LemmingState {
     pub activity: Activity,
     pub direction: Direction,
     pub animation: LemmingAnimation,
-    pub frame: u32,
+    pub frame: usize,
 
     pub countdown: Option<u32>,
     pub floater: bool,

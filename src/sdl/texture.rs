@@ -27,18 +27,18 @@ pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
     let mut texture = texture_creator.create_texture(
         PixelFormat::RGBA8888,
         TextureAccess::Static,
-        bitmap.width as u32,
-        bitmap.height as u32,
+        bitmap.width,
+        bitmap.height,
     )?;
     texture.set_scale_mode(ScaleMode::Nearest);
 
-    let mut texture_data = vec![0u8; bitmap.width * bitmap.height * 4];
+    let mut texture_data = vec![0u8; bitmap.width as usize * bitmap.height as usize * 4];
     copy_bitmap_to_texture_data(bitmap, palette, &mut texture_data, mapping)?;
 
     texture.update(
-        Rect::new(0, 0, bitmap.width as u32, bitmap.height as u32),
+        Rect::new(0, 0, bitmap.width, bitmap.height),
         &texture_data,
-        4 * bitmap.width,
+        4 * bitmap.width as usize,
     )?;
 
     texture.set_blend_mode(BlendMode::Blend);

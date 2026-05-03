@@ -10,8 +10,8 @@ use crate::game_data::file::read::read_byte;
 use crate::game_data::file::sprite::{Bitmap, TransparencyEncoding};
 
 const SECTION_SIZE: usize = 14400;
-const VGASPEC_BITMAP_WIDTH: usize = 960;
-const VGASPEC_BITMAP_HEIGHT: usize = 160;
+const VGASPEC_BITMAP_WIDTH: u32 = 960;
+const VGASPEC_BITMAP_HEIGHT: u32 = 160;
 const PALETTE_MAP: [u8; 8] = [0, 9, 10, 11, 12, 13, 14, 15];
 const MAGIC_PALETTE_ENTRY: PaletteEntry = expand_rgb6_to8(0x1f, 0x1f, 0);
 
@@ -96,7 +96,7 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
     palette[7] = palette[8];
 
     let mut i_source = 40;
-    let mut bitmap_data: Vec<u8> = vec![0; SECTION_SIZE];
+    let mut bitmap_data: Vec<u8> = vec![0u8; SECTION_SIZE];
     let mut section_bitmaps: Vec<Bitmap> = Vec::with_capacity(4);
 
     for _i in 0..4 {
@@ -111,11 +111,12 @@ fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
         )?)
     }
 
-    let mut bitmap: Vec<u8> = vec![0; VGASPEC_BITMAP_HEIGHT * VGASPEC_BITMAP_WIDTH];
-    let mut transparency: Vec<bool> = vec![false; VGASPEC_BITMAP_HEIGHT * VGASPEC_BITMAP_WIDTH];
+    let pixel_count = (VGASPEC_BITMAP_HEIGHT * VGASPEC_BITMAP_WIDTH) as usize;
+    let mut bitmap: Vec<u8> = vec![0; pixel_count];
+    let mut transparency: Vec<bool> = vec![false; pixel_count];
 
     for i in 0..4 {
-        let chunk_size = VGASPEC_BITMAP_HEIGHT * VGASPEC_BITMAP_WIDTH / 4;
+        let chunk_size = pixel_count / 4;
         bitmap[i * chunk_size..(i + 1) * chunk_size].copy_from_slice(&section_bitmaps[i].data);
         transparency[i * chunk_size..(i + 1) * chunk_size]
             .copy_from_slice(&section_bitmaps[i].transparency);

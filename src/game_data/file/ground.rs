@@ -66,8 +66,8 @@ pub struct ObjectInfo {
     pub interaction_type: InteractionType,
     pub animation_flags: u32,
     pub animation_loops: bool,
-    pub animation_start: u32,
-    pub animation_end: u32,
+    pub animation_start: usize,
+    pub animation_end: usize,
     pub width: u32,
     pub height: u32,
     pub animation_frame_size: usize,
@@ -84,8 +84,8 @@ pub struct ObjectInfo {
 
 #[derive(Default, Clone)]
 pub struct TerrainInfo {
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
     pub image_offset: usize,
     pub mask_offset: usize,
 }
@@ -150,8 +150,8 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
 
 fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)> {
     let (animation_flags, offset) = read_word_be::<u32>(buffer, offset)?;
-    let (animation_start, offset) = read_byte::<u32>(buffer, offset)?;
-    let (animation_end, offset) = read_byte::<u32>(buffer, offset)?;
+    let (animation_start, offset) = read_byte::<usize>(buffer, offset)?;
+    let (animation_end, offset) = read_byte::<usize>(buffer, offset)?;
     let (width, offset) = read_byte::<u32>(buffer, offset)?;
     let (height, offset) = read_byte::<u32>(buffer, offset)?;
     let (animation_frame_size, offset) = read_word_be::<usize>(buffer, offset)?;
@@ -192,8 +192,8 @@ fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)>
 }
 
 fn read_terrain_info(buffer: &[u8], offset: usize) -> Result<(TerrainInfo, usize)> {
-    let (width, offset) = read_byte::<usize>(buffer, offset)?;
-    let (height, offset) = read_byte::<usize>(buffer, offset)?;
+    let (width, offset) = read_byte::<u32>(buffer, offset)?;
+    let (height, offset) = read_byte::<u32>(buffer, offset)?;
     let (image_offset, offset) = read_word_be::<usize>(buffer, offset)?;
     let (mask_offset, offset) = read_word_be::<usize>(buffer, offset)?;
     let offset = offset + 2;

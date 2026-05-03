@@ -16,7 +16,7 @@ const COLOR_BLACK: u8 = 0x00;
 const COLOR_DARK_GREEN: u8 = 0x02;
 const COLOR_LIGHT_GREEN: u8 = 0x09;
 
-pub const LEMMING_SPRITE_LAYOUT: [(usize, usize, usize, usize); NUM_LEMMING_SPRITES] = [
+pub const LEMMING_SPRITE_LAYOUT: [(usize, u32, u32, usize); NUM_LEMMING_SPRITES] = [
     (8, 16, 10, 2),
     (1, 16, 10, 2),
     (8, 16, 10, 2),
@@ -111,7 +111,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             bpp,
             &sections[0].data,
             &mut offset,
-            (width * height * bpp) / 8,
+            (width as usize * height as usize * bpp) / 8,
             TransparencyEncoding::Black,
         )?);
     }
@@ -175,21 +175,25 @@ pub fn read_main(path: &Path) -> Result<Content> {
     })
 }
 
-pub fn resolve_skill_panel_skill_font_index(c: char) -> u32 {
+pub fn resolve_skill_panel_skill_font_index(c: char) -> usize {
     match c {
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => (c as u32) - ('0' as u32),
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+            (c as u32 - '0' as u32) as usize
+        }
         _ => 10,
     }
 }
 
-pub fn resolve_skill_panel_font_index(c: char) -> u32 {
+pub fn resolve_skill_panel_font_index(c: char) -> usize {
     match c {
         '%' => 0,
-        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => (c as u32) - ('0' as u32) + 1,
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+            (c as usize - '0' as usize) + 1
+        }
         '-' => 11,
         'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O'
         | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' => {
-            (c as u32) - ('A' as u32) + 12
+            (c as usize - 'A' as usize) + 12
         }
         _ => 38,
     }

@@ -15,8 +15,8 @@ enum AnimationType {
 struct Object {
     animation_type: AnimationType,
     interaction_type: InteractionType,
-    animation_start: u32,
-    last_frame: u32,
+    animation_start: usize,
+    last_frame: usize,
     x: u32,
     y: u32,
 }

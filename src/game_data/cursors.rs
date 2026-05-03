@@ -56,9 +56,9 @@ fn compile_char(c: char) -> Option<u8> {
 }
 
 fn compile(input: &str) -> Bitmap {
-    let cursor_size = CURSOR_SIZE as usize;
-    let mut data: Vec<u8> = vec![0; cursor_size * cursor_size];
-    let mut transparency: Vec<bool> = vec![true; cursor_size * cursor_size];
+    let pixel_count = (CURSOR_SIZE * CURSOR_SIZE) as usize;
+    let mut data: Vec<u8> = vec![0; pixel_count];
+    let mut transparency: Vec<bool> = vec![true; pixel_count];
 
     let mut i = 0;
     for c in input.chars() {
@@ -74,8 +74,8 @@ fn compile(input: &str) -> Bitmap {
     }
 
     Bitmap {
-        width: cursor_size,
-        height: cursor_size,
+        width: CURSOR_SIZE,
+        height: CURSOR_SIZE,
         data,
         transparency,
     }

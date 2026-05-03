@@ -51,7 +51,7 @@ impl<'texture_creator> SdlAtlas<'texture_creator> {
         sprite_index: usize,
         x: i32,
         y: i32,
-        iframe: u32,
+        iframe: usize,
         flip_x: bool,
         flip_y: bool,
     ) -> Result<()> {
@@ -62,7 +62,7 @@ impl<'texture_creator> SdlAtlas<'texture_creator> {
 
         let frame = sprite
             .frames
-            .get(iframe as usize)
+            .get(iframe)
             .ok_or(format_err!("invalid frame index {}", iframe))?;
 
         canvas
@@ -110,16 +110,16 @@ impl<'a> SdlAtlasBuilder<'a> {
         let width = self
             .sprites
             .iter()
-            .map(|s| s.frames.len() * s.width)
+            .map(|s| s.frames.len() as u32 * s.width)
             .max()
-            .unwrap_or(0) as u32;
+            .unwrap_or(0);
 
         let mut atlas_sprites: Vec<_> = self
             .sprites
             .iter()
             .map(|s| AtlasSprite {
-                height: s.height as u32,
-                width: s.width as u32,
+                height: s.height,
+                width: s.width,
                 frames: Vec::with_capacity(s.frames.len()),
             })
             .collect();
@@ -135,7 +135,7 @@ impl<'a> SdlAtlasBuilder<'a> {
             let atlas_sprite = &mut atlas_sprites[i];
 
             for _ in 0..sprite.frames.len() {
-                if x + sprite.width as u32 > width {
+                if x + sprite.width > width {
                     y += row_height;
                     x = 0;
                     row_height = 0;
@@ -143,8 +143,8 @@ impl<'a> SdlAtlasBuilder<'a> {
 
                 atlas_sprite.frames.push(AtlasFrame { x, y });
 
-                x += sprite.width as u32;
-                row_height = row_height.max(sprite.height as u32);
+                x += sprite.width;
+                row_height = row_height.max(sprite.height);
             }
         }
 

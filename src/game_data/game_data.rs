@@ -141,8 +141,8 @@ impl GameData {
 
             for y in 0..special_background.bitmap.height {
                 for x in 0..special_background.bitmap.width {
-                    let i_src = y * special_background.bitmap.width + x;
-                    let i_dest = y * LEVEL_WIDTH as usize + VGASPEC_POSITION as usize + x;
+                    let i_src = (y * special_background.bitmap.width + x) as usize;
+                    let i_dest = (y * LEVEL_WIDTH + VGASPEC_POSITION + x) as usize;
 
                     data[i_dest] = if special_background.bitmap.transparency[i_src] {
                         0
@@ -173,8 +173,8 @@ impl GameData {
         }
 
         Ok(Bitmap {
-            width: LEVEL_WIDTH as usize,
-            height: LEVEL_HEIGHT as usize,
+            width: LEVEL_WIDTH,
+            height: LEVEL_HEIGHT,
             data,
             transparency,
         })

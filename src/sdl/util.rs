@@ -22,8 +22,9 @@ pub fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
     mapping: T,
 ) -> Result<()> {
     let data32 = recast_buffer::<u32>(texture_data)?;
+    let pixel_count = bitmap.width as usize * bitmap.height as usize;
 
-    for i in 0..bitmap.width * bitmap.height {
+    for i in 0..pixel_count {
         data32[i] = if bitmap.transparency[i] {
             0
         } else {
@@ -46,7 +47,7 @@ pub fn copy_bitmap_to_texture_data_at(
     let data32 = recast_buffer::<u32>(texture_data)?;
 
     let delta = (pitch >> 2)
-        .checked_sub(bitmap.width)
+        .checked_sub(bitmap.width as usize)
         .ok_or(format_err!("invalid pitch for bitmap width"))?;
 
     let mut i_data = y as usize * (pitch >> 2) + x as usize;

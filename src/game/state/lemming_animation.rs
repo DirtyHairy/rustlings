@@ -38,8 +38,8 @@ impl LemmingAnimation {
                 Self::Digging => (8, 12),
                 Self::Explosion => (16, 25),
                 _ => (
-                    (LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].1 / 2) as u32,
-                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].2 as u32,
+                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].1 / 2,
+                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].2,
                 ),
             };
 
@@ -53,8 +53,8 @@ impl LemmingAnimation {
         Self::FOOT[self as usize]
     }
 
-    pub const fn frame_count(self) -> u32 {
-        LEMMING_SPRITE_LAYOUT[self.sprite() as usize].0 as u32
+    pub const fn frame_count(self) -> usize {
+        LEMMING_SPRITE_LAYOUT[self.sprite() as usize].0
     }
 
     pub fn mirror(self, direction: Direction) -> bool {

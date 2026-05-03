@@ -44,9 +44,9 @@ pub fn read_vgagr(
 
         let mut offset = info.frames_offset;
         object_sprites[i] = Some(Sprite::read_planar(
-            info.animation_end as usize,
-            info.width as usize,
-            info.height as usize,
+            info.animation_end,
+            info.width,
+            info.height,
             4,
             &object_data,
             &mut offset,
