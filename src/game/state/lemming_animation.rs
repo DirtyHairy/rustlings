@@ -54,7 +54,7 @@ impl LemmingAnimation {
     }
 
     pub const fn frame_count(self) -> u32 {
-        LEMMING_SPRITE_LAYOUT[self as usize].0 as u32
+        LEMMING_SPRITE_LAYOUT[self.sprite() as usize].0 as u32
     }
 
     pub fn mirror(self, direction: Direction) -> bool {

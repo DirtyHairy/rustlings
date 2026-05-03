@@ -1,81 +1,19 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use sdl3::{
-    pixels::{Color, PixelFormat},
+    pixels::PixelFormat,
     rect::Rect,
-    render::*,
+    render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureAccess, TextureCreator},
 };
 
-use crate::game_data::PALETTE_SIZE;
-use crate::game_data::{Bitmap, PaletteEntry, Sprite};
-
-fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
-    bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
-    texture_data: &mut [u8],
-    mapping: T,
-) -> Result<()> {
-    let data32: &mut [u32];
-    unsafe {
-        let (prefix, x, _) = texture_data.align_to_mut::<u32>();
-        if prefix.len() != 0 {
-            return Err(anyhow!("misaligned texture data"));
-        }
-
-        data32 = x;
-    }
-
-    for i in 0..bitmap.width * bitmap.height {
-        data32[i] = if bitmap.transparency[i] {
-            0
-        } else {
-            let (r, g, b) = palette[bitmap.data[i] as usize];
-            mapping(Color::RGBA(r, g, b, 0xff)).to_u32(&PixelFormat::RGBA8888)
-        };
-    }
-
-    Ok(())
-}
-
-pub fn texture_from_bitmap<'a, T>(
-    bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
-    texture_creator: &'a TextureCreator<T>,
-) -> Result<Texture<'a>> {
-    texture_from_bitmap_mapped(bitmap, palette, texture_creator, |c| c)
-}
-
-pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
-    bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
-    texture_creator: &'a TextureCreator<T>,
-    mapping: F,
-) -> Result<Texture<'a>> {
-    let mut texture = texture_creator.create_texture(
-        PixelFormat::RGBA8888,
-        TextureAccess::Static,
-        bitmap.width as u32,
-        bitmap.height as u32,
-    )?;
-    texture.set_scale_mode(ScaleMode::Nearest);
-
-    let mut texture_data = vec![0u8; bitmap.width * bitmap.height * 4];
-    copy_bitmap_to_texture_data(bitmap, palette, &mut texture_data, mapping)?;
-
-    texture.update(
-        Rect::new(0, 0, bitmap.width as u32, bitmap.height as u32),
-        &texture_data,
-        4 * bitmap.width,
-    )?;
-
-    texture.set_blend_mode(BlendMode::Blend);
-
-    Ok(texture)
-}
+use crate::{
+    game_data::{Bitmap, PALETTE_SIZE, PaletteEntry, Sprite},
+    sdl_rendering::{texture_from_bitmap, util::copy_bitmap_to_texture_data},
+};
 
 pub struct SDLSprite<'a> {
     pub width: u32,
     pub height: u32,
-    pub frame_count: u32,
+    pub frame_count: usize,
     texture: Texture<'a>,
 }
 
@@ -116,7 +54,7 @@ impl<'a> SDLSprite<'a> {
             width: sprite.width as u32,
             height: sprite.height as u32,
             texture,
-            frame_count: sprite.frames.len() as u32,
+            frame_count: sprite.frames.len(),
         })
     }
 
@@ -149,7 +87,7 @@ impl<'a> SDLSprite<'a> {
             .copy_ex(
                 &self.texture,
                 Rect::new(
-                    ((iframe % self.frame_count) * self.width) as i32,
+                    ((iframe % self.frame_count as u32) * self.width) as i32,
                     0,
                     self.width,
                     self.height,
@@ -166,21 +104,4 @@ impl<'a> SDLSprite<'a> {
     pub fn texture(&mut self) -> &mut Texture<'a> {
         &mut self.texture
     }
-}
-
-pub fn with_texture_canvas<T: RenderTarget, F>(
-    canvas: &mut Canvas<T>,
-    texture: &mut Texture,
-    f: F,
-) -> Result<()>
-where
-    F: FnOnce(&mut Canvas<T>) -> Result<()>,
-{
-    let mut render_result: Result<()> = Ok(());
-
-    canvas.with_texture_canvas(texture, |c| {
-        render_result = f(c);
-    })?;
-
-    render_result.map_err(anyhow::Error::from)
 }

@@ -5,11 +5,12 @@ use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
         MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
-        MINIMAP_VIEW_Y, PALETTE_SIZE, PaletteEntry, SCREEN_HEIGHT, SCREEN_WIDTH,
-        SKILL_PANEL_HEIGHT, file::level,
+        MINIMAP_VIEW_Y, OBJECTS_PER_TILESET, SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
+        file::level,
     },
     sdl_rendering::{
-        SDLSprite, texture_from_bitmap, texture_from_bitmap_mapped, with_texture_canvas,
+        SdlAtlas, SdlAtlasBuilder, texture_from_bitmap, texture_from_bitmap_mapped,
+        with_texture_canvas,
     },
     sdl3_aux::apply_blend_mode,
 };
@@ -28,7 +29,7 @@ use sdl3::{
     render::{BlendMode, RenderTarget},
     sys::blendmode::SDL_BLENDMODE_NONE,
 };
-use strum::VariantArray;
+use strum::{EnumCount, VariantArray};
 
 use crate::{
     geometry::Rect,
@@ -51,14 +52,13 @@ const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
 
-struct Object<'texture_creator> {
-    id: usize,
+struct Object {
+    index: usize,
+    atlas_index: usize,
 
     x: u32,
     y: u32,
     flip: bool,
-
-    sprite: SDLSprite<'texture_creator>,
 }
 
 struct StencilTextures<'texture_creator> {
@@ -79,11 +79,11 @@ pub struct Renderer<'texture_creator> {
     texture_level: Texture<'texture_creator>,
     texture_screen: Texture<'texture_creator>,
 
-    lemming_sprites: Vec<SDLSprite<'texture_creator>>,
+    atlas: SdlAtlas<'texture_creator>,
 
-    objects_background: Vec<Object<'texture_creator>>,
-    objects_foreground: Vec<Object<'texture_creator>>,
-    objects_merge: Vec<Object<'texture_creator>>,
+    objects_background: Vec<Object>,
+    objects_foreground: Vec<Object>,
+    objects_merge: Vec<Object>,
 
     blend_mode_merge: SDL_BlendMode,
     blend_mode_background: SDL_BlendMode,
@@ -123,32 +123,39 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SCREEN_HEIGHT,
         )?;
 
-        let lemming_sprites = LemmingAnimation::VARIANTS
+        let mut atlas_builder =
+            SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET);
+
+        LemmingAnimation::VARIANTS
             .iter()
             .copied()
-            .map(LemmingAnimation::sprite)
-            .map(|sprite| {
-                SDLSprite::from_sprite(
-                    &game_data.lemming_sprites[sprite as usize],
-                    &palette,
-                    texture_creator,
-                )
-            })
-            .collect::<Result<Vec<SDLSprite>>>()?;
+            .map(|animation| &game_data.lemming_sprites[animation.sprite() as usize])
+            .for_each(|sprite| {
+                atlas_builder.add_sprite(sprite);
+            });
 
-        let objects_merge = create_objects(&game_data, &palette, level, texture_creator, |o| {
-            o.draw_only_over_terrain
+        let object_atlas_index: Vec<Option<usize>> = game_data
+            .tilesets
+            .get(level.graphics_set as usize)
+            .ok_or(format_err!("invalid tileset {}", level.graphics_set))?
+            .object_sprites
+            .iter()
+            .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
+            .collect();
+
+        let atlas = atlas_builder.build(&palette, texture_creator)?;
+        println!("built atlas, size is {}x{}", atlas.width(), atlas.height());
+
+        let objects_merge =
+            create_objects(&object_atlas_index, level, |o| o.draw_only_over_terrain)?;
+
+        let objects_foreground = create_objects(&object_atlas_index, level, |o| {
+            !o.draw_only_over_terrain && !o.do_not_overwrite
         })?;
 
-        let objects_foreground =
-            create_objects(&game_data, &palette, level, texture_creator, |o| {
-                !o.draw_only_over_terrain && !o.do_not_overwrite
-            })?;
-
-        let objects_background =
-            create_objects(&game_data, &palette, level, texture_creator, |o| {
-                !o.draw_only_over_terrain && o.do_not_overwrite
-            })?;
+        let objects_background = create_objects(&object_atlas_index, level, |o| {
+            !o.draw_only_over_terrain && o.do_not_overwrite
+        })?;
 
         let skill_panel_renderer =
             SkillPanelRenderer::new(level, Rc::clone(&game_data), texture_creator)?;
@@ -213,7 +220,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
             texture_minimap_frame,
             texture_level,
             texture_screen,
-            lemming_sprites,
+
+            atlas,
 
             objects_merge,
             objects_foreground,
@@ -321,21 +329,24 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 state,
                 &mut self.objects_merge,
                 self.blend_mode_merge,
+                &mut self.atlas,
             )?;
             blit_objects(
                 canvas,
                 state,
                 &mut self.objects_background,
                 self.blend_mode_background,
+                &mut self.atlas,
             )?;
             blit_objects(
                 canvas,
                 state,
                 &mut self.objects_foreground,
                 SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
             )?;
 
-            draw_lemmings(canvas, state, &self.lemming_sprites)?;
+            draw_lemmings(canvas, state, &mut self.atlas)?;
 
             Ok(())
         })?;
@@ -358,6 +369,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     state,
                     &mut self.objects_background,
                     SDL_BLENDMODE_BLEND,
+                    &mut self.atlas,
                 )?;
                 copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_BLEND)?;
                 blit_objects(
@@ -365,9 +377,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     state,
                     &mut self.objects_foreground,
                     SDL_BLENDMODE_BLEND,
+                    &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &self.lemming_sprites)?;
+                draw_lemmings(canvas, state, &mut self.atlas)?;
 
                 Ok(())
             })
@@ -388,7 +401,13 @@ impl<'texture_creator> Renderer<'texture_creator> {
         {
             with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
                 copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_NONE)?;
-                blit_objects(canvas, state, &mut self.objects_merge, SDL_BLENDMODE_BLEND)?;
+                blit_objects(
+                    canvas,
+                    state,
+                    &mut self.objects_merge,
+                    SDL_BLENDMODE_BLEND,
+                    &mut self.atlas,
+                )?;
 
                 Ok(())
             })?;
@@ -409,6 +428,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     state,
                     &mut self.objects_background,
                     SDL_BLENDMODE_BLEND,
+                    &mut self.atlas,
                 )?;
                 copy_texture(canvas, intermediate_terrain, SDL_BLENDMODE_BLEND)?;
                 blit_objects(
@@ -416,9 +436,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     state,
                     &mut self.objects_foreground,
                     SDL_BLENDMODE_BLEND,
+                    &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &self.lemming_sprites)?;
+                draw_lemmings(canvas, state, &mut self.atlas)?;
 
                 Ok(())
             })
@@ -472,39 +493,24 @@ impl<'texture_creator> Renderer<'texture_creator> {
     }
 }
 
-fn create_objects<'texture_creator, P: Fn(&&level::Object) -> bool, T>(
-    game_data: &GameData,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+fn create_objects<P: Fn(&&level::Object) -> bool>(
+    atlas_index: &[Option<usize>],
     level: &Level,
-    texture_creator: &'texture_creator TextureCreator<T>,
     predicate: P,
-) -> Result<Vec<Object<'texture_creator>>> {
+) -> Result<Vec<Object>> {
     level
         .objects
         .iter()
         .enumerate()
         .filter(|(_, x)| predicate(x))
-        .map(|(id, o)| -> Result<Object> {
-            let tileset = game_data
-                .tilesets
-                .get(level.graphics_set as usize)
-                .ok_or(format_err!("invalid tileset {}", o.id))?;
-
-            let sprite = tileset
-                .object_sprites
-                .get(o.id as usize)
-                .ok_or(format_err!("invlid object {}", o.id))?
-                .as_ref()
-                .ok_or(format_err!("object {} not defined", o.id))?;
-
-            let sdl_sprite = SDLSprite::from_sprite(&sprite, palette, texture_creator)?;
-
+        .map(|(index, o)| -> Result<Object> {
             Ok(Object {
-                id,
+                index,
+                atlas_index: atlas_index[o.id as usize]
+                    .ok_or(format_err!("no sprite in atlas for object {}", o.id))?,
                 x: o.x as u32,
                 y: o.y as u32,
                 flip: o.flip_y,
-                sprite: sdl_sprite,
             })
         })
         .collect()
@@ -530,20 +536,19 @@ fn blit_objects<T: RenderTarget>(
     state: &SceneStateLevel,
     objects: &mut [Object],
     blend_mode: SDL_BlendMode,
+    atlas: &mut SdlAtlas,
 ) -> Result<()> {
+    if !atlas.apply_blend_mode(blend_mode) {
+        bail!("failed to apply blend mode");
+    }
+
     for object in objects {
-        if !apply_blend_mode(&mut object.sprite.texture(), blend_mode) {
-            bail!("failed to apply blend mode");
-        }
-
-        object.sprite.texture().set_scale_mode(ScaleMode::Nearest);
-
-        object.sprite.blit(
+        atlas.blit(
             canvas,
+            object.atlas_index,
             object.x as i32,
             object.y as i32,
-            state.object_state[object.id].frame,
-            1,
+            state.object_state[object.index].frame,
             false,
             object.flip,
         )?;
@@ -555,18 +560,21 @@ fn blit_objects<T: RenderTarget>(
 fn draw_lemmings<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     state: &SceneStateLevel,
-    sprites: &Vec<SDLSprite>,
+    atlas: &mut SdlAtlas,
 ) -> Result<()> {
+    if !atlas.apply_blend_mode(SDL_BLENDMODE_BLEND) {
+        bail!("failed to apply blend mode");
+    }
+
     for lemming in &state.lemmings {
-        let sprite = &sprites[lemming.animation as usize];
         let (foot_x, foot_y) = lemming.animation.foot();
 
-        sprite.blit(
+        atlas.blit(
             canvas,
+            lemming.animation as usize,
             lemming.x as i32 - foot_x as i32,
             lemming.y as i32 - foot_y as i32,
             lemming.frame,
-            1,
             lemming.animation.mirror(lemming.direction),
             false,
         )?;
