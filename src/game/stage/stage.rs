@@ -24,6 +24,7 @@ use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTextu
 const MAX_TIMESLICE_MSEC: u64 = 100;
 const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 1;
 const FALLBACK_REFRESH_RATE: f32 = 100.;
+const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
 
 pub enum StopReason {
     Quit,
@@ -41,6 +42,9 @@ pub struct Stage<'sdl> {
     suspended: bool,
     ts_reference: Instant,
     time_old: u64,
+
+    last_time_per_frame_update: Instant,
+    cached_time_per_frame_msec: Option<u64>,
 }
 
 impl<'sdl> Stage<'sdl> {
@@ -59,6 +63,8 @@ impl<'sdl> Stage<'sdl> {
             suspended: false,
             ts_reference: Instant::now(),
             time_old: 0,
+            last_time_per_frame_update: Instant::now(),
+            cached_time_per_frame_msec: None,
         }
     }
 
@@ -271,11 +277,23 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn time_per_frame_msec(&self) -> u64 {
-        let refresh_rate =
-            current_refresh_rate(&self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
+    fn time_per_frame_msec(&mut self) -> u64 {
+        let now = Instant::now();
 
-        (1000. / refresh_rate).floor() as u64
+        if !self.cached_time_per_frame_msec.is_some()
+            || now
+                .duration_since(self.last_time_per_frame_update)
+                .as_millis()
+                >= REFRESH_RATE_UPDATE_INTERVAL_MSEC
+        {
+            let refresh_rate =
+                current_refresh_rate(&self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
+
+            self.cached_time_per_frame_msec = Some((1000. / refresh_rate).floor() as u64);
+            self.last_time_per_frame_update = now;
+        }
+
+        self.cached_time_per_frame_msec.unwrap()
     }
 
     fn render(
