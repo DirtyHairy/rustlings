@@ -11,12 +11,17 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
+#[derive(Clone, Default)]
 pub struct ActivityStateFalling {
     pub delta_y: u32,
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
+#[derive(Clone, Default)]
+pub struct ActivityStateWalking {
+    pub is_jumper: bool,
+}
+
+#[derive(Clone, Default)]
 pub enum Activity {
     #[default]
     Climbing,
@@ -27,7 +32,7 @@ pub enum Activity {
     Mining,
     Digging,
     Falling(ActivityStateFalling),
-    Walking,
+    Walking(ActivityStateWalking),
     Splatting,
     Drowning,
     Frying,
@@ -41,16 +46,25 @@ pub enum Direction {
     Left,
 }
 
+impl Direction {
+    pub fn invert(&self) -> Direction {
+        match self {
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct CursorState {
     pub lemming_count: u32,
     pub leading_lemming: u32,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Default)]
 pub struct LemmingState {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
 
     pub activity: Activity,
     pub direction: Direction,

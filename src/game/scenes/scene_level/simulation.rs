@@ -1,9 +1,13 @@
 use std::rc::Rc;
 
 use anyhow::Result;
-use rustlings::game_data::{GameData, LEVEL_HEIGHT, Level, file::ground::InteractionType};
+use rustlings::game_data::{
+    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, file::ground::InteractionType,
+};
 
-use crate::state::{Activity, LemmingAnimation, LemmingState, LevelState, SceneStateLevel};
+use crate::state::{
+    Activity, Direction, LemmingAnimation, LemmingState, LevelState, SceneStateLevel, TerrainProps,
+};
 
 #[derive(PartialEq, Clone, Copy)]
 enum AnimationType {
@@ -127,7 +131,11 @@ impl Simulation {
     }
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
-        state.lemmings.retain_mut(LemmingState::tick);
+        let terrain_map = TerrainMap(&state.terrain_map);
+
+        state
+            .lemmings
+            .retain_mut(|lemming| lemming.tick(&terrain_map));
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
@@ -140,12 +148,12 @@ impl Simulation {
             &self.objects[self.entrances[state.lemmings_out as usize % self.entrances.len()]];
 
         let mut lemming = LemmingState {
-            x: entrance.x + SPAWN_X,
-            y: entrance.y + SPAWN_Y,
+            x: (entrance.x + SPAWN_X) as i32,
+            y: (entrance.y + SPAWN_Y) as i32,
             ..Default::default()
         };
 
-        lemming.start_falling();
+        lemming.transition_to(Activity::Falling(Default::default()));
 
         state.lemmings.push_back(lemming);
         state.lemmings_out += 1;
@@ -175,33 +183,180 @@ impl Simulation {
 }
 
 impl LemmingState {
-    pub fn tick(&mut self) -> bool {
+    fn tick(&mut self, terrain_map: &TerrainMap) -> bool {
         let keep = match &self.activity {
-            Activity::Falling(_) => self.tick_faller(),
+            Activity::Falling(_) => self.tick_faller(terrain_map),
+            Activity::Walking(_) => self.tick_walker(terrain_map),
             _ => true,
         };
 
-        let keep = keep && self.y < LEVEL_HEIGHT + self.animation.foot().1;
+        let keep = keep && self.y < (LEVEL_HEIGHT + self.animation.foot().1) as i32;
 
         keep
     }
 
-    pub fn start_falling(&mut self) {
-        self.activity = Activity::Falling(Default::default());
-        self.animation = LemmingAnimation::Falling;
+    fn transition_to(&mut self, activity: Activity) {
         self.frame = 0;
+        self.animation = activity.default_animation();
+        self.activity = activity;
     }
 
-    fn tick_faller(&mut self) -> bool {
-        if let Activity::Falling(state) = &mut self.activity {
-            self.frame = (self.frame + 1) % self.animation.frame_count();
-            self.y += 3;
+    fn tick_faller(&mut self, terrain_map: &TerrainMap) -> bool {
+        let mut transition_to: Option<Activity> = None;
 
-            state.delta_y += 3;
+        let keep = if let Activity::Falling(state) = &mut self.activity {
+            let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
+
+            if dy <= 3 {
+                self.y += dy as i32;
+                state.delta_y += dy;
+
+                transition_to = Some(Activity::Walking(Default::default()));
+            } else {
+                self.frame = (self.frame + 1) % self.animation.frame_count();
+
+                self.y += 3;
+                state.delta_y += 3;
+            }
 
             true
         } else {
             unreachable!()
+        };
+
+        if let Some(activity) = transition_to {
+            self.transition_to(activity);
+        }
+
+        keep
+    }
+
+    fn tick_walker(&mut self, terrain_map: &TerrainMap) -> bool {
+        let mut transition_to: Option<Activity> = None;
+
+        if let Activity::Walking(state) = &mut self.activity {
+            let old_y = self.y;
+
+            if state.is_jumper {
+                let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, 3);
+
+                if dy <= 2 {
+                    self.y -= dy as i32;
+                    state.is_jumper = false;
+                } else {
+                    self.y -= 2;
+                }
+            } else {
+                match self.direction {
+                    Direction::Left => self.x = (self.x - 1).max(0),
+                    Direction::Right => self.x = (self.x + 1).min(LEVEL_WIDTH as i32 - 1),
+                }
+
+                if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
+                    self.direction = self.direction.invert();
+                } else if terrain_map.is_solid(self.x, self.y) {
+                    let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, 7);
+
+                    if dy <= 2 {
+                        self.y -= dy as i32;
+                    } else if dy <= 6 {
+                        state.is_jumper = true;
+                        self.y -= 2;
+                    } else {
+                        self.direction = self.direction.invert();
+                    }
+                } else {
+                    let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
+
+                    if dy <= 3 {
+                        self.y += dy as i32;
+                    } else {
+                        transition_to = Some(Activity::Falling(Default::default()));
+                    }
+                }
+            }
+
+            if old_y > self.y && self.y < 5 {
+                self.direction = self.direction.invert();
+                state.is_jumper = false;
+            }
+
+            if (state.is_jumper) {
+                self.animation = LemmingAnimation::Jumping;
+                self.frame = 0;
+            } else {
+                self.animation = LemmingAnimation::Walking;
+                self.frame = (self.frame + 1) % self.animation.frame_count();
+            }
+        } else {
+            unreachable!()
+        }
+
+        if let Some(activity) = transition_to {
+            self.transition_to(activity);
+        }
+        true
+    }
+}
+
+struct TerrainMap<'a>(&'a Vec<TerrainProps>);
+
+impl<'a> TerrainMap<'a> {
+    pub fn is_solid(&self, x: i32, y: i32) -> bool {
+        if y >= LEVEL_HEIGHT as i32 || y < 0 || x < 0 || x >= LEVEL_WIDTH as i32 {
+            false
+        } else {
+            self.0[(x + y * LEVEL_WIDTH as i32) as usize].solid()
+        }
+    }
+
+    fn delta_y_ascend(&self, x: i32, y: i32, limit: u32) -> u32 {
+        let mut dy: u32 = 0;
+
+        for i in 0..=limit {
+            dy = i;
+            let ypos = y as i32 - dy as i32;
+
+            if !self.is_solid(x, ypos) {
+                break;
+            }
+        }
+
+        dy
+    }
+
+    fn delta_y_descend(&self, x: i32, y: i32, limit: u32) -> u32 {
+        let mut dy: u32 = 0;
+
+        for i in 0..=limit {
+            dy = i;
+            let ypos = y + dy as i32;
+
+            if self.is_solid(x, ypos) {
+                break;
+            }
+        }
+
+        dy
+    }
+}
+
+impl Activity {
+    pub fn default_animation(&self) -> LemmingAnimation {
+        match self {
+            Activity::Bashing => LemmingAnimation::Bashing,
+            Activity::Blocking => LemmingAnimation::Blocking,
+            Activity::Building => LemmingAnimation::Building,
+            Activity::Climbing => LemmingAnimation::Climbing,
+            Activity::Falling(_) => LemmingAnimation::Falling,
+            Activity::Digging => LemmingAnimation::Digging,
+            Activity::Drowning => LemmingAnimation::Drowning,
+            Activity::Exitting => LemmingAnimation::Exitting,
+            Activity::Floating => LemmingAnimation::PreUmbrella,
+            Activity::Frying => LemmingAnimation::Frying,
+            Activity::Mining => LemmingAnimation::Mining,
+            Activity::Splatting => LemmingAnimation::Splatting,
+            Activity::Walking(_) => LemmingAnimation::Walking,
         }
     }
 }

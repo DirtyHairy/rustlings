@@ -336,7 +336,7 @@ fn describe_lemming(lemming: &LemmingState) -> &'static str {
             Activity::Mining => "MINER",
             Activity::Digging => "DIGGER",
             Activity::Falling(_) | Activity::Splatting => "FALLER",
-            Activity::Walking | Activity::Drowning | Activity::Frying | Activity::Exitting => {
+            Activity::Walking(_) | Activity::Drowning | Activity::Frying | Activity::Exitting => {
                 "WALKER"
             }
         }
