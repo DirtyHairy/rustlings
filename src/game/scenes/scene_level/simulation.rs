@@ -38,6 +38,16 @@ const SPAWN_COUNTDOWN_DEFAULT: u32 = 20;
 const SPAWN_X: u32 = 24;
 const SPAWN_Y: u32 = 14;
 
+const MAX_SAFE_FALL: u32 = 57;
+const FALL_DISTANCE_PER_FRAME: u32 = 3;
+
+const MAX_STEP_UP: u32 = 2;
+const MAX_JUMP: u32 = 6;
+const MAX_STEP_DOWN: u32 = 3;
+const JUMP_DISTANCE: u32 = 2;
+
+const MIN_FOOT_Y: i32 = 5;
+
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
         let objects = level
@@ -187,6 +197,7 @@ impl LemmingState {
         let keep = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain_map),
             Activity::Walking(_) => self.tick_walker(terrain_map),
+            Activity::Splatting => self.tick_splatter(),
             _ => true,
         };
 
@@ -207,16 +218,20 @@ impl LemmingState {
         let keep = if let Activity::Falling(state) = &mut self.activity {
             let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
 
-            if dy <= 3 {
+            if dy <= FALL_DISTANCE_PER_FRAME {
                 self.y += dy as i32;
                 state.delta_y += dy;
 
-                transition_to = Some(Activity::Walking(Default::default()));
+                transition_to = Some(if state.delta_y <= MAX_SAFE_FALL {
+                    Activity::Walking(Default::default())
+                } else {
+                    Activity::Splatting
+                });
             } else {
                 self.frame = (self.frame + 1) % self.animation.frame_count();
 
-                self.y += 3;
-                state.delta_y += 3;
+                self.y += FALL_DISTANCE_PER_FRAME as i32;
+                state.delta_y += FALL_DISTANCE_PER_FRAME;
             }
 
             true
@@ -238,13 +253,13 @@ impl LemmingState {
             let old_y = self.y;
 
             if state.is_jumper {
-                let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, 3);
+                let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, JUMP_DISTANCE + 1);
 
-                if dy <= 2 {
+                if dy <= JUMP_DISTANCE {
                     self.y -= dy as i32;
                     state.is_jumper = false;
                 } else {
-                    self.y -= 2;
+                    self.y -= JUMP_DISTANCE as i32;
                 }
             } else {
                 match self.direction {
@@ -255,20 +270,20 @@ impl LemmingState {
                 if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
                     self.direction = self.direction.invert();
                 } else if terrain_map.is_solid(self.x, self.y) {
-                    let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, 7);
+                    let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
 
-                    if dy <= 2 {
+                    if dy <= MAX_STEP_UP {
                         self.y -= dy as i32;
-                    } else if dy <= 6 {
+                    } else if dy <= MAX_JUMP {
                         state.is_jumper = true;
-                        self.y -= 2;
+                        self.y -= JUMP_DISTANCE as i32;
                     } else {
                         self.direction = self.direction.invert();
                     }
                 } else {
-                    let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
+                    let dy = terrain_map.delta_y_descend(self.x, self.y, MAX_STEP_DOWN + 1);
 
-                    if dy <= 3 {
+                    if dy <= MAX_STEP_DOWN {
                         self.y += dy as i32;
                     } else {
                         transition_to = Some(Activity::Falling(Default::default()));
@@ -276,12 +291,12 @@ impl LemmingState {
                 }
             }
 
-            if old_y > self.y && self.y < 5 {
+            if old_y > self.y && self.y < MIN_FOOT_Y as i32 {
                 self.direction = self.direction.invert();
                 state.is_jumper = false;
             }
 
-            if (state.is_jumper) {
+            if state.is_jumper {
                 self.animation = LemmingAnimation::Jumping;
                 self.frame = 0;
             } else {
@@ -296,6 +311,12 @@ impl LemmingState {
             self.transition_to(activity);
         }
         true
+    }
+
+    fn tick_splatter(&mut self) -> bool {
+        self.frame = (self.frame + 1) % self.animation.frame_count();
+
+        self.frame > 0
     }
 }
 
