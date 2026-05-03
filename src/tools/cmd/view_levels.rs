@@ -6,12 +6,14 @@ use std::{
 };
 
 use anyhow::{Result, anyhow};
-use rustlings::game_data::{
-    Bitmap, DifficultyRating, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
-    PaletteEntry, TerrainTile, read_game_data,
+use rustlings::sdl::SDLSprite;
+use rustlings::{
+    game_data::{
+        Bitmap, DifficultyRating, GameData, Level, OBJECTS_PER_TILESET, Object, PALETTE_SIZE,
+        PaletteEntry, TerrainTile, read_game_data,
+    },
+    sdl::get_canvas_vsync,
 };
-use rustlings::sdl_rendering::SDLSprite;
-use rustlings::sdl3_aux::get_canvas_vsync;
 use sdl3::{
     event::Event,
     keyboard::Keycode,

@@ -4,8 +4,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use rustlings::game_data::GameData;
-use rustlings::sdl_rendering::with_texture_canvas;
-use rustlings::sdl3_aux::{current_refresh_rate, is_main_thread};
+use rustlings::sdl::{current_refresh_rate, is_main_thread, with_texture_canvas};
 use sdl3::mouse::MouseState;
 use sdl3::pixels::{Color, PixelFormat};
 use sdl3::render::{ScaleMode, Texture};

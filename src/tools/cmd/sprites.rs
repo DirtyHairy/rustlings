@@ -2,7 +2,7 @@ use std::{path::Path, thread::sleep, time::Duration};
 
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{GameData, read_game_data};
-use rustlings::sdl_rendering::SDLSprite;
+use rustlings::sdl::SDLSprite;
 use sdl3::{event::Event, keyboard::Keycode};
 
 use crate::cmd::util;

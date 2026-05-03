@@ -8,11 +8,10 @@ use rustlings::{
         MINIMAP_VIEW_Y, OBJECTS_PER_TILESET, SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
         file::level,
     },
-    sdl_rendering::{
-        SdlAtlas, SdlAtlasBuilder, texture_from_bitmap, texture_from_bitmap_mapped,
-        with_texture_canvas,
+    sdl::{
+        SdlAtlas, SdlAtlasBuilder, apply_blend_mode, texture_from_bitmap,
+        texture_from_bitmap_mapped, with_texture_canvas,
     },
-    sdl3_aux::apply_blend_mode,
 };
 use sdl3::{
     pixels::{Color, PixelFormat},

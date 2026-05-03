@@ -8,7 +8,7 @@ use rustlings::{
         SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, SKILLS, Skill,
         resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
-    sdl_rendering::{SDLSprite, texture_from_bitmap, with_texture_canvas},
+    sdl::{SDLSprite, texture_from_bitmap, with_texture_canvas},
 };
 use sdl3::{
     pixels::{Color, PixelFormat},

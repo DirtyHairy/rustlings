@@ -7,7 +7,7 @@ use sdl3::{
 
 use crate::{
     game_data::{Bitmap, PALETTE_SIZE, PaletteEntry, Sprite},
-    sdl_rendering::{texture_from_bitmap, util::copy_bitmap_to_texture_data},
+    sdl::{texture_from_bitmap, util::copy_bitmap_to_texture_data},
 };
 
 pub struct SDLSprite<'a> {

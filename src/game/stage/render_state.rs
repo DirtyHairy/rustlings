@@ -5,7 +5,7 @@ use rustlings::{
         CURSOR_NATIVE_SCREEN_HEIGHT, CURSOR_NATIVE_SCREEN_WIDTH, CURSOR_SIZE, GameData,
         PALETTE_SIZE, PaletteEntry,
     },
-    sdl_rendering::texture_from_bitmap,
+    sdl::texture_from_bitmap,
 };
 use sdl3::{
     pixels::{Color, PixelFormat},

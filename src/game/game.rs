@@ -3,7 +3,7 @@ use std::{path::Path, rc::Rc};
 use anyhow::Result;
 use rustlings::{
     game_data::{GameData, read_game_data},
-    sdl3_aux::{current_refresh_rate, get_canvas_vsync},
+    sdl::{current_refresh_rate, get_canvas_vsync},
 };
 use sdl3::{
     Sdl,

@@ -2,12 +2,12 @@ use anyhow::Result;
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect,
-    render::{BlendMode, ScaleMode, Texture, TextureAccess, TextureCreator},
+    render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureAccess, TextureCreator},
 };
 
 use crate::{
     game_data::{Bitmap, PALETTE_SIZE, PaletteEntry},
-    sdl_rendering::util::copy_bitmap_to_texture_data,
+    sdl::util::copy_bitmap_to_texture_data,
 };
 
 pub fn texture_from_bitmap<'a, T>(
@@ -44,4 +44,21 @@ pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
     texture.set_blend_mode(BlendMode::Blend);
 
     Ok(texture)
+}
+
+pub fn with_texture_canvas<T: RenderTarget, F>(
+    canvas: &mut Canvas<T>,
+    texture: &mut Texture,
+    f: F,
+) -> Result<()>
+where
+    F: FnOnce(&mut Canvas<T>) -> Result<()>,
+{
+    let mut render_result: Result<()> = Ok(());
+
+    canvas.with_texture_canvas(texture, |c| {
+        render_result = f(c);
+    })?;
+
+    render_result.map_err(anyhow::Error::from)
 }

@@ -3,10 +3,10 @@ use sdl3::sys::blendmode::SDL_BlendMode;
 use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
 
 use crate::game_data::PALETTE_SIZE;
-use crate::sdl3_aux::apply_blend_mode;
+use crate::sdl::apply_blend_mode;
 use crate::{
     game_data::{PaletteEntry, Sprite},
-    sdl_rendering::util::copy_bitmap_to_texture_data_at,
+    sdl::util::copy_bitmap_to_texture_data_at,
 };
 
 struct AtlasFrame {
@@ -181,21 +181,4 @@ impl<'a> SdlAtlasBuilder<'a> {
             texture,
         })
     }
-}
-
-pub fn with_texture_canvas<T: RenderTarget, F>(
-    canvas: &mut Canvas<T>,
-    texture: &mut Texture,
-    f: F,
-) -> Result<()>
-where
-    F: FnOnce(&mut Canvas<T>) -> Result<()>,
-{
-    let mut render_result: Result<()> = Ok(());
-
-    canvas.with_texture_canvas(texture, |c| {
-        render_result = f(c);
-    })?;
-
-    render_result.map_err(anyhow::Error::from)
 }
