@@ -33,7 +33,7 @@ use strum::{EnumCount, VariantArray};
 use crate::{
     geometry::Rect,
     scenes::scene_level::skill_panel_renderer::SkillPanelRenderer,
-    state::{LemmingAnimation, SceneStateLevel},
+    state::{Direction, LemmingAnimation, SceneStateLevel},
 };
 
 bitflags::bitflags! {
@@ -128,7 +128,20 @@ impl<'texture_creator> Renderer<'texture_creator> {
         LemmingAnimation::VARIANTS
             .iter()
             .copied()
-            .map(|animation| &game_data.lemming_sprites[animation.sprite() as usize])
+            .map(|animation| {
+                &game_data.lemming_sprites
+                    [animation.sprite(crate::state::Direction::Right) as usize]
+            })
+            .for_each(|sprite| {
+                atlas_builder.add_sprite(sprite);
+            });
+
+        LemmingAnimation::VARIANTS
+            .iter()
+            .copied()
+            .map(|animation| {
+                &game_data.lemming_sprites[animation.sprite(crate::state::Direction::Left) as usize]
+            })
             .for_each(|sprite| {
                 atlas_builder.add_sprite(sprite);
             });
@@ -568,13 +581,18 @@ fn draw_lemmings<T: RenderTarget>(
     for lemming in &state.lemmings {
         let (foot_x, foot_y) = lemming.animation.foot();
 
+        let sprite_index = match lemming.direction {
+            Direction::Right => lemming.animation as usize,
+            Direction::Left => lemming.animation as usize + LemmingAnimation::COUNT,
+        };
+
         atlas.blit(
             canvas,
-            lemming.animation as usize,
+            sprite_index,
             lemming.x as i32 - foot_x as i32,
             lemming.y as i32 - foot_y as i32,
             lemming.frame,
-            lemming.animation.mirror(lemming.direction),
+            false,
             false,
         )?;
     }

@@ -38,8 +38,8 @@ impl LemmingAnimation {
                 Self::Digging => (8, 12),
                 Self::Explosion => (16, 25),
                 _ => (
-                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].1 / 2,
-                    LEMMING_SPRITE_LAYOUT[animation.sprite() as usize].2,
+                    LEMMING_SPRITE_LAYOUT[animation.sprite(Direction::Right) as usize].1 / 2,
+                    LEMMING_SPRITE_LAYOUT[animation.sprite(Direction::Right) as usize].2,
                 ),
             };
 
@@ -54,34 +54,41 @@ impl LemmingAnimation {
     }
 
     pub const fn frame_count(self) -> usize {
-        LEMMING_SPRITE_LAYOUT[self.sprite() as usize].0
+        LEMMING_SPRITE_LAYOUT[self.sprite(Direction::Right) as usize].0
     }
 
-    pub fn mirror(self, direction: Direction) -> bool {
-        direction == Direction::Left && (self as usize) < (Self::Exitting as usize)
-    }
-
-    pub const fn sprite(self) -> LemmingSprite {
-        match self {
-            Self::Walking => LemmingSprite::WalkingR,
-            Self::Jumping => LemmingSprite::JumpingR,
-            Self::Climbing => LemmingSprite::ClimbingR,
-            Self::Hoisting => LemmingSprite::HoistingR,
-            Self::Building => LemmingSprite::BuildingR,
-            Self::Bashing => LemmingSprite::BashingR,
-            Self::Mining => LemmingSprite::MiningR,
-            Self::Falling => LemmingSprite::FallingR,
-            Self::PreUmbrella => LemmingSprite::PreUmbrellaR,
-            Self::Umbrella => LemmingSprite::UmbrellaR,
-            Self::Exitting => LemmingSprite::Exitting,
-            Self::Shrugging => LemmingSprite::ShruggingR,
-            Self::Frying => LemmingSprite::Frying,
-            Self::Blocking => LemmingSprite::Blocking,
-            Self::OhNo => LemmingSprite::OhNo,
-            Self::Explosion => LemmingSprite::Explosion,
-            Self::Digging => LemmingSprite::Digging,
-            Self::Drowning => LemmingSprite::Drowning,
-            Self::Splatting => LemmingSprite::Splatting,
+    pub const fn sprite(self, direction: Direction) -> LemmingSprite {
+        match (self, direction) {
+            (Self::Walking, Direction::Right) => LemmingSprite::WalkingR,
+            (Self::Walking, Direction::Left) => LemmingSprite::WalkingL,
+            (Self::Jumping, Direction::Right) => LemmingSprite::JumpingR,
+            (Self::Jumping, Direction::Left) => LemmingSprite::JumpingL,
+            (Self::Climbing, Direction::Right) => LemmingSprite::ClimbingR,
+            (Self::Climbing, Direction::Left) => LemmingSprite::ClimbingL,
+            (Self::Hoisting, Direction::Right) => LemmingSprite::HoistingR,
+            (Self::Hoisting, Direction::Left) => LemmingSprite::HoistingL,
+            (Self::Building, Direction::Right) => LemmingSprite::BuildingR,
+            (Self::Building, Direction::Left) => LemmingSprite::BuildingL,
+            (Self::Bashing, Direction::Right) => LemmingSprite::BashingR,
+            (Self::Bashing, Direction::Left) => LemmingSprite::BashingL,
+            (Self::Mining, Direction::Right) => LemmingSprite::MiningR,
+            (Self::Mining, Direction::Left) => LemmingSprite::MiningL,
+            (Self::Falling, Direction::Right) => LemmingSprite::FallingR,
+            (Self::Falling, Direction::Left) => LemmingSprite::FallingL,
+            (Self::PreUmbrella, Direction::Right) => LemmingSprite::PreUmbrellaR,
+            (Self::PreUmbrella, Direction::Left) => LemmingSprite::PreUmbrellaL,
+            (Self::Umbrella, Direction::Right) => LemmingSprite::UmbrellaR,
+            (Self::Umbrella, Direction::Left) => LemmingSprite::UmbrellaL,
+            (Self::Shrugging, Direction::Right) => LemmingSprite::ShruggingR,
+            (Self::Shrugging, Direction::Left) => LemmingSprite::ShruggingL,
+            (Self::Exitting, _) => LemmingSprite::Exitting,
+            (Self::Frying, _) => LemmingSprite::Frying,
+            (Self::Blocking, _) => LemmingSprite::Blocking,
+            (Self::OhNo, _) => LemmingSprite::OhNo,
+            (Self::Explosion, _) => LemmingSprite::Explosion,
+            (Self::Digging, _) => LemmingSprite::Digging,
+            (Self::Drowning, _) => LemmingSprite::Drowning,
+            (Self::Splatting, _) => LemmingSprite::Splatting,
         }
     }
 }

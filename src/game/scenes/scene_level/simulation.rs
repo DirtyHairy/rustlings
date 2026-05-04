@@ -258,6 +258,7 @@ impl LemmingState {
                 if dy <= JUMP_DISTANCE {
                     self.y -= dy as i32;
                     state.is_jumper = false;
+                    self.frame = LemmingAnimation::Walking.frame_count() - 1;
                 } else {
                     self.y -= JUMP_DISTANCE as i32;
                 }
@@ -293,7 +294,11 @@ impl LemmingState {
 
             if old_y > self.y && self.y < MIN_FOOT_Y as i32 {
                 self.direction = self.direction.invert();
-                state.is_jumper = false;
+
+                if state.is_jumper {
+                    state.is_jumper = false;
+                    self.frame = LemmingAnimation::Walking.frame_count() - 1;
+                }
             }
 
             if state.is_jumper {

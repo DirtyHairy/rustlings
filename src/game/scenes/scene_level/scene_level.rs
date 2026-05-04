@@ -50,6 +50,7 @@ pub struct SceneLevel<'texture_creator> {
     clock_offset_msec: u64,
 
     last_draw_at_clock_msec: u64,
+    fast: bool,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -100,7 +101,24 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             simulation,
             level_parameters: level.parameters,
             last_draw_at_clock_msec: 0,
+            fast: false,
         })
+    }
+
+    fn engine_tick_msec(&self) -> u64 {
+        if self.fast {
+            ENGINE_TICK_MSEC >> 2
+        } else {
+            ENGINE_TICK_MSEC
+        }
+    }
+
+    fn fade_in_msec(&self) -> u64 {
+        if self.fast {
+            FADE_IN_MSEC >> 2
+        } else {
+            FADE_IN_MSEC
+        }
     }
 }
 
@@ -133,7 +151,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn opacity(&self) -> u8 {
-        ((self.state.clock_msec * 255) / FADE_IN_MSEC).min(255) as u8
+        ((self.state.clock_msec * 255) / self.fade_in_msec()).min(255) as u8
     }
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
@@ -168,6 +186,26 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                     self.status = Status::DoneNextLevel;
                 }
             }
+            SceneEvent::KeyDown {
+                keycode: Keycode::Space,
+                keymod: Mod::LSHIFTMOD | Mod::RSHIFTMOD,
+                ..
+            } => {
+                if self.state.paused {
+                    self.simulation.tick(&mut self.state);
+                    self.renderer.mark_for_redraw(Redraw::LEVEL);
+                    self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+                }
+            }
+            SceneEvent::KeyDown {
+                keycode: Keycode::Space,
+                keymod: Mod::LCTRLMOD,
+                ..
+            } => self.fast = true,
+            SceneEvent::KeyUp {
+                keycode: Keycode::Space,
+                ..
+            } => self.fast = false,
             _ => {
                 if self
                     .scroll_controller
@@ -207,8 +245,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
-        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
+        let engine_ticks_old = clock_msec_old / self.engine_tick_msec();
+        let engine_ticks = clock_msec / self.engine_tick_msec();
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused {
@@ -233,7 +271,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn next_tick_at_msec(&self) -> u64 {
-        let next_tick_engine = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
+        let next_tick_engine =
+            ((self.state.clock_msec / self.engine_tick_msec()) + 1) * self.engine_tick_msec();
 
         match self.scroll_controller.next_tick_at_msec(&self.state) {
             None => next_tick_engine,
@@ -253,7 +292,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         self.renderer.draw(&self.state, canvas).map(|updated| {
             updated
                 | (self.state.clock_msec != last_draw_at_clock_msec
-                    && self.state.clock_msec <= FADE_IN_MSEC)
+                    && self.state.clock_msec <= self.fade_in_msec())
         })
     }
 
