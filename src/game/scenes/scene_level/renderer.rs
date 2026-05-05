@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{Result, bail, format_err};
+use anyhow::{Error, Result, bail, format_err};
 use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
@@ -16,7 +16,7 @@ use rustlings::{
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect as SdlRect,
-    render::{BlendMode::Blend, Canvas, ScaleMode, Texture, TextureAccess, TextureCreator},
+    render::{BlendMode::Blend, Canvas, FPoint, ScaleMode, Texture, TextureAccess, TextureCreator},
     sys::blendmode::{
         SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
         SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_ZERO, SDL_BLENDMODE_BLEND,
@@ -50,6 +50,8 @@ const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
+
+const MIMIMAP_LEMMING_COLOR: Color = Color::RGBA(255, 255, 255, 200);
 
 struct Object {
     index: usize,
@@ -90,6 +92,9 @@ pub struct Renderer<'texture_creator> {
     skill_panel_renderer: SkillPanelRenderer<'texture_creator>,
 
     render_strategy: RenderStrategy<'texture_creator>,
+
+    minimap_points: Vec<FPoint>,
+    minimap_points_lookup: Vec<u32>,
 }
 
 impl<'texture_creator> Renderer<'texture_creator> {
@@ -225,6 +230,13 @@ impl<'texture_creator> Renderer<'texture_creator> {
             })
         };
 
+        let minimap_pixel_count = MINIMAP_VIEW_WIDTH as usize * MINIMAP_VIEW_HEIGHT as usize;
+
+        let minimap_points: Vec<FPoint> =
+            vec![FPoint::new(0., 0.); level.parameters.released as usize];
+        let minimap_points_lookup: Vec<u32> =
+            vec![0; (minimap_pixel_count as f32 / 32.).ceil() as usize];
+
         Ok(Renderer {
             redraw: Redraw::ALL,
 
@@ -245,6 +257,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
             skill_panel_renderer,
 
             render_strategy: render_mode,
+
+            minimap_points,
+            minimap_points_lookup,
         })
     }
 
@@ -484,6 +499,14 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 SdlRect::new(0, 0, SCREEN_WIDTH, LEVEL_HEIGHT),
             )?;
 
+            self.minimap_points_lookup.fill(0);
+            draw_minimap_lemmings(
+                canvas,
+                state,
+                &mut self.minimap_points,
+                &mut self.minimap_points_lookup,
+            )?;
+
             self.texture_minimap_frame.set_blend_mode(Blend);
             self.texture_minimap_frame
                 .set_scale_mode(ScaleMode::Nearest);
@@ -538,9 +561,7 @@ fn copy_texture<T: RenderTarget>(
     }
 
     texture.set_scale_mode(ScaleMode::Nearest);
-    canvas
-        .copy(texture, None, None)
-        .map_err(anyhow::Error::from)
+    canvas.copy(texture, None, None).map_err(Error::from)
 }
 
 fn blit_objects<T: RenderTarget>(
@@ -598,4 +619,59 @@ fn draw_lemmings<T: RenderTarget>(
     }
 
     Ok(())
+}
+
+const fn renormalize_color_component(color: u8, alpha: u8) -> u8 {
+    let ren = (color as u32) * 255 / (alpha as u32);
+
+    if ren > 255 { 255 } else { ren as u8 }
+}
+
+const fn renormalize_color(color: (u8, u8, u8), alpha: u8) -> (u8, u8, u8) {
+    (
+        renormalize_color_component(color.0, alpha),
+        renormalize_color_component(color.1, alpha),
+        renormalize_color_component(color.2, alpha),
+    )
+}
+
+fn draw_minimap_lemmings<T: RenderTarget>(
+    canvas: &mut Canvas<T>,
+    state: &SceneStateLevel,
+    minimap_points: &mut [FPoint],
+    minimap_points_lookup: &mut [u32],
+) -> Result<()> {
+    let mut num_points: usize = 0;
+
+    for lemming in &state.lemmings {
+        let minimap_x: u32 =
+            (lemming.x.clamp(0, LEVEL_WIDTH as i32 - 1) as u32 * MINIMAP_VIEW_WIDTH) / LEVEL_WIDTH;
+        let minimap_y: u32 = ((lemming.y - 6).clamp(0, LEVEL_HEIGHT as i32 - 1) as u32
+            * MINIMAP_VIEW_HEIGHT)
+            / LEVEL_HEIGHT;
+
+        let pixel_index = minimap_x + minimap_y * MINIMAP_VIEW_WIDTH;
+        let lookup_index = (pixel_index >> 5) as usize;
+        let lookup_mask = 0x01_u32 << (pixel_index & 0x1f);
+
+        if minimap_points_lookup[lookup_index] & lookup_mask == 0 {
+            minimap_points[num_points] = FPoint::new(
+                (MINIMAP_VIEW_X + minimap_x) as f32,
+                (SKILL_PANEL_Y + MINIMAP_VIEW_Y + minimap_y) as f32,
+            );
+            num_points += 1;
+
+            minimap_points_lookup[lookup_index] |= lookup_mask;
+        }
+    }
+
+    if num_points == 0 {
+        return Ok(());
+    }
+
+    canvas.set_draw_color(MIMIMAP_LEMMING_COLOR);
+    canvas.set_blend_mode(BlendMode::Blend);
+    canvas
+        .draw_points(&minimap_points[0..num_points])
+        .map_err(Error::from)
 }
