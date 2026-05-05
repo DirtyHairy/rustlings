@@ -248,18 +248,18 @@ impl LemmingState {
     }
 
     fn tick_jumper(&mut self, terrain_map: &TerrainMap) -> bool {
+        let old_y = self.y;
         let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, JUMP_DISTANCE + 1);
 
-        if dy <= JUMP_DISTANCE {
+        if dy < JUMP_DISTANCE {
             self.y -= dy as i32;
             self.transition_to(Activity::Walking);
         } else {
             self.y -= JUMP_DISTANCE as i32;
         }
 
-        if self.y < MIN_FOOT_Y as i32 {
-            self.direction = self.direction.invert();
-            self.transition_to(Activity::Walking);
+        if old_y > self.y {
+            self.turn_if_ceiling();
         }
 
         true
@@ -289,19 +289,29 @@ impl LemmingState {
             }
         } else {
             let dy = terrain_map.delta_y_descend(self.x, self.y, MAX_STEP_DOWN + 1);
+            self.y += dy as i32;
 
-            if dy <= MAX_STEP_DOWN {
-                self.y += dy as i32;
-            } else {
+            if dy > MAX_STEP_DOWN {
                 self.transition_to(Activity::Falling(Default::default()));
             }
         }
 
-        if old_y < self.y && self.y < MIN_FOOT_Y as i32 {
-            self.direction = self.direction.invert();
+        if old_y > self.y {
+            self.turn_if_ceiling();
         }
 
         true
+    }
+
+    fn turn_if_ceiling(&mut self) {
+        if self.y < MIN_FOOT_Y as i32 {
+            self.direction = self.direction.invert();
+            self.y = MIN_FOOT_Y - 2;
+
+            if let Activity::Jumping = self.activity {
+                self.transition_to(Activity::Walking);
+            }
+        }
     }
 
     fn tick_splatter(&mut self) -> bool {
