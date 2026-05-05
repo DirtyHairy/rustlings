@@ -196,8 +196,9 @@ impl LemmingState {
     fn tick(&mut self, terrain_map: &TerrainMap) -> bool {
         let keep = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain_map),
-            Activity::Walking(_) => self.tick_walker(terrain_map),
+            Activity::Walking => self.tick_walker(terrain_map),
             Activity::Splatting => self.tick_splatter(),
+            Activity::Jumping => self.tick_jumper(terrain_map),
             _ => true,
         };
 
@@ -223,7 +224,7 @@ impl LemmingState {
                 state.delta_y += dy;
 
                 transition_to = Some(if state.delta_y <= MAX_SAFE_FALL {
-                    Activity::Walking(Default::default())
+                    Activity::Walking
                 } else {
                     Activity::Splatting
                 });
@@ -246,75 +247,60 @@ impl LemmingState {
         keep
     }
 
+    fn tick_jumper(&mut self, terrain_map: &TerrainMap) -> bool {
+        let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, JUMP_DISTANCE + 1);
+
+        if dy <= JUMP_DISTANCE {
+            self.y -= dy as i32;
+            self.transition_to(Activity::Walking);
+        } else {
+            self.y -= JUMP_DISTANCE as i32;
+        }
+
+        if self.y < MIN_FOOT_Y as i32 {
+            self.direction = self.direction.invert();
+            self.transition_to(Activity::Walking);
+        }
+
+        true
+    }
+
     fn tick_walker(&mut self, terrain_map: &TerrainMap) -> bool {
-        let mut transition_to: Option<Activity> = None;
+        let old_y = self.y;
+        self.frame = (self.frame + 1) % self.animation.frame_count();
 
-        if let Activity::Walking(state) = &mut self.activity {
-            let old_y = self.y;
+        match self.direction {
+            Direction::Left => self.x = (self.x - 1).max(0),
+            Direction::Right => self.x = (self.x + 1).min(LEVEL_WIDTH as i32 - 1),
+        }
 
-            if state.is_jumper {
-                let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, JUMP_DISTANCE + 1);
+        if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
+            self.direction = self.direction.invert();
+        } else if terrain_map.is_solid(self.x, self.y) {
+            let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
 
-                if dy <= JUMP_DISTANCE {
-                    self.y -= dy as i32;
-                    state.is_jumper = false;
-                    self.frame = LemmingAnimation::Walking.frame_count() - 1;
-                } else {
-                    self.y -= JUMP_DISTANCE as i32;
-                }
+            if dy <= MAX_STEP_UP {
+                self.y -= dy as i32;
+            } else if dy <= MAX_JUMP {
+                self.transition_to(Activity::Jumping);
+                self.y -= JUMP_DISTANCE as i32;
             } else {
-                match self.direction {
-                    Direction::Left => self.x = (self.x - 1).max(0),
-                    Direction::Right => self.x = (self.x + 1).min(LEVEL_WIDTH as i32 - 1),
-                }
-
-                if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
-                    self.direction = self.direction.invert();
-                } else if terrain_map.is_solid(self.x, self.y) {
-                    let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
-
-                    if dy <= MAX_STEP_UP {
-                        self.y -= dy as i32;
-                    } else if dy <= MAX_JUMP {
-                        state.is_jumper = true;
-                        self.y -= JUMP_DISTANCE as i32;
-                    } else {
-                        self.direction = self.direction.invert();
-                    }
-                } else {
-                    let dy = terrain_map.delta_y_descend(self.x, self.y, MAX_STEP_DOWN + 1);
-
-                    if dy <= MAX_STEP_DOWN {
-                        self.y += dy as i32;
-                    } else {
-                        transition_to = Some(Activity::Falling(Default::default()));
-                    }
-                }
-            }
-
-            if old_y > self.y && self.y < MIN_FOOT_Y as i32 {
                 self.direction = self.direction.invert();
-
-                if state.is_jumper {
-                    state.is_jumper = false;
-                    self.frame = LemmingAnimation::Walking.frame_count() - 1;
-                }
-            }
-
-            if state.is_jumper {
-                self.animation = LemmingAnimation::Jumping;
-                self.frame = 0;
-            } else {
-                self.animation = LemmingAnimation::Walking;
-                self.frame = (self.frame + 1) % self.animation.frame_count();
             }
         } else {
-            unreachable!()
+            let dy = terrain_map.delta_y_descend(self.x, self.y, MAX_STEP_DOWN + 1);
+
+            if dy <= MAX_STEP_DOWN {
+                self.y += dy as i32;
+            } else {
+                self.transition_to(Activity::Falling(Default::default()));
+            }
         }
 
-        if let Some(activity) = transition_to {
-            self.transition_to(activity);
+        if old_y < self.y && self.y < MIN_FOOT_Y as i32 {
+            self.direction = self.direction.invert();
         }
+
         true
     }
 
@@ -382,7 +368,8 @@ impl Activity {
             Activity::Frying => LemmingAnimation::Frying,
             Activity::Mining => LemmingAnimation::Mining,
             Activity::Splatting => LemmingAnimation::Splatting,
-            Activity::Walking(_) => LemmingAnimation::Walking,
+            Activity::Walking => LemmingAnimation::Walking,
+            Activity::Jumping => LemmingAnimation::Jumping,
         }
     }
 }

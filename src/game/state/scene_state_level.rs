@@ -17,11 +17,6 @@ pub struct ActivityStateFalling {
 }
 
 #[derive(Clone, Default)]
-pub struct ActivityStateWalking {
-    pub is_jumper: bool,
-}
-
-#[derive(Clone, Default)]
 pub enum Activity {
     #[default]
     Climbing,
@@ -32,7 +27,8 @@ pub enum Activity {
     Mining,
     Digging,
     Falling(ActivityStateFalling),
-    Walking(ActivityStateWalking),
+    Walking,
+    Jumping,
     Splatting,
     Drowning,
     Frying,
