@@ -213,12 +213,10 @@ impl LemmingState {
         terrain_map: &TerrainMap,
         objects: &mut [ObjectState],
     ) -> bool {
-        let terrain = terrain_map.terrain_at(self.x, self.y);
-        if terrain.is_none() {
+        let Some(terrain) = terrain_map.terrain_at(self.x, self.y) else {
             return true;
-        }
+        };
 
-        let terrain = terrain.unwrap();
         let mut keep = true;
 
         if terrain.trap() {
