@@ -646,7 +646,7 @@ fn draw_minimap_lemmings<T: RenderTarget>(
     for lemming in &state.lemmings {
         let minimap_x: u32 =
             (lemming.x.clamp(0, LEVEL_WIDTH as i32 - 1) as u32 * MINIMAP_VIEW_WIDTH) / LEVEL_WIDTH;
-        let minimap_y: u32 = ((lemming.y - 6).clamp(0, LEVEL_HEIGHT as i32 - 1) as u32
+        let minimap_y: u32 = ((lemming.y - 5).clamp(0, LEVEL_HEIGHT as i32 - 1) as u32
             * MINIMAP_VIEW_HEIGHT)
             / LEVEL_HEIGHT;
 

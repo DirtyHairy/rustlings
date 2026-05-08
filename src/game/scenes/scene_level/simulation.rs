@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, file::ground::InteractionType,
+    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, TerrainInfo, file::ground::InteractionType,
 };
 
 use crate::state::{
-    Activity, Direction, LemmingAnimation, LemmingState, LevelState, SceneStateLevel, TerrainProps,
+    Activity, Direction, LemmingAnimation, LemmingState, LevelState, ObjectState, SceneStateLevel,
+    TerrainProps,
 };
 
 #[derive(PartialEq, Clone, Copy)]
@@ -47,6 +48,7 @@ const MAX_STEP_DOWN: u32 = 3;
 const JUMP_DISTANCE: u32 = 2;
 
 const MIN_FOOT_Y: i32 = 5;
+const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -145,7 +147,7 @@ impl Simulation {
 
         state
             .lemmings
-            .retain_mut(|lemming| lemming.tick(&terrain_map));
+            .retain_mut(|lemming| lemming.tick(&terrain_map, &mut state.object_state));
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
@@ -171,7 +173,7 @@ impl Simulation {
         if state.lemmings_out == self.released_total {
             state.level_state = LevelState::Late;
         } else {
-            state.spawn_countdown = 99u32.saturating_sub(state.release_rate) / 2 + 4;
+            state.spawn_countdown = 99_u32.saturating_sub(state.release_rate) / 2 + 4;
         }
     }
 
@@ -193,7 +195,7 @@ impl Simulation {
 }
 
 impl LemmingState {
-    fn tick(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick(&mut self, terrain_map: &TerrainMap, objects: &mut [ObjectState]) -> bool {
         let keep = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain_map),
             Activity::Walking => self.tick_walker(terrain_map),
@@ -202,7 +204,27 @@ impl LemmingState {
             _ => true,
         };
 
-        let keep = keep && self.y < (LEVEL_HEIGHT + self.animation.foot().1) as i32;
+        keep && self.y < (LEVEL_HEIGHT + self.animation.foot().1) as i32
+            && self.process_environment(terrain_map, objects)
+    }
+
+    fn process_environment(&self, terrain_map: &TerrainMap, objects: &mut [ObjectState]) -> bool {
+        let terrain = terrain_map.terrain_at(self.x, self.y);
+        if terrain.is_none() {
+            return true;
+        }
+
+        let terrain = terrain.unwrap();
+        let mut keep = true;
+
+        if terrain.trap() {
+            let object_state = &mut objects[terrain.object_index() as usize];
+
+            if !object_state.triggered {
+                keep = false;
+                object_state.triggered = true;
+            }
+        }
 
         keep
     }
@@ -306,7 +328,7 @@ impl LemmingState {
     fn turn_if_ceiling(&mut self) {
         if self.y < MIN_FOOT_Y as i32 {
             self.direction = self.direction.invert();
-            self.y = MIN_FOOT_Y - 2;
+            self.y = CEILING_HIT_Y_RESET;
 
             if let Activity::Jumping = self.activity {
                 self.transition_to(Activity::Walking);
@@ -324,12 +346,18 @@ impl LemmingState {
 struct TerrainMap<'a>(&'a [TerrainProps]);
 
 impl<'a> TerrainMap<'a> {
-    pub fn is_solid(&self, x: i32, y: i32) -> bool {
+    pub fn terrain_at(&self, x: i32, y: i32) -> Option<TerrainProps> {
         if y >= LEVEL_HEIGHT as i32 || y < 0 || x < 0 || x >= LEVEL_WIDTH as i32 {
-            false
+            None
         } else {
-            self.0[(x + y * LEVEL_WIDTH as i32) as usize].solid()
+            Some(self.0[(x + y * LEVEL_WIDTH as i32) as usize])
         }
+    }
+
+    pub fn is_solid(&self, x: i32, y: i32) -> bool {
+        self.terrain_at(x, y)
+            .map(|terrain_info| terrain_info.solid())
+            .unwrap_or(false)
     }
 
     fn delta_y_ascend(&self, x: i32, y: i32, limit: u32) -> u32 {
