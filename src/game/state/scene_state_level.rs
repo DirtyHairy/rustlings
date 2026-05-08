@@ -11,12 +11,12 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct ActivityStateFalling {
     pub delta_y: u32,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub enum Activity {
     #[default]
     Climbing,

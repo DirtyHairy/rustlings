@@ -199,7 +199,7 @@ impl LemmingState {
         let keep = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain_map),
             Activity::Walking => self.tick_walker(terrain_map),
-            Activity::Splatting => self.tick_splatter(),
+            Activity::Splatting | Activity::Frying => self.tick_death(),
             Activity::Jumping => self.tick_jumper(terrain_map),
             _ => true,
         };
@@ -208,7 +208,11 @@ impl LemmingState {
             && self.process_environment(terrain_map, objects)
     }
 
-    fn process_environment(&self, terrain_map: &TerrainMap, objects: &mut [ObjectState]) -> bool {
+    fn process_environment(
+        &mut self,
+        terrain_map: &TerrainMap,
+        objects: &mut [ObjectState],
+    ) -> bool {
         let terrain = terrain_map.terrain_at(self.x, self.y);
         if terrain.is_none() {
             return true;
@@ -221,9 +225,13 @@ impl LemmingState {
             let object_state = &mut objects[terrain.object_index() as usize];
 
             if !object_state.triggered {
-                keep = false;
                 object_state.triggered = true;
+                keep = false;
             }
+        }
+
+        if terrain.disintegrate() && self.activity != Activity::Frying {
+            self.transition_to(Activity::Frying);
         }
 
         keep
@@ -336,7 +344,7 @@ impl LemmingState {
         }
     }
 
-    fn tick_splatter(&mut self) -> bool {
+    fn tick_death(&mut self) -> bool {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
         self.frame > 0
