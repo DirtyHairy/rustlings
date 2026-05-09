@@ -151,13 +151,16 @@ impl Simulation {
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
+        const PATTERNS: [[usize; 4]; 4] = [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 2, 1], [0, 1, 2, 3]];
+
         state.spawn_countdown = state.spawn_countdown.saturating_sub(1);
         if state.spawn_countdown > 0 {
             return;
         }
 
-        let entrance =
-            &self.objects[self.entrances[state.lemmings_out as usize % self.entrances.len()]];
+        let entrance_index =
+            PATTERNS[(self.entrances.len() - 1) % 4][state.lemmings_out as usize % 4];
+        let entrance = &self.objects[self.entrances[entrance_index]];
 
         let mut lemming = LemmingState {
             x: (entrance.x + SPAWN_X) as i32,
