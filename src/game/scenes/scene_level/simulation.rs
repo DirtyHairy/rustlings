@@ -32,10 +32,10 @@ pub struct Simulation {
     released_total: u32,
 }
 
-const TICK_OPEN_ENTRANCES: u64 = 34;
-const TICK_START_SPAWN: u64 = 44;
+const TICK_OPEN_ENTRANCES: u64 = 36;
+const TICK_START_SPAWN: u64 = 46;
 
-const SPAWN_COUNTDOWN_DEFAULT: u32 = 20;
+const SPAWN_COUNTDOWN_DEFAULT: u32 = 10;
 const SPAWN_X: u32 = 24;
 const SPAWN_Y: u32 = 14;
 
