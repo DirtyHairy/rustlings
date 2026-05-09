@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, ops::Not};
 
 use bitfield_struct::bitfield;
 use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill};
@@ -42,11 +42,22 @@ pub enum Direction {
     Left,
 }
 
-impl Direction {
-    pub fn invert(&self) -> Direction {
+impl Not for Direction {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
         match self {
             Self::Left => Self::Right,
             Self::Right => Self::Left,
+        }
+    }
+}
+
+impl Direction {
+    pub fn delta(self, abs: u32) -> i32 {
+        match self {
+            Direction::Left => -1 * abs as i32,
+            Direction::Right => abs as i32,
         }
     }
 }

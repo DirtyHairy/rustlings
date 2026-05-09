@@ -201,6 +201,7 @@ impl LemmingState {
             Activity::Walking => self.tick_walker(terrain_map),
             Activity::Splatting | Activity::Frying => self.tick_death(),
             Activity::Jumping => self.tick_jumper(terrain_map),
+            Activity::Drowning => self.tick_drowner(terrain_map),
             _ => true,
         };
 
@@ -228,14 +229,22 @@ impl LemmingState {
             }
         }
 
-        if terrain.disintegrate() && self.activity != Activity::Frying {
+        if terrain.disintegrate() {
             self.transition_to(Activity::Frying);
+        }
+
+        if terrain.drown() {
+            self.transition_to(Activity::Drowning);
         }
 
         keep
     }
 
     fn transition_to(&mut self, activity: Activity) {
+        if self.activity == activity {
+            return;
+        }
+
         self.frame = 0;
         self.animation = activity.default_animation();
         self.activity = activity;
@@ -297,13 +306,10 @@ impl LemmingState {
         let old_y = self.y;
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
-        match self.direction {
-            Direction::Left => self.x = (self.x - 1).max(0),
-            Direction::Right => self.x = (self.x + 1).min(LEVEL_WIDTH as i32 - 1),
-        }
+        self.x = self.x + self.direction.delta(1);
 
         if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
-            self.direction = self.direction.invert();
+            self.direction = !self.direction;
         } else if terrain_map.is_solid(self.x, self.y) {
             let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
 
@@ -313,7 +319,7 @@ impl LemmingState {
                 self.transition_to(Activity::Jumping);
                 self.y -= JUMP_DISTANCE as i32;
             } else {
-                self.direction = self.direction.invert();
+                self.direction = !self.direction;
             }
         } else {
             let dy = terrain_map.delta_y_descend(self.x, self.y, MAX_STEP_DOWN + 1);
@@ -333,7 +339,7 @@ impl LemmingState {
 
     fn turn_if_ceiling(&mut self) {
         if self.y < MIN_FOOT_Y as i32 {
-            self.direction = self.direction.invert();
+            self.direction = !self.direction;
             self.y = CEILING_HIT_Y_RESET;
 
             if let Activity::Jumping = self.activity {
@@ -344,6 +350,16 @@ impl LemmingState {
 
     fn tick_death(&mut self) -> bool {
         self.frame = (self.frame + 1) % self.animation.frame_count();
+
+        self.frame > 0
+    }
+
+    fn tick_drowner(&mut self, terrain_map: &TerrainMap) -> bool {
+        self.frame = (self.frame + 1) % self.animation.frame_count();
+
+        if !terrain_map.is_solid(self.x + self.direction.delta(8), self.y) {
+            self.x = self.x + self.direction.delta(1);
+        }
 
         self.frame > 0
     }
