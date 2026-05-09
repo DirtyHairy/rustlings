@@ -60,5 +60,4 @@ where
         render_result = f(c);
     })?;
 
-    render_result.map_err(anyhow::Error::from)
-}
+    render_result}

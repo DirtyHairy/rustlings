@@ -29,16 +29,14 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
         let palette = &game_data.tilesets[i].palettes.custom;
 
         for object_sprite in &game_data.tilesets[i].object_sprites {
-            object_sprite
+            if let Some(sdl_sprite) = object_sprite
                 .as_ref()
-                .and_then(|sprite| SDLSprite::from_sprite(&sprite, palette, &texture_creator).ok())
-                .map(|sdl_sprite| sprites.push(sdl_sprite));
+                .and_then(|sprite| SDLSprite::from_sprite(sprite, palette, &texture_creator).ok()) { sprites.push(sdl_sprite) }
         }
 
         for tile in &game_data.tilesets[i].tiles {
-            tile.as_ref()
-                .and_then(|bitmap| SDLSprite::from_bitmap(&bitmap, &palette, &texture_creator).ok())
-                .map(|sdl_sprite| sprites.push(sdl_sprite));
+            if let Some(sdl_sprite) = tile.as_ref()
+                .and_then(|bitmap| SDLSprite::from_bitmap(bitmap, palette, &texture_creator).ok()) { sprites.push(sdl_sprite) }
         }
 
         spritesets.push(sprites);
@@ -62,12 +60,12 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
             for sprite in spritesets[ispriteset].iter_mut() {
                 if x + sprite.width as i32 > 1200 {
                     x = 0;
-                    y = y + 2 * (height + 1);
+                    y += 2 * (height + 1);
                 }
 
                 sprite.blit(&mut canvas, x, y, iframe, 2, false, false)?;
 
-                x = x + (sprite.width as i32 + 1) * 2;
+                x += (sprite.width as i32 + 1) * 2;
                 height = max(height, sprite.height as i32 + 1);
             }
 

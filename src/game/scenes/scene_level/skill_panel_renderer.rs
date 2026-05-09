@@ -59,7 +59,7 @@ struct SkillPanelTextModel {
 impl SkillPanelTextModel {
     fn from_state(state: &SceneStateLevel) -> Self {
         Self {
-            remaining_skills: state.remaining_skills.clone(),
+            remaining_skills: state.remaining_skills,
             lemmings_out: state.lemmings.len() as u32,
             lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,

@@ -87,6 +87,12 @@ pub struct Cursors {
     pub boxx: Bitmap,
 }
 
+impl Default for Cursors {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Cursors {
     pub fn new() -> Self {
         let crosshair = compile(CROSSHAIR);

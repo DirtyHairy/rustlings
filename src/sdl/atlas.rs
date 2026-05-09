@@ -83,6 +83,12 @@ pub struct SdlAtlasBuilder<'a> {
     sprites: Vec<&'a Sprite>,
 }
 
+impl<'a> Default for SdlAtlasBuilder<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> SdlAtlasBuilder<'a> {
     pub fn new() -> Self {
         SdlAtlasBuilder {

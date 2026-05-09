@@ -161,7 +161,7 @@ impl<'sdl> Stage<'sdl> {
         scene: &mut dyn Scene<'sdl>,
         render_state: &mut RenderState<'sdl>,
     ) -> Result<()> {
-        let scene_changed = scene.draw(&mut self.canvas)?;
+        let scene_changed = scene.draw(self.canvas)?;
 
         if self.rerender || scene_changed {
             self.render(render_state, scene, scene_changed)?;
@@ -287,7 +287,7 @@ impl<'sdl> Stage<'sdl> {
                 >= REFRESH_RATE_UPDATE_INTERVAL_MSEC
         {
             let refresh_rate =
-                current_refresh_rate(&self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
+                current_refresh_rate(self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
 
             self.cached_time_per_frame_msec = Some((1000. / refresh_rate).floor() as u64);
             self.last_time_per_frame_update = now;

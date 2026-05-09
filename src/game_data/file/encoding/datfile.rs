@@ -80,14 +80,14 @@ compressed size:          {}"#,
 }
 
 fn read_header(buffer: &[u8], offset: usize) -> Result<(Header, usize)> {
-    let (num_bits_in_first_byte, offset) = read_byte(&buffer, offset)?;
-    let (checksum, offset) = read_byte(&buffer, offset)?;
+    let (num_bits_in_first_byte, offset) = read_byte(buffer, offset)?;
+    let (checksum, offset) = read_byte(buffer, offset)?;
 
     let offset = offset + 2;
-    let (decompressed_data_size, offset) = read_word(&buffer, offset)?;
+    let (decompressed_data_size, offset) = read_word(buffer, offset)?;
 
     let offset = offset + 2;
-    let (compressed_data_size, offset) = read_word(&buffer, offset)?;
+    let (compressed_data_size, offset) = read_word(buffer, offset)?;
 
     if compressed_data_size < 10 {
         bail!("compressed data size {} too small", compressed_data_size);
@@ -149,7 +149,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                 for _ in 0..3 {
                     target.push(
                         *target
-                            .get(target.len() - 1 - offset as usize)
+                            .get(target.len() - 1 - offset)
                             .ok_or(anyhow!("opcode 4: reference out of bounds"))?,
                     )
                 }
@@ -161,7 +161,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                 for _ in 0..4 {
                     target.push(
                         *target
-                            .get(target.len() - 1 - offset as usize)
+                            .get(target.len() - 1 - offset)
                             .ok_or(anyhow!("opcode 5: reference out of bounds"))?,
                     )
                 }
@@ -174,7 +174,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                 for _ in 0..block_size {
                     target.push(
                         *target
-                            .get(target.len() - 1 - offset as usize)
+                            .get(target.len() - 1 - offset)
                             .ok_or(anyhow!("opcode 6: reference out of bounds"))?,
                     )
                 }
@@ -191,7 +191,8 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
         }
     }
 
-    Ok(target.reverse())
+    target.reverse();
+    Ok(())
 }
 
 #[cfg(test)]

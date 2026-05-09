@@ -85,7 +85,7 @@ impl Bitmap {
 
         let pixel_count = (width * height) as usize;
 
-        if pixel_count % 8 != 0 {
+        if !pixel_count.is_multiple_of(8) {
             bail!("bad dimensions {}x{}", width, height);
         }
 

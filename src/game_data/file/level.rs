@@ -274,7 +274,7 @@ Skills"#,
             writeln!(
                 f,
                 "  {}: {}",
-                skill.to_string(),
+                skill,
                 self.parameters.skills[skill as usize]
             )?;
         }

@@ -26,8 +26,7 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
         .lemming_sprites
         .iter()
         .map(|s| SDLSprite::from_sprite(s, &game_data.static_palette, &texture_creator))
-        .filter(|x| x.is_ok())
-        .map(|x| x.expect(""))
+        .filter_map(|x| x.ok())
         .collect();
 
     let mut running = true;

@@ -2,11 +2,11 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, TerrainInfo, file::ground::InteractionType,
+    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, file::ground::InteractionType,
 };
 
 use crate::state::{
-    Activity, Direction, LemmingAnimation, LemmingState, LevelState, ObjectState, SceneStateLevel,
+    Activity, LemmingAnimation, LemmingState, LevelState, ObjectState, SceneStateLevel,
     TerrainProps,
 };
 
@@ -306,7 +306,7 @@ impl LemmingState {
         let old_y = self.y;
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
-        self.x = self.x + self.direction.delta(1);
+        self.x += self.direction.delta(1);
 
         if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
             self.direction = !self.direction;
@@ -338,7 +338,7 @@ impl LemmingState {
     }
 
     fn turn_if_ceiling(&mut self) {
-        if self.y < MIN_FOOT_Y as i32 {
+        if self.y < MIN_FOOT_Y {
             self.direction = !self.direction;
             self.y = CEILING_HIT_Y_RESET;
 
@@ -358,7 +358,7 @@ impl LemmingState {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
         if !terrain_map.is_solid(self.x + self.direction.delta(8), self.y) {
-            self.x = self.x + self.direction.delta(1);
+            self.x += self.direction.delta(1);
         }
 
         self.frame > 0
@@ -387,7 +387,7 @@ impl<'a> TerrainMap<'a> {
 
         for i in 0..=limit {
             dy = i;
-            let ypos = y as i32 - dy as i32;
+            let ypos = y - dy as i32;
 
             if !self.is_solid(x, ypos) {
                 break;

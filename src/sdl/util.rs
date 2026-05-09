@@ -7,7 +7,7 @@ pub fn recast_buffer<T>(data: &mut [u8]) -> Result<&mut [T]> {
     unsafe {
         let (prefix, res, _) = data.align_to_mut::<T>();
 
-        if prefix.len() != 0 {
+        if !prefix.is_empty() {
             Err(anyhow::format_err!("misaligned texture data"))
         } else {
             Ok(res)

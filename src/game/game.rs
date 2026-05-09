@@ -53,7 +53,7 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
         canvas.renderer_name
     );
 
-    if let Some(refresh_rate) = current_refresh_rate(&canvas.window()) {
+    if let Some(refresh_rate) = current_refresh_rate(canvas.window()) {
         println!("Refresh rate: {}Hz", refresh_rate as usize);
     } else {
         println!("unable to determine refresh rate");

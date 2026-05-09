@@ -48,5 +48,5 @@ pub fn current_refresh_rate(window: &Window) -> Option<f32> {
 }
 
 pub fn apply_blend_mode(texture: &mut Texture, blend: SDL_BlendMode) -> bool {
-    unsafe { SDL_SetTextureBlendMode(texture.raw(), blend.into()) }
+    unsafe { SDL_SetTextureBlendMode(texture.raw(), blend) }
 }

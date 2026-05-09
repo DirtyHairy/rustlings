@@ -291,7 +291,7 @@ fn format_palette_entry(
     (r, g, b): PaletteEntry,
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
-    write!(f, "   ({} {} {})\n", r, g, b)
+    writeln!(f, "   ({} {} {})", r, g, b)
 }
 
 fn format_palette(
@@ -307,7 +307,7 @@ fn format_palette(
 
 impl fmt::Display for Palettes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "custom:\n")?;
+        writeln!(f, "custom:")?;
         format_palette(self.custom, f)?;
 
         write!(f, "\nstandard:\n")?;

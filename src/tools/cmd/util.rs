@@ -19,5 +19,5 @@ pub fn create_window(sdl_video: &sdl3::VideoSubsystem, hidpi: bool) -> Result<sd
     builder
         .position_centered()
         .build()
-        .map_err(|e| Error::from(e))
+        .map_err(Error::from)
 }

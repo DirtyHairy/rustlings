@@ -104,7 +104,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         game_data: Rc<GameData>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
-        let palette = game_data.resolve_palette(&level)?;
+        let palette = game_data.resolve_palette(level)?;
         let palette_skill_panel = game_data.resolve_skill_panel_palette(0);
 
         let texture_terrain = texture_from_bitmap(&scene_state.terrain, &palette, texture_creator)?;
@@ -610,8 +610,8 @@ fn draw_lemmings<T: RenderTarget>(
         atlas.blit(
             canvas,
             sprite_index,
-            lemming.x as i32 - foot_x as i32,
-            lemming.y as i32 - foot_y as i32,
+            lemming.x - foot_x as i32,
+            lemming.y - foot_y as i32,
             lemming.frame,
             false,
             false,

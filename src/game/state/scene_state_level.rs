@@ -56,7 +56,7 @@ impl Not for Direction {
 impl Direction {
     pub fn delta(self, abs: u32) -> i32 {
         match self {
-            Direction::Left => -1 * abs as i32,
+            Direction::Left => -(abs as i32),
             Direction::Right => abs as i32,
         }
     }

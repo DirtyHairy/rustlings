@@ -40,10 +40,10 @@ struct DrawState<'a> {
     object_sprites: ObjectSprites<'a>,
 }
 
-fn dump_level(level_index: usize, level: &Level) -> () {
+fn dump_level(level_index: usize, level: &Level) {
     println!(
         "{} {}:",
-        DifficultyRating::from(level_index / 30).to_string(),
+        DifficultyRating::from(level_index / 30),
         level_index % 30 + 1
     );
 
@@ -72,7 +72,7 @@ fn compose_tile_onto_background(
     tile: &TerrainTile,
     bitmap: &Bitmap,
     background_data: &mut Vec<u8>,
-) -> () {
+) {
     for x in 0..bitmap.width {
         for y in 0..bitmap.height {
             let y_transformed = if tile.flip_y {
@@ -102,10 +102,8 @@ fn compose_tile_onto_background(
                 if !bitmap.transparency[src_index] {
                     background_data[dest_index] = 255
                 }
-            } else {
-                if !bitmap.transparency[src_index] {
-                    background_data[dest_index] = bitmap.data[src_index];
-                }
+            } else if !bitmap.transparency[src_index] {
+                background_data[dest_index] = bitmap.data[src_index];
             }
         }
     }
@@ -351,7 +349,7 @@ fn render<'a>(
 
 fn clamp_x(x: i32, zoom: u32) -> u32 {
     max(
-        min(x as i32 + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as i32 - 10,
+        min(x + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as i32 - 10,
         0,
     ) as u32
 }

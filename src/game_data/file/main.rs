@@ -127,7 +127,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             8,
             8,
             1,
-            &sections[2]
+            sections[2]
                 .data
                 .get(0x1908 + i * 0x10..)
                 .ok_or(format_err!("skill font data out of bounds"))?,
@@ -146,7 +146,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             8,
             16,
             3,
-            &sections[2]
+            sections[2]
                 .data
                 .get((0x19a0 + i * 0x30)..)
                 .ok_or(format_err!("skill panel font data out of bounds"))?,

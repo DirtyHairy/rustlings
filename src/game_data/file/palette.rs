@@ -7,11 +7,11 @@ pub const PALETTE_SIZE: usize = 16;
 pub type PaletteEntry = (u8, u8, u8);
 
 pub const fn expand_rgb6_to8(r: u8, g: u8, b: u8) -> PaletteEntry {
-    return (
+    (
         (r << 2) | (r >> 4),
         (g << 2) | (g >> 4),
         (b << 2) | (b >> 4),
-    );
+    )
 }
 
 pub fn read_palette_entry(buffer: &[u8], offset: usize) -> Result<(PaletteEntry, usize)> {

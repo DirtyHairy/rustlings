@@ -48,7 +48,7 @@ pub fn read_vgagr(
             info.width,
             info.height,
             4,
-            &object_data,
+            object_data,
             &mut offset,
             info.animation_frame_size,
             TransparencyEncoding::PlanarOffset(info.mask_offset),
@@ -71,11 +71,11 @@ pub fn read_vgagr(
             info.width,
             info.height,
             4,
-            &tileset_data
+            tileset_data
                 .get(info.image_offset..)
                 .ok_or(anyhow!("tile data out of bounds"))?,
             TransparencyEncoding::PlanarAt(
-                &tileset_data
+                tileset_data
                     .get(info.mask_offset..)
                     .ok_or(anyhow!("tile data out of bounds"))?,
             ),
