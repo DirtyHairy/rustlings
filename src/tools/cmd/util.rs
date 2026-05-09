@@ -16,8 +16,5 @@ pub fn create_window(sdl_video: &sdl3::VideoSubsystem, hidpi: bool) -> Result<sd
         builder.set_flags(sdl3::video::WindowFlags::HIGH_PIXEL_DENSITY);
     }
 
-    builder
-        .position_centered()
-        .build()
-        .map_err(Error::from)
+    builder.position_centered().build().map_err(Error::from)
 }

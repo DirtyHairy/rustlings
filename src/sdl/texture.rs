@@ -60,4 +60,5 @@ where
         render_result = f(c);
     })?;
 
-    render_result}
+    render_result
+}

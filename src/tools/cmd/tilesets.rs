@@ -31,12 +31,19 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
         for object_sprite in &game_data.tilesets[i].object_sprites {
             if let Some(sdl_sprite) = object_sprite
                 .as_ref()
-                .and_then(|sprite| SDLSprite::from_sprite(sprite, palette, &texture_creator).ok()) { sprites.push(sdl_sprite) }
+                .and_then(|sprite| SDLSprite::from_sprite(sprite, palette, &texture_creator).ok())
+            {
+                sprites.push(sdl_sprite)
+            }
         }
 
         for tile in &game_data.tilesets[i].tiles {
-            if let Some(sdl_sprite) = tile.as_ref()
-                .and_then(|bitmap| SDLSprite::from_bitmap(bitmap, palette, &texture_creator).ok()) { sprites.push(sdl_sprite) }
+            if let Some(sdl_sprite) = tile
+                .as_ref()
+                .and_then(|bitmap| SDLSprite::from_bitmap(bitmap, palette, &texture_creator).ok())
+            {
+                sprites.push(sdl_sprite)
+            }
         }
 
         spritesets.push(sprites);

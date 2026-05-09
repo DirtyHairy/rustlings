@@ -91,10 +91,11 @@ impl EventCollector {
             );
 
             if let Some(event) = event_pump.wait_event_timeout(wait_timeout as u32)
-                && let Some(decoded_event) = decode_sdl_event(&event) {
-                    self.aggregate_event(&decoded_event);
-                    self.decoded_events.push(decoded_event);
-                }
+                && let Some(decoded_event) = decode_sdl_event(&event)
+            {
+                self.aggregate_event(&decoded_event);
+                self.decoded_events.push(decoded_event);
+            }
 
             for event in event_pump.poll_iter() {
                 if let Some(decoded_event) = decode_sdl_event(&event) {
