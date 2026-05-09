@@ -337,7 +337,7 @@ fn init_terrain_map(
         let object_x = (object.x + object_info.trigger_left).max(0) as u32;
         let object_y = (object.y + object_info.trigger_top).max(0) as u32;
         let object_width = object_info.trigger_width;
-        let object_height = object_info.trigger_width;
+        let object_height = object_info.trigger_height;
 
         for y in object_y..(object_y + object_height).min(LEVEL_HEIGHT) {
             for x in object_x..(object_x + object_width).min(LEVEL_WIDTH) {
