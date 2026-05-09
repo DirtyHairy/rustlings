@@ -4,5 +4,5 @@ use crate::state::SceneStateLevel;
 pub enum SceneState {
     #[default]
     None,
-    Level(SceneStateLevel),
+    Level(Box<SceneStateLevel>),
 }

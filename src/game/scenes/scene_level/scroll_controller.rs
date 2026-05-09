@@ -59,7 +59,7 @@ impl ScrollController {
 
         if self.is_fullscreen && self.mouse_enabled {
             match self.mouse_x {
-                Some(x) if x == 0 => return ScrollMode::Left,
+                Some(0) => return ScrollMode::Left,
                 Some(x) if x == SCREEN_WIDTH - 1 => return ScrollMode::Right,
                 _ => (),
             }

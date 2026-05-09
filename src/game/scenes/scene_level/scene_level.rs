@@ -38,7 +38,7 @@ enum Status {
 
 pub struct SceneLevel<'texture_creator> {
     game_state: GameState,
-    state: SceneStateLevel,
+    state: Box<SceneStateLevel>,
     status: Status,
 
     renderer: Renderer<'texture_creator>,
@@ -68,7 +68,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let state = match scene_state {
             SceneState::Level(state_level) => state_level,
             _ => {
-                let mut state = SceneStateLevel {
+                let mut state = Box::from(SceneStateLevel {
                     level_x: level.start_x,
                     terrain: game_data.compose_terrain(&level)?,
                     terrain_map: vec![Default::default(); (LEVEL_WIDTH * LEVEL_HEIGHT) as usize],
@@ -78,10 +78,11 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     release_rate: level.parameters.release_rate,
                     remaining_time_seconds: level.parameters.time_limit * 60,
                     ..Default::default()
-                };
+                });
 
                 init_terrain_map(&state.terrain, &level, &game_data, &mut state.terrain_map)?;
                 simulation.initialize(&mut state);
+
                 state
             }
         };
@@ -326,8 +327,8 @@ fn init_terrain_map(
     game_data: &GameData,
     terrain_map: &mut [TerrainProps],
 ) -> Result<()> {
-    for i in 0..(LEVEL_WIDTH * LEVEL_HEIGHT) as usize {
-        terrain_map[i].set_solid(!terrain.transparency[i]);
+    for (i, pixel) in terrain_map.iter_mut().enumerate() {
+        pixel.set_solid(!terrain.transparency[i]);
     }
 
     for (index, object) in level.objects.iter().enumerate() {

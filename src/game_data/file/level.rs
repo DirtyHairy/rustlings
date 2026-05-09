@@ -100,8 +100,8 @@ fn decode_level(data: &[u8]) -> Result<Level> {
     }
 
     let mut skills = [0u32; NUM_SKILLS];
-    for i in 0..NUM_SKILLS {
-        skills[i] = read16(data, 0x08 + 2 * i)? as u32;
+    for (i, skill) in skills.iter_mut().enumerate() {
+        *skill = read16(data, 0x08 + 2 * i)? as u32;
     }
 
     let mut terrain_tiles: Vec<TerrainTile> = Vec::new();
@@ -137,8 +137,8 @@ fn decode_level(data: &[u8]) -> Result<Level> {
 
 fn decode_oddtable_entry(data: &[u8]) -> Result<LevelParameters> {
     let mut skills = [0u32; NUM_SKILLS];
-    for i in 0..NUM_SKILLS {
-        skills[i] = read16(data, 0x08 + 2 * i)? as u32;
+    for (i, skill) in skills.iter_mut().enumerate() {
+        *skill = read16(data, 0x08 + 2 * i)? as u32;
     }
 
     Ok(LevelParameters {
@@ -271,12 +271,7 @@ Skills"#,
         )?;
 
         for skill in SKILLS {
-            writeln!(
-                f,
-                "  {}: {}",
-                skill,
-                self.parameters.skills[skill as usize]
-            )?;
+            writeln!(f, "  {}: {}", skill, self.parameters.skills[skill as usize])?;
         }
 
         Ok(())

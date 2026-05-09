@@ -621,20 +621,6 @@ fn draw_lemmings<T: RenderTarget>(
     Ok(())
 }
 
-const fn renormalize_color_component(color: u8, alpha: u8) -> u8 {
-    let ren = (color as u32) * 255 / (alpha as u32);
-
-    if ren > 255 { 255 } else { ren as u8 }
-}
-
-const fn renormalize_color(color: (u8, u8, u8), alpha: u8) -> (u8, u8, u8) {
-    (
-        renormalize_color_component(color.0, alpha),
-        renormalize_color_component(color.1, alpha),
-        renormalize_color_component(color.2, alpha),
-    )
-}
-
 fn draw_minimap_lemmings<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     state: &SceneStateLevel,

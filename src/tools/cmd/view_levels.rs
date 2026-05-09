@@ -68,11 +68,7 @@ fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_
     }
 }
 
-fn compose_tile_onto_background(
-    tile: &TerrainTile,
-    bitmap: &Bitmap,
-    background_data: &mut Vec<u8>,
-) {
+fn compose_tile_onto_background(tile: &TerrainTile, bitmap: &Bitmap, background_data: &mut [u8]) {
     for x in 0..bitmap.width {
         for y in 0..bitmap.height {
             let y_transformed = if tile.flip_y {
@@ -391,7 +387,7 @@ fn switch_level<'a, T>(
     Ok(())
 }
 
-fn display_levels<'a>(data: &GameData, start_level: usize) -> Result<()> {
+fn display_levels(data: &GameData, start_level: usize) -> Result<()> {
     let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");

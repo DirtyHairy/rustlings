@@ -416,15 +416,9 @@ impl<'sdl> Stage<'sdl> {
             PrescalingMode::Quis(width, height) => (width, height),
         };
 
-        let needs_recreate = match maybe_intermediate_texture.as_ref() {
-            Some(texture)
+        let needs_recreate = !matches!(maybe_intermediate_texture.as_ref(), Some(texture)
                 if texture.width() == integer_scaled_width
-                    && texture.height() == integer_scaled_height =>
-            {
-                false
-            }
-            _ => true,
-        };
+                    && texture.height() == integer_scaled_height);
 
         if needs_recreate {
             *maybe_intermediate_texture = Some(self.texture_creator.create_texture_target(
@@ -498,6 +492,7 @@ impl ExposeWatch {
         // The whole construction qualifies as abomination, but MacOS stalls the event pump during
         // window resize, so this is the only way to get redraws and avoid an ugly stretched texture
         // while the window handles are being dragged.
+        #[allow(clippy::unnecessary_cast)]
         ExposeWatch {
             stage: (stage as *mut _) as *mut Stage<'static>,
             render_state: (render_state as *mut _) as *mut RenderState<'static>,

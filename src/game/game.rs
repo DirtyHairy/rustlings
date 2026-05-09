@@ -67,8 +67,10 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
 pub fn run(config: &Config) -> Result<()> {
     let game_data: Rc<GameData> = read_game_data(Path::new(&config.data_dir))?.into();
 
-    let mut game_state: GameState = Default::default();
-    game_state.current_level = 0;
+    let mut game_state = GameState {
+        current_level: 0,
+        ..Default::default()
+    };
 
     let mut scene_state: SceneState = Default::default();
 

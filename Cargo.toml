@@ -11,6 +11,10 @@ path = "src/game/main.rs"
 name = "rustlings-tools"
 path = "src/tools/main.rs"
 
+[lints.clippy]
+too_many_arguments = "allow"
+module_inception = "allow"
+
 [dependencies]
 anyhow = "1.0.101"
 bitfield-struct = "0.13.0"

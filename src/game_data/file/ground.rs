@@ -113,21 +113,21 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let mut object_info: [ObjectInfo; OBJECTS_PER_TILESET] =
         [(); OBJECTS_PER_TILESET].map(|_| ObjectInfo::default());
 
-    for i in 0..16 {
+    for object_info in object_info.iter_mut() {
         let (value, new_offset) = read_object_info(&data, offset)?;
         offset = new_offset;
 
-        object_info[i] = value;
+        *object_info = value;
     }
 
     let mut terrain_info: [TerrainInfo; TILES_PER_TILESET] =
         [(); TILES_PER_TILESET].map(|_| TerrainInfo::default());
 
-    for i in 0..64 {
+    for terrain_info in terrain_info.iter_mut() {
         let (value, new_offset) = read_terrain_info(&data, offset)?;
         offset = new_offset;
 
-        terrain_info[i] = value;
+        *terrain_info = value;
     }
 
     let (palettes, offset) = read_palettes(&data, offset)?;
@@ -213,14 +213,12 @@ fn read_palette(buffer: &[u8], offset: usize) -> Result<([PaletteEntry; 16], usi
     let mut palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
     let mut offset = offset;
 
-    for i in 0..7 {
-        palette[i] = LOWER_PALETTE_FIXED[i];
-    }
+    palette[..7].copy_from_slice(&LOWER_PALETTE_FIXED[..7]);
 
-    for i in 8..16 {
+    for target in palette[8..16].iter_mut() {
         let (entry, new_offset) = read_palette_entry(buffer, offset)?;
 
-        palette[i] = entry;
+        *target = entry;
         offset = new_offset;
     }
 
