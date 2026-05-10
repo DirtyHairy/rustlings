@@ -452,6 +452,6 @@ impl Activity {
     }
 }
 
-#[path = "./simulation_test.rs"]
+#[path = "./simulation_test/mod.rs"]
 #[cfg(test)]
 mod test;
