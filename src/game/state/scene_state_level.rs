@@ -12,11 +12,13 @@ pub struct ObjectState {
 }
 
 #[derive(Clone, Default, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct ActivityStateFalling {
     pub delta_y: u32,
 }
 
 #[derive(Clone, Default, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub enum Activity {
     #[default]
     Climbing,
@@ -36,6 +38,7 @@ pub enum Activity {
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
+#[cfg_attr(test, derive(Debug))]
 pub enum Direction {
     #[default]
     Right,
@@ -69,6 +72,7 @@ pub struct CursorState {
 }
 
 #[derive(Clone, Default)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct LemmingState {
     pub x: i32,
     pub y: i32,

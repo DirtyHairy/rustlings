@@ -50,6 +50,8 @@ const JUMP_DISTANCE: u32 = 2;
 const MIN_FOOT_Y: i32 = 5;
 const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
+const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
+
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
         let objects = level
@@ -143,7 +145,7 @@ impl Simulation {
     }
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
-        let terrain_map = TerrainMap(&state.terrain_map);
+        let terrain_map = TerrainMap::new(LEVEL_WIDTH, LEVEL_HEIGHT, &state.terrain_map);
 
         state
             .lemmings
@@ -311,7 +313,7 @@ impl LemmingState {
 
         self.x += self.direction.delta(1);
 
-        if self.x == 0 || self.x == LEVEL_WIDTH as i32 - 1 {
+        if self.x == 0 || self.x == terrain_map.width as i32 - 1 {
             self.direction = !self.direction;
         } else if terrain_map.is_solid(self.x, self.y) {
             let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
@@ -360,7 +362,10 @@ impl LemmingState {
     fn tick_drowner(&mut self, terrain_map: &TerrainMap) -> bool {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
-        if !terrain_map.is_solid(self.x + self.direction.delta(8), self.y) {
+        if !terrain_map.is_solid(
+            self.x + self.direction.delta(DROWNER_MIN_WALL_DISTANCE),
+            self.y,
+        ) {
             self.x += self.direction.delta(1);
         }
 
@@ -368,14 +373,24 @@ impl LemmingState {
     }
 }
 
-struct TerrainMap<'a>(&'a [TerrainProps]);
+struct TerrainMap<'a> {
+    width: u32,
+    height: u32,
+    map: &'a [TerrainProps],
+}
 
 impl<'a> TerrainMap<'a> {
+    pub fn new(width: u32, height: u32, map: &'a [TerrainProps]) -> Self {
+        assert!((width * height) as usize == map.len());
+
+        Self { width, height, map }
+    }
+
     pub fn terrain_at(&self, x: i32, y: i32) -> Option<TerrainProps> {
-        if y >= LEVEL_HEIGHT as i32 || y < 0 || x < 0 || x >= LEVEL_WIDTH as i32 {
+        if y >= self.height as i32 || y < 0 || x < 0 || x >= self.width as i32 {
             None
         } else {
-            Some(self.0[(x + y * LEVEL_WIDTH as i32) as usize])
+            Some(self.map[(x + y * self.width as i32) as usize])
         }
     }
 
@@ -436,3 +451,7 @@ impl Activity {
         }
     }
 }
+
+#[path = "./simulation_test.rs"]
+#[cfg(test)]
+mod test;

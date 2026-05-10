@@ -4,6 +4,7 @@ use strum::{EnumCount, FromRepr, VariantArray};
 use crate::state::Direction;
 
 #[derive(Clone, Copy, PartialEq, Default, EnumCount, VariantArray, FromRepr)]
+#[cfg_attr(test, derive(Debug))]
 pub enum LemmingAnimation {
     #[default]
     Walking,
