@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{Error, Result, bail, format_err};
+use anyhow::{Error, Result, anyhow, bail};
 use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
@@ -154,7 +154,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let object_atlas_index: Vec<Option<usize>> = game_data
             .tilesets
             .get(level.graphics_set as usize)
-            .ok_or(format_err!("invalid tileset {}", level.graphics_set))?
+            .ok_or(anyhow!("invalid tileset {}", level.graphics_set))?
             .object_sprites
             .iter()
             .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
@@ -303,7 +303,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         match id {
             TEXTURE_ID_MAIN_SCREEN => Ok(&mut self.texture_screen),
             TEXTURE_ID_MINIMAP => Ok(&mut self.texture_level),
-            _ => Err(anyhow::format_err!("invalid texture id {}", id)),
+            _ => Err(anyhow!("invalid texture id {}", id)),
         }
     }
 
@@ -542,7 +542,7 @@ fn create_objects<P: Fn(&&level::Object) -> bool>(
             Ok(Object {
                 index,
                 atlas_index: atlas_index[o.id as usize]
-                    .ok_or(format_err!("no sprite in atlas for object {}", o.id))?,
+                    .ok_or(anyhow!("no sprite in atlas for object {}", o.id))?,
                 x: o.x as u32,
                 y: o.y as u32,
                 flip: o.flip_y,

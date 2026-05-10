@@ -1,4 +1,4 @@
-use anyhow::{Result, format_err};
+use anyhow::{Result, anyhow};
 use sdl3::sys::blendmode::SDL_BlendMode;
 use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
 
@@ -30,7 +30,7 @@ impl<'texture_creator> SdlAtlas<'texture_creator> {
     pub fn get_sprite(&self, index: usize) -> Result<&AtlasSprite> {
         self.sprites
             .get(index)
-            .ok_or(format_err!("invalid sprite index {}", index))
+            .ok_or(anyhow!("invalid sprite index {}", index))
     }
 
     pub fn apply_blend_mode(&mut self, blend: SDL_BlendMode) -> bool {
@@ -58,12 +58,12 @@ impl<'texture_creator> SdlAtlas<'texture_creator> {
         let sprite = self
             .sprites
             .get(sprite_index)
-            .ok_or(format_err!("invalid sprite index {}", sprite_index))?;
+            .ok_or(anyhow!("invalid sprite index {}", sprite_index))?;
 
         let frame = sprite
             .frames
             .get(iframe)
-            .ok_or(format_err!("invalid frame index {}", iframe))?;
+            .ok_or(anyhow!("invalid frame index {}", iframe))?;
 
         canvas
             .copy_ex(

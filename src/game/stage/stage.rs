@@ -2,7 +2,7 @@ use std::mem::transmute;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use rustlings::game_data::GameData;
 use rustlings::sdl::{current_refresh_rate, is_main_thread, with_texture_canvas};
 use sdl3::mouse::MouseState;
@@ -312,13 +312,13 @@ impl<'sdl> Stage<'sdl> {
             let layer = render_state
                 .layers
                 .get_mut(i)
-                .ok_or(anyhow::format_err!("invalid layer {}", i))?;
+                .ok_or(anyhow!("invalid layer {}", i))?;
 
             let dest = render_state
                 .layout
                 .layers
                 .get(i)
-                .ok_or(anyhow::format_err!("no layout for layer {}", i))?;
+                .ok_or(anyhow!("no layout for layer {}", i))?;
 
             let texture = self.prescale_layer(scene, layer, needs_redraw)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);

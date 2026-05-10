@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use strum::{EnumCount, FromRepr, VariantArray};
+
 pub const NUM_SKILLS: usize = 8;
 
 pub const SKILLS: [Skill; NUM_SKILLS] = [
@@ -13,7 +15,7 @@ pub const SKILLS: [Skill; NUM_SKILLS] = [
     Skill::Digger,
 ];
 
-#[derive(Clone, Copy, PartialEq, Default)]
+#[derive(Clone, Copy, PartialEq, Default, VariantArray, EnumCount, FromRepr)]
 pub enum Skill {
     #[default]
     Climber = 0,

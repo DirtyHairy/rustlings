@@ -1,4 +1,4 @@
-use anyhow::{Result, bail, format_err};
+use anyhow::{Result, anyhow, bail};
 
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
@@ -65,7 +65,7 @@ impl GameData {
         let level = self
             .levels
             .get(level_index as usize)
-            .ok_or(format_err!("invalid level_index {}", level_index))?;
+            .ok_or(anyhow!("invalid level_index {}", level_index))?;
 
         if (entry & 0x01) == 0 {
             Ok(level.clone())
@@ -74,7 +74,7 @@ impl GameData {
                 parameters: self
                     .oddtable
                     .get(oddtable_index as usize)
-                    .ok_or(format_err!("invalid oddtable_index {}", oddtable_index))?
+                    .ok_or(anyhow!("invalid oddtable_index {}", oddtable_index))?
                     .clone(),
                 ..level.clone()
             })
@@ -84,10 +84,10 @@ impl GameData {
     pub fn resolve_object(&self, object_id: usize, tileset_id: usize) -> Result<&ObjectInfo> {
         self.tilesets
             .get(tileset_id)
-            .ok_or(format_err!("invalid tileset {}", tileset_id))?
+            .ok_or(anyhow!("invalid tileset {}", tileset_id))?
             .object_info
             .get(object_id)
-            .ok_or(format_err!("invalid object ID {}", object_id))
+            .ok_or(anyhow!("invalid object ID {}", object_id))
     }
 
     pub fn resolve_skill_panel_palette(&self, tileset: usize) -> [PaletteEntry; PALETTE_SIZE] {
@@ -112,7 +112,7 @@ impl GameData {
         if level.extended_graphics_set > 0 {
             self.special_backgrounds
                 .get(level.extended_graphics_set as usize - 1)
-                .ok_or(format_err!(
+                .ok_or(anyhow!(
                     "invalid extended graphics set {}",
                     level.extended_graphics_set
                 ))
@@ -120,7 +120,7 @@ impl GameData {
         } else {
             self.tilesets
                 .get(level.graphics_set as usize)
-                .ok_or(format_err!("invlid graphics set {}", level.graphics_set))
+                .ok_or(anyhow!("invlid graphics set {}", level.graphics_set))
                 .map(|x| x.palettes.custom)
         }
     }
@@ -134,7 +134,7 @@ impl GameData {
             let special_background = self
                 .special_backgrounds
                 .get(level.extended_graphics_set as usize - 1)
-                .ok_or(format_err!(
+                .ok_or(anyhow!(
                     "bad extended graphics set {}",
                     level.extended_graphics_set
                 ))?;
@@ -159,7 +159,7 @@ impl GameData {
             let bitmap_optional = self
                 .tilesets
                 .get(level.graphics_set as usize)
-                .ok_or(format_err!("bad graphics set {}", level.graphics_set))?
+                .ok_or(anyhow!("bad graphics set {}", level.graphics_set))?
                 .tiles
                 .get(tile.id as usize)
                 .and_then(|x| x.as_ref());

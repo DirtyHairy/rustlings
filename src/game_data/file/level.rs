@@ -177,13 +177,13 @@ fn read_terrain_tile(data: &[u8], index: usize) -> Result<Option<TerrainTile>> {
 
     let x_and_flags = read16(data, 0x120 + 4 * index)?;
     if x_and_flags == 0xffff {
-        return Ok(Option::None);
+        return Ok(None);
     }
     let flags = x_and_flags >> 12;
 
     let y = read16(data, 0x122 + 4 * index)? as i32;
 
-    Ok(Option::Some(TerrainTile {
+    Ok(Some(TerrainTile {
         x: (x_and_flags & 0x0fff) as i32 - 16,
         y: ((y << 16) >> 23) - 4,
         id: (y & 0x3f) as u32,
@@ -205,10 +205,10 @@ fn read_object(data: &[u8], index: usize) -> Result<Option<Object>> {
     let flip = read8(data, 0x27 + 8 * index)?;
 
     if x == 0 && y == 0 && id == 0 && flags == 0 && flip == 0 {
-        return Ok(Option::None);
+        return Ok(None);
     }
 
-    Ok(Option::Some(Object {
+    Ok(Some(Object {
         x: (x as i32) - 16,
         y: y as i32,
         id,

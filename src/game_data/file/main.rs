@@ -1,6 +1,6 @@
 use std::{convert::TryInto, fs, path::Path};
 
-use anyhow::{Result, bail, format_err};
+use anyhow::{Result, anyhow, bail};
 
 use crate::game_data::Bitmap;
 use crate::game_data::file::encoding::datfile;
@@ -130,7 +130,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             sections[2]
                 .data
                 .get(0x1908 + i * 0x10..)
-                .ok_or(format_err!("skill font data out of bounds"))?,
+                .ok_or(anyhow!("skill font data out of bounds"))?,
             TransparencyEncoding::Opaque,
             |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
         )?
@@ -149,7 +149,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             sections[2]
                 .data
                 .get((0x19a0 + i * 0x30)..)
-                .ok_or(format_err!("skill panel font data out of bounds"))?,
+                .ok_or(anyhow!("skill panel font data out of bounds"))?,
             TransparencyEncoding::Opaque,
             |x| match x {
                 0x05 => COLOR_LIGHT_GREEN,

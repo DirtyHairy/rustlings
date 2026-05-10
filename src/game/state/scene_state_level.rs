@@ -11,14 +11,12 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, Default, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Default, PartialEq, Debug)]
 pub struct ActivityStateFalling {
     pub delta_y: u32,
 }
 
-#[derive(Clone, Default, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Default, PartialEq, Debug)]
 pub enum Activity {
     #[default]
     Climbing,
@@ -37,8 +35,7 @@ pub enum Activity {
     Exitting,
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub enum Direction {
     #[default]
     Right,

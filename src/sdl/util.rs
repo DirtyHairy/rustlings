@@ -1,4 +1,4 @@
-use anyhow::{Result, format_err};
+use anyhow::{Result, anyhow};
 use sdl3::pixels::{Color, PixelFormat};
 
 use crate::game_data::{Bitmap, PALETTE_SIZE, PaletteEntry};
@@ -8,7 +8,7 @@ pub fn recast_buffer<T>(data: &mut [u8]) -> Result<&mut [T]> {
         let (prefix, res, _) = data.align_to_mut::<T>();
 
         if !prefix.is_empty() {
-            Err(anyhow::format_err!("misaligned texture data"))
+            Err(anyhow!("misaligned texture data"))
         } else {
             Ok(res)
         }
@@ -48,7 +48,7 @@ pub fn copy_bitmap_to_texture_data_at(
 
     let delta = (pitch >> 2)
         .checked_sub(bitmap.width as usize)
-        .ok_or(format_err!("invalid pitch for bitmap width"))?;
+        .ok_or(anyhow!("invalid pitch for bitmap width"))?;
 
     let mut i_data = y as usize * (pitch >> 2) + x as usize;
     let mut i_bitmap = 0;

@@ -1,4 +1,6 @@
-use rustlings::game_data::{Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS};
+use rustlings::game_data::{
+    Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS, Skill,
+};
 use sdl3::keyboard::Keycode;
 
 use crate::{
@@ -43,35 +45,35 @@ impl SkillPanelController {
                     false
                 }
                 Keycode::_1 => {
-                    state.selected_skill = SKILLS[0];
+                    state.selected_skill = Skill::from_repr(0).unwrap();
                     true
                 }
                 Keycode::_2 => {
-                    state.selected_skill = SKILLS[1];
+                    state.selected_skill = Skill::from_repr(1).unwrap();
                     true
                 }
                 Keycode::_3 => {
-                    state.selected_skill = SKILLS[2];
+                    state.selected_skill = Skill::from_repr(2).unwrap();
                     true
                 }
                 Keycode::_4 => {
-                    state.selected_skill = SKILLS[3];
+                    state.selected_skill = Skill::from_repr(3).unwrap();
                     true
                 }
                 Keycode::_5 => {
-                    state.selected_skill = SKILLS[4];
+                    state.selected_skill = Skill::from_repr(4).unwrap();
                     true
                 }
                 Keycode::_6 => {
-                    state.selected_skill = SKILLS[5];
+                    state.selected_skill = Skill::from_repr(5).unwrap();
                     true
                 }
                 Keycode::_7 => {
-                    state.selected_skill = SKILLS[6];
+                    state.selected_skill = Skill::from_repr(6).unwrap();
                     true
                 }
                 Keycode::_8 => {
-                    state.selected_skill = SKILLS[7];
+                    state.selected_skill = Skill::from_repr(7).unwrap();
                     true
                 }
                 Keycode::P => {

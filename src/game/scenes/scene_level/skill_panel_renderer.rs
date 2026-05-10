@@ -5,7 +5,7 @@ use anyhow::Result;
 use rustlings::{
     game_data::{
         GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_HEIGHT,
-        SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, SKILLS, Skill,
+        SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, Skill,
         file::main::{FONT_SKILL_PANEL_SIZE, FONT_SKILL_PANEL_SKILLS_SIZE},
         resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
@@ -120,7 +120,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             full_redraw: true,
             lemmings_released_total: level.parameters.released,
             release_rate_min: level.parameters.release_rate,
-            selected_skill: SKILLS[0],
+            selected_skill: Default::default(),
             text_model: Default::default(),
             stats_current: String::with_capacity(40),
             stats_new: String::with_capacity(40),
