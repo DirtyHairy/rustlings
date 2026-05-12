@@ -6,7 +6,7 @@ use std::{
 use anyhow::anyhow;
 use sdl3::{
     EventPump,
-    event::{Event, WindowEvent},
+    event::{DisplayEvent, Event, WindowEvent},
     keyboard::{Keycode, Mod},
     mouse::MouseButton as SdlMouseButton,
     sys::events::{self, SDL_EVENT_WINDOW_ENTER_FULLSCREEN, SDL_EVENT_WINDOW_LEAVE_FULLSCREEN},
@@ -47,6 +47,7 @@ pub enum GameEvent {
     MouseLeave,
     EnterFullscreen,
     LeaveFullscreen,
+    ModeChanged,
 }
 
 pub enum MouseOwnerChange {
@@ -175,6 +176,13 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
         Event::Unknown { type_, .. } if type_ == events::SDL_EVENT_RENDER_DEVICE_LOST.0 => {
             Some(GameEvent::RenderReset)
         }
+
+        Event::Display { display_event, .. } => match display_event {
+            DisplayEvent::Moved
+            | DisplayEvent::CurrentModeChanged
+            | DisplayEvent::DesktopModeChanged => Some(GameEvent::ModeChanged),
+            _ => None,
+        },
 
         Event::KeyDown {
             keycode: Some(keycode),

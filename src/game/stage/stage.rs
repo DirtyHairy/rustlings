@@ -192,7 +192,11 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::Quit => return Ok(Some(StopReason::Quit)),
                 GameEvent::RenderReset => return Ok(Some(StopReason::RenderReset)),
                 GameEvent::Redraw => self.rerender = true,
-                GameEvent::ToggleFullscreen => toggle_fullscreen = !toggle_fullscreen,
+                GameEvent::ToggleFullscreen => {
+                    toggle_fullscreen = !toggle_fullscreen;
+                    self.cached_time_per_frame_msec = None;
+                }
+                GameEvent::ModeChanged => self.cached_time_per_frame_msec = None,
                 GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
                 GameEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
                     self.mouse_coordinates_from(render_state, scene, x, y),
