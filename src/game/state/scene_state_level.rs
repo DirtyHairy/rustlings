@@ -62,10 +62,11 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub struct CursorState {
+#[derive(Clone, Copy, PartialEq, Default)]
+pub struct Selection {
     pub lemming_count: u32,
-    pub leading_lemming: u32,
+    pub primary_lemming: Option<usize>,
+    pub secondary_lemming: Option<usize>,
 }
 
 #[derive(Clone, Default)]
@@ -129,7 +130,7 @@ pub struct SceneStateLevel {
 
     pub remaining_time_seconds: u32,
 
-    pub cursor_state: Option<CursorState>,
+    pub selection: Selection,
 
     pub lemmings: VecDeque<LemmingState>,
 

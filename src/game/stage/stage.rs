@@ -17,8 +17,8 @@ use sdl3::{
     video::{Window, WindowContext},
 };
 
-use crate::scene::{CursorType, MouseCoordinates, Scene, SceneEvent};
-use crate::stage::event_collector::{EventCollector, GameEvent, MouseOwnerChange};
+use crate::scene::{self, CursorType, MouseCoordinates, Scene, SceneEvent};
+use crate::stage::event_collector::{EventCollector, GameEvent, MouseButton, MouseOwnerChange};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_MSEC: u64 = 100;
@@ -45,6 +45,15 @@ pub struct Stage<'sdl> {
 
     last_time_per_frame_update: Instant,
     cached_time_per_frame_msec: Option<u64>,
+}
+
+impl From<MouseButton> for scene::MouseButton {
+    fn from(btn: MouseButton) -> Self {
+        match btn {
+            MouseButton::Left => Self::Left,
+            MouseButton::Right => Self::Right,
+        }
+    }
 }
 
 impl<'sdl> Stage<'sdl> {
@@ -188,10 +197,14 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
-                GameEvent::MouseDown { x, y } => scene.dispatch_event(SceneEvent::MouseDown(
-                    self.mouse_coordinates_from(render_state, scene, x, y),
-                )),
-                GameEvent::MouseUp { x, y } => scene.dispatch_event(SceneEvent::MouseUp(
+                GameEvent::MouseDown { x, y, button } => {
+                    scene.dispatch_event(SceneEvent::MouseDown(
+                        button.into(),
+                        self.mouse_coordinates_from(render_state, scene, x, y),
+                    ))
+                }
+                GameEvent::MouseUp { x, y, button } => scene.dispatch_event(SceneEvent::MouseUp(
+                    button.into(),
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
                 GameEvent::MouseEnter => scene.set_mouse_enabled(true),

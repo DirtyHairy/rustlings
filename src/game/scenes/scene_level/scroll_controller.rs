@@ -8,7 +8,7 @@ use rustlings::game_data::{
 use sdl3::keyboard::Scancode;
 
 use crate::{
-    scene::{MouseCoordinates, SceneEvent},
+    scene::{MouseButton, MouseCoordinates, SceneEvent},
     state::SceneStateLevel,
 };
 
@@ -19,10 +19,12 @@ pub struct ScrollController {
 
     is_fullscreen: bool,
     mouse_enabled: bool,
-    mouse_down: bool,
     mouse_x: Option<u32>,
+    mouse_down_left: bool,
+    mouse_down_right: bool,
 
-    fast_scroll: bool,
+    shift_down: bool,
+
     current_scroll_mode: ScrollMode,
 }
 
@@ -53,7 +55,7 @@ impl ScrollController {
     }
 
     fn scroll_mode(&self) -> ScrollMode {
-        if self.mouse_down {
+        if self.mouse_down_left {
             return ScrollMode::Drag;
         }
 
@@ -82,7 +84,7 @@ impl ScrollController {
                 match scancode {
                     Scancode::Left => self.arrow_left_down = true,
                     Scancode::Right => self.arrow_right_down = true,
-                    Scancode::LShift | Scancode::RShift => self.fast_scroll = true,
+                    Scancode::LShift | Scancode::RShift => self.shift_down = true,
                     _ => (),
                 };
                 false
@@ -91,7 +93,7 @@ impl ScrollController {
                 match scancode {
                     Scancode::Left => self.arrow_left_down = false,
                     Scancode::Right => self.arrow_right_down = false,
-                    Scancode::LShift | Scancode::RShift => self.fast_scroll = false,
+                    Scancode::LShift | Scancode::RShift => self.shift_down = false,
                     _ => (),
                 };
                 false
@@ -99,30 +101,38 @@ impl ScrollController {
             SceneEvent::MouseMove(coordinates) => {
                 self.mouse_x = Some(coordinates.x);
 
-                if self.mouse_down {
+                if self.mouse_down_left {
                     self.update_from_drag(&coordinates, state);
                     true
                 } else {
                     false
                 }
             }
-            SceneEvent::MouseDown(coordinates) => {
+            SceneEvent::MouseDown(MouseButton::Left, coordinates) => {
                 if in_minimap(coordinates) {
-                    self.mouse_down = true;
+                    self.mouse_down_left = true;
                     self.update_from_drag(&coordinates, state);
                     true
                 } else {
                     false
                 }
             }
-            SceneEvent::MouseUp(coordinates) => {
-                if self.mouse_down {
+            SceneEvent::MouseUp(MouseButton::Left, coordinates) => {
+                if self.mouse_down_left {
                     self.update_from_drag(&coordinates, state);
-                    self.mouse_down = false;
+                    self.mouse_down_left = false;
                     true
                 } else {
                     false
                 }
+            }
+            SceneEvent::MouseDown(MouseButton::Right, _) => {
+                self.mouse_down_right = true;
+                false
+            }
+            SceneEvent::MouseUp(MouseButton::Right, _) => {
+                self.mouse_down_right = false;
+                false
             }
         }
     }
@@ -135,7 +145,7 @@ impl ScrollController {
     ) -> bool {
         let scroll_ticks_old = clock_msec_old / SCROLL_MSEC_PER_PIXEL;
         let scroll_ticks_new = clock_msec / SCROLL_MSEC_PER_PIXEL;
-        let scroll_speedup = if self.fast_scroll {
+        let scroll_speedup = if self.fast_scroll() {
             FAST_SCROLL_SPEEDUP
         } else {
             1
@@ -183,6 +193,10 @@ impl ScrollController {
                 * LEVEL_WIDTH as f32;
 
         state.level_x = (x.round() as i32).clamp(0, LEVEL_X_MAX as i32) as u32;
+    }
+
+    fn fast_scroll(&self) -> bool {
+        self.shift_down || self.mouse_down_right
     }
 }
 

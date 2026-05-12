@@ -20,6 +20,12 @@ pub struct MouseCoordinates {
 }
 
 #[derive(Clone, Copy)]
+pub enum MouseButton {
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy)]
 #[allow(unused)]
 pub enum SceneEvent {
     KeyDown {
@@ -32,8 +38,8 @@ pub enum SceneEvent {
         scancode: Scancode,
     },
     MouseMove(MouseCoordinates),
-    MouseDown(MouseCoordinates),
-    MouseUp(MouseCoordinates),
+    MouseDown(MouseButton, MouseCoordinates),
+    MouseUp(MouseButton, MouseCoordinates),
 }
 
 #[derive(Clone, Copy, PartialEq)]

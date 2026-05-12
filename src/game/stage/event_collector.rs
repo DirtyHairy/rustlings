@@ -3,17 +3,36 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::anyhow;
 use sdl3::{
     EventPump,
     event::{Event, WindowEvent},
     keyboard::{Keycode, Mod},
-    mouse::MouseButton,
+    mouse::MouseButton as SdlMouseButton,
     sys::events::{self, SDL_EVENT_WINDOW_ENTER_FULLSCREEN, SDL_EVENT_WINDOW_LEAVE_FULLSCREEN},
 };
 
 use crate::scene::SceneEvent;
 
 const INITIAL_CAPACITY: usize = 32;
+
+#[derive(Clone, Copy)]
+pub enum MouseButton {
+    Left,
+    Right,
+}
+
+impl TryFrom<SdlMouseButton> for MouseButton {
+    type Error = anyhow::Error;
+
+    fn try_from(btn: SdlMouseButton) -> Result<Self, Self::Error> {
+        match btn {
+            SdlMouseButton::Left => Ok(Self::Left),
+            SdlMouseButton::Right => Ok(Self::Right),
+            _ => Err(anyhow!("unmapped button")),
+        }
+    }
+}
 
 pub enum GameEvent {
     Quit,
@@ -22,8 +41,8 @@ pub enum GameEvent {
     ToggleFullscreen,
     DispatchSceneEvent(SceneEvent),
     MouseMove { x: f32, y: f32 },
-    MouseDown { x: f32, y: f32 },
-    MouseUp { x: f32, y: f32 },
+    MouseDown { x: f32, y: f32, button: MouseButton },
+    MouseUp { x: f32, y: f32, button: MouseButton },
     MouseEnter,
     MouseLeave,
     EnterFullscreen,
@@ -119,8 +138,8 @@ impl EventCollector {
     fn aggregate_event(&mut self, event: &GameEvent) {
         match event {
             GameEvent::MouseMove { x, y }
-            | GameEvent::MouseDown { x, y }
-            | GameEvent::MouseUp { x, y } => {
+            | GameEvent::MouseDown { x, y, .. }
+            | GameEvent::MouseUp { x, y, .. } => {
                 self.aggregate.mouse_coordinates = Some((*x, *y));
             }
             GameEvent::MouseEnter => {
@@ -190,18 +209,15 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
 
         Event::MouseMotion { x, y, .. } => Some(GameEvent::MouseMove { x, y }),
         Event::MouseButtonDown {
-            mouse_btn: MouseButton::Left,
-            x,
-            y,
-            ..
-        } => Some(GameEvent::MouseDown { x, y }),
+            mouse_btn, x, y, ..
+        } => MouseButton::try_from(mouse_btn)
+            .ok()
+            .map(|button| GameEvent::MouseDown { x, y, button }),
         Event::MouseButtonUp {
-            mouse_btn: MouseButton::Left,
-            x,
-            y,
-            ..
-        } => Some(GameEvent::MouseUp { x, y }),
-
+            mouse_btn, x, y, ..
+        } => MouseButton::try_from(mouse_btn)
+            .ok()
+            .map(|button| GameEvent::MouseUp { x, y, button }),
         _ => None,
     }
 }

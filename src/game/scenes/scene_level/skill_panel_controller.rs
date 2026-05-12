@@ -4,7 +4,7 @@ use rustlings::game_data::{
 use sdl3::keyboard::Keycode;
 
 use crate::{
-    scene::{MouseCoordinates, SceneEvent},
+    scene::{MouseButton, MouseCoordinates, SceneEvent},
     state::SceneStateLevel,
 };
 
@@ -31,10 +31,10 @@ impl SkillPanelController {
 
     pub fn dispatch_event(&mut self, event: SceneEvent, state: &mut SceneStateLevel) -> bool {
         match event {
-            SceneEvent::MouseDown(MouseCoordinates { x, y, .. }) => {
+            SceneEvent::MouseDown(MouseButton::Left, MouseCoordinates { x, y, .. }) => {
                 self.handle_mouse_down(state, x, y)
             }
-            SceneEvent::MouseUp(..) => self.handle_mouse_up(state),
+            SceneEvent::MouseUp(MouseButton::Left, _) => self.handle_mouse_up(state),
             SceneEvent::KeyDown { keycode, .. } => match keycode {
                 Keycode::Plus => {
                     self.start_increment();

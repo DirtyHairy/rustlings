@@ -19,8 +19,9 @@ use sdl3::{
     video::Window,
 };
 
-use crate::state::{
-    SceneStateLevel, {Activity, CursorState, LemmingState},
+use crate::{
+    scenes::scene_level::selection_controller::SelectionMode,
+    state::{Activity, LemmingState, SceneStateLevel, Selection},
 };
 
 pub struct SkillPanelRenderer<'texture_creator> {
@@ -53,11 +54,12 @@ struct SkillPanelTextModel {
 
     remaining_time_seconds: u32,
     paused: bool,
-    cursor_state: Option<CursorState>,
+    selection: Selection,
+    selection_mode: SelectionMode,
 }
 
 impl SkillPanelTextModel {
-    fn from_state(state: &SceneStateLevel) -> Self {
+    fn from_state(state: &SceneStateLevel, selection_mode: SelectionMode) -> Self {
         Self {
             remaining_skills: state.remaining_skills,
             lemmings_out: state.lemmings.len() as u32,
@@ -65,7 +67,8 @@ impl SkillPanelTextModel {
             release_rate: state.release_rate,
             remaining_time_seconds: state.remaining_time_seconds,
             paused: state.paused,
-            cursor_state: state.cursor_state,
+            selection: state.selection,
+            selection_mode,
         }
     }
 }
@@ -131,10 +134,15 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
         &mut self.texture
     }
 
-    pub fn draw(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<bool> {
+    pub fn draw(
+        &mut self,
+        state: &SceneStateLevel,
+        selection_mode: SelectionMode,
+        canvas: &mut Canvas<Window>,
+    ) -> Result<bool> {
         let mut updated = false;
 
-        let text_model = SkillPanelTextModel::from_state(state);
+        let text_model = SkillPanelTextModel::from_state(state, selection_mode);
 
         if text_model != self.text_model || self.full_redraw {
             self.draw_text_overlay(state, &text_model, canvas)?;
@@ -217,7 +225,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
             if text_model.lemmings_in != self.text_model.lemmings_in
                 || text_model.lemmings_out != self.text_model.lemmings_out
-                || text_model.cursor_state != self.text_model.cursor_state
+                || text_model.selection != self.text_model.selection
                 || text_model.remaining_time_seconds != self.text_model.remaining_time_seconds
                 || text_model.paused != self.text_model.paused
                 || self.full_redraw
@@ -354,12 +362,13 @@ fn format_stats(
     str.clear();
 
     // 12 characters for the cursor
-    if let Some(cursor_state) = &model.cursor_state {
+    let selected_lemming = model.selection.selected_lemming(model.selection_mode);
+    if let Some(lemming_index) = selected_lemming {
         write!(
             str,
             "{:7} {:<2}  ",
-            describe_lemming(&state.lemmings[cursor_state.leading_lemming as usize]),
-            cursor_state.lemming_count
+            describe_lemming(&state.lemmings[lemming_index]),
+            model.selection.lemming_count
         )
         .unwrap();
     } else {

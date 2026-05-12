@@ -13,9 +13,10 @@ use sdl3::{
 
 use crate::{
     code::code_for_level,
-    scene::{CursorType, Scene, SceneEvent},
+    scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
+        selection_controller::SelectionMode,
         simulation::Simulation,
         skill_panel_controller::SkillPanelController,
     },
@@ -51,6 +52,9 @@ pub struct SceneLevel<'texture_creator> {
 
     last_draw_at_clock_msec: u64,
     fast: bool,
+
+    shift_down: bool,
+    right_mouse_down: bool,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -103,6 +107,8 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             level_parameters: level.parameters,
             last_draw_at_clock_msec: 0,
             fast: false,
+            shift_down: false,
+            right_mouse_down: false,
         })
     }
 
@@ -119,6 +125,14 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             FADE_IN_MSEC >> 2
         } else {
             FADE_IN_MSEC
+        }
+    }
+
+    fn selection_mode(&self) -> SelectionMode {
+        if self.shift_down || self.right_mouse_down {
+            SelectionMode::Secondary
+        } else {
+            SelectionMode::Primary
         }
     }
 }
@@ -164,7 +178,16 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn cursor_type(&self) -> CursorType {
-        CursorType::Crosshair
+        if self
+            .state
+            .selection
+            .selected_lemming(self.selection_mode())
+            .is_some()
+        {
+            CursorType::Box
+        } else {
+            CursorType::Crosshair
+        }
     }
 
     fn dispatch_event(&mut self, event: SceneEvent) {
@@ -207,21 +230,32 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 keycode: Keycode::Space,
                 ..
             } => self.fast = false,
-            _ => {
-                if self
-                    .scroll_controller
-                    .dispatch_event(event, &mut self.state)
-                {
-                    self.renderer.mark_for_redraw(Redraw::SCREEN);
-                }
+            SceneEvent::KeyDown {
+                keycode: Keycode::LShift | Keycode::RShift,
+                keymod: Mod::NOMOD,
+                ..
+            } => self.shift_down = true,
+            SceneEvent::KeyUp {
+                keycode: Keycode::LShift | Keycode::RShift,
+                ..
+            } => self.shift_down = false,
+            SceneEvent::MouseDown(MouseButton::Right, _) => self.right_mouse_down = true,
+            SceneEvent::MouseUp(MouseButton::Right, _) => self.right_mouse_down = false,
+            _ => (),
+        };
 
-                if self
-                    .skill_panel_controller
-                    .dispatch_event(event, &mut self.state)
-                {
-                    self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
-                }
-            }
+        if self
+            .scroll_controller
+            .dispatch_event(event, &mut self.state)
+        {
+            self.renderer.mark_for_redraw(Redraw::SCREEN);
+        }
+
+        if self
+            .skill_panel_controller
+            .dispatch_event(event, &mut self.state)
+        {
+            self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
         }
     }
 
@@ -290,11 +324,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         let last_draw_at_clock_msec = self.last_draw_at_clock_msec;
         self.last_draw_at_clock_msec = self.state.clock_msec;
 
-        self.renderer.draw(&self.state, canvas).map(|updated| {
-            updated
-                | (self.state.clock_msec != last_draw_at_clock_msec
-                    && self.state.clock_msec <= self.fade_in_msec())
-        })
+        self.renderer
+            .draw(&self.state, self.selection_mode(), canvas)
+            .map(|updated| {
+                updated
+                    | (self.state.clock_msec != last_draw_at_clock_msec
+                        && self.state.clock_msec <= self.fade_in_msec())
+            })
     }
 
     fn will_redraw(&self) -> bool {
