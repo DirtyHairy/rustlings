@@ -62,7 +62,7 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct Selection {
     pub lemming_count: u32,
     pub primary_lemming: Option<usize>,
@@ -81,6 +81,7 @@ pub struct LemmingState {
     pub frame: usize,
 
     pub countdown: Option<u32>,
+    pub ohno: bool,
     pub floater: bool,
     pub climber: bool,
 }

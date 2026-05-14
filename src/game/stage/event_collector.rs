@@ -177,13 +177,18 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
             Some(GameEvent::RenderReset)
         }
 
-        Event::Display { display_event, .. } => match display_event {
-            DisplayEvent::Moved
-            | DisplayEvent::CurrentModeChanged
-            | DisplayEvent::DesktopModeChanged => Some(GameEvent::ModeChanged),
-            _ => None,
-        },
-
+        Event::Display {
+            display_event: DisplayEvent::Moved,
+            ..
+        }
+        | Event::Display {
+            display_event: DisplayEvent::CurrentModeChanged,
+            ..
+        }
+        | Event::Display {
+            display_event: DisplayEvent::DesktopModeChanged,
+            ..
+        } => Some(GameEvent::ModeChanged),
         Event::KeyDown {
             keycode: Some(keycode),
             keymod,

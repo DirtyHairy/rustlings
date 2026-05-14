@@ -98,6 +98,14 @@ impl<'sdl> Stage<'sdl> {
         scene.set_is_fullscreen(self.is_fullscreen());
         scene.set_mouse_enabled(render_state.mouse_enabled);
 
+        self.update_layout(&mut render_state)?;
+        scene.dispatch_event(SceneEvent::MouseMove(self.mouse_coordinates_from(
+            &render_state,
+            scene,
+            render_state.mouse_x,
+            render_state.mouse_y,
+        )));
+
         loop {
             if !self.suspended {
                 self.render_scene(scene, &mut render_state)?;
@@ -198,9 +206,7 @@ impl<'sdl> Stage<'sdl> {
                 }
                 GameEvent::ModeChanged => self.cached_time_per_frame_msec = None,
                 GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                GameEvent::MouseMove { x, y } => scene.dispatch_event(SceneEvent::MouseMove(
-                    self.mouse_coordinates_from(render_state, scene, x, y),
-                )),
+                GameEvent::MouseMove { .. } => (),
                 GameEvent::MouseDown { x, y, button } => {
                     scene.dispatch_event(SceneEvent::MouseDown(
                         button.into(),
@@ -222,6 +228,15 @@ impl<'sdl> Stage<'sdl> {
                     self.suspended = false;
                 }
             }
+        }
+
+        if let Some((x, y)) = event_collector.aggregated_events().mouse_coordinates {
+            scene.dispatch_event(SceneEvent::MouseMove(self.mouse_coordinates_from(
+                render_state,
+                scene,
+                x,
+                y,
+            )));
         }
 
         if toggle_fullscreen {
@@ -313,14 +328,20 @@ impl<'sdl> Stage<'sdl> {
         self.cached_time_per_frame_msec.unwrap()
     }
 
+    fn update_layout(&mut self, render_state: &mut RenderState<'sdl>) -> Result<()> {
+        let (canvas_width, canvas_height) = self.canvas.output_size()?;
+        render_state.update_layout(canvas_width, canvas_height);
+
+        Ok(())
+    }
+
     fn render(
         &mut self,
         render_state: &mut RenderState<'sdl>,
         scene: &mut dyn Scene<'sdl>,
         needs_redraw: bool,
     ) -> Result<()> {
-        let (canvas_width, canvas_height) = self.canvas.output_size()?;
-        render_state.update_layout(canvas_width, canvas_height);
+        self.update_layout(render_state)?;
 
         self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         self.canvas.clear();

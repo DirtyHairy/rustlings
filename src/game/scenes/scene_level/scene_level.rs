@@ -16,7 +16,7 @@ use crate::{
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::scene_level::{
         renderer::{Redraw, Renderer},
-        selection_controller::SelectionMode,
+        selection_controller::{SelectionController, SelectionMode},
         simulation::Simulation,
         skill_panel_controller::SkillPanelController,
     },
@@ -45,6 +45,7 @@ pub struct SceneLevel<'texture_creator> {
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
     skill_panel_controller: SkillPanelController,
+    selection_controller: SelectionController,
     simulation: Simulation,
 
     level_parameters: LevelParameters,
@@ -94,6 +95,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let renderer = Renderer::new(&level, &state, Rc::clone(&game_data), texture_creator)?;
         let skill_panel_controller = SkillPanelController::new(&level);
         let scroll_controller = ScrollController::new();
+        let selection_controller = SelectionController::new();
 
         Ok(SceneLevel {
             clock_offset_msec: state.clock_msec,
@@ -102,6 +104,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             status: Status::Running,
             renderer,
             scroll_controller,
+            selection_controller,
             skill_panel_controller,
             simulation,
             level_parameters: level.parameters,
@@ -134,6 +137,14 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         } else {
             SelectionMode::Primary
         }
+    }
+
+    fn simulation_tick(&mut self) {
+        self.simulation.tick(&mut self.state);
+        self.selection_controller.update(&mut self.state);
+
+        self.renderer
+            .mark_for_redraw(Redraw::LEVEL | Redraw::SKILL_PANEL);
     }
 }
 
@@ -191,6 +202,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn dispatch_event(&mut self, event: SceneEvent) {
+        if self
+            .selection_controller
+            .dispatch_event(event, &mut self.state)
+        {
+            self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+        }
+
         match event {
             SceneEvent::KeyDown {
                 keycode: Keycode::PageDown,
@@ -216,9 +234,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 ..
             } => {
                 if self.state.paused {
-                    self.simulation.tick(&mut self.state);
-                    self.renderer.mark_for_redraw(Redraw::LEVEL);
-                    self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+                    self.simulation_tick();
                 }
             }
             SceneEvent::KeyDown {
@@ -285,9 +301,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused {
-                self.simulation.tick(&mut self.state);
-                self.renderer.mark_for_redraw(Redraw::LEVEL);
-                self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
+                self.simulation_tick();
             }
 
             if self.skill_panel_controller.tick(&mut self.state) {
