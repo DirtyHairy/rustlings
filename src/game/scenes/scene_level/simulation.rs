@@ -165,6 +165,7 @@ impl Simulation {
         let entrance = &self.objects[self.entrances[entrance_index]];
 
         let mut lemming = LemmingState {
+            index: state.lemmings_out,
             x: (entrance.x + SPAWN_X) as i32,
             y: (entrance.y + SPAWN_Y) as i32,
             ..Default::default()

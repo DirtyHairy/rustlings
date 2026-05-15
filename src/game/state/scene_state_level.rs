@@ -65,13 +65,15 @@ impl Direction {
 #[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct Selection {
     pub lemming_count: u32,
-    pub primary_lemming: Option<usize>,
-    pub secondary_lemming: Option<usize>,
+    pub primary_lemming: Option<u32>,
+    pub secondary_lemming: Option<u32>,
 }
 
 #[derive(Clone, Default)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct LemmingState {
+    pub index: u32,
+
     pub x: i32,
     pub y: i32,
 

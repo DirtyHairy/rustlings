@@ -2,7 +2,7 @@ use rustlings::game_data::LEVEL_HEIGHT;
 
 use crate::{
     scene::{MouseCoordinates, SceneEvent},
-    state::{Activity, SceneStateLevel, Selection},
+    state::{Activity, SceneStateLevel},
 };
 
 const HITBOX_EXTEND_X: i32 = 12;
@@ -18,15 +18,40 @@ pub enum SelectionMode {
     Secondary,
 }
 
-impl Selection {
-    pub fn selected_lemming(&self, selection_mode: SelectionMode) -> Option<usize> {
-        if self.lemming_count == 0 {
+impl SceneStateLevel {
+    fn resolve_lemming(&self, index: u32) -> Option<usize> {
+        self.lemmings
+            .binary_search_by_key(&index, |lemming| lemming.index)
+            .ok()
+    }
+
+    pub fn selected_lemming_primary(&self) -> Option<usize> {
+        if self.selection.lemming_count == 0 {
             return None;
         }
 
+        self.selection
+            .primary_lemming
+            .and_then(|index| self.resolve_lemming(index))
+    }
+
+    pub fn selected_lemming_secondary(&self) -> Option<usize> {
+        if self.selection.lemming_count == 0 {
+            return None;
+        }
+
+        self.selection
+            .secondary_lemming
+            .and_then(|index| self.resolve_lemming(index))
+    }
+
+    pub fn selected_lemming(&self, selection_mode: SelectionMode) -> Option<usize> {
         match selection_mode {
-            SelectionMode::Primary => self.primary_lemming.or(self.secondary_lemming),
-            SelectionMode::Secondary => self.secondary_lemming,
+            SelectionMode::Primary => self
+                .selected_lemming_primary()
+                .or_else(|| self.selected_lemming_secondary()),
+
+            SelectionMode::Secondary => self.selected_lemming_secondary(),
         }
     }
 }
@@ -67,7 +92,7 @@ impl SelectionController {
             let cursor_x = self.mouse_x as i32 + CURSOR_OFFSET_X + state.level_x as i32;
             let cursor_y = self.mouse_y as i32 + CURSOR_OFFSET_Y;
 
-            for (i, lemming) in state.lemmings.iter().enumerate() {
+            for lemming in state.lemmings.iter() {
                 let (foot_x, foot_y) = lemming.animation.foot();
 
                 let hitbox_x = lemming.x - foot_x as i32;
@@ -90,13 +115,13 @@ impl SelectionController {
                     | Activity::Mining
                     | Activity::Building => {
                         if lemming.ohno {
-                            selection.secondary_lemming = Some(i);
+                            selection.secondary_lemming = Some(lemming.index);
                         } else {
-                            selection.primary_lemming = Some(i);
+                            selection.primary_lemming = Some(lemming.index);
                         }
                     }
 
-                    _ => selection.secondary_lemming = Some(i),
+                    _ => selection.secondary_lemming = Some(lemming.index),
                 }
             }
         }

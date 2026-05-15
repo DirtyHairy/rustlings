@@ -189,12 +189,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn cursor_type(&self) -> CursorType {
-        if self
-            .state
-            .selection
-            .selected_lemming(self.selection_mode())
-            .is_some()
-        {
+        if self.state.selected_lemming(self.selection_mode()).is_some() {
             CursorType::Box
         } else {
             CursorType::Crosshair

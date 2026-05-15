@@ -21,7 +21,7 @@ use sdl3::{
 
 use crate::{
     scenes::scene_level::selection_controller::SelectionMode,
-    state::{Activity, LemmingState, SceneStateLevel, Selection},
+    state::{Activity, LemmingState, SceneStateLevel},
 };
 
 pub struct SkillPanelRenderer<'texture_creator> {
@@ -44,31 +44,93 @@ pub struct SkillPanelRenderer<'texture_creator> {
     stats_new: String,
 }
 
-#[derive(PartialEq, Default)]
-struct SkillPanelTextModel {
-    remaining_skills: [u32; NUM_SKILLS],
+#[derive(strum::Display, Clone, Copy, PartialEq)]
+enum LemmingDescription {
+    #[strum(to_string = "ATHLETE")]
+    Athlete,
+    #[strum(to_string = "CLIMBER")]
+    Climber,
+    #[strum(to_string = "FLOATER")]
+    Floater,
+    #[strum(to_string = "BLOCKER")]
+    Blocker,
+    #[strum(to_string = "BUILDER")]
+    Builder,
+    #[strum(to_string = "BASHER")]
+    Basher,
+    #[strum(to_string = "MINER")]
+    Miner,
+    #[strum(to_string = "DIGGER")]
+    Digger,
+    #[strum(to_string = "FALLER")]
+    Faller,
+    #[strum(to_string = "WALKER")]
+    Walker,
+}
 
+impl From<&LemmingState> for LemmingDescription {
+    fn from(lemming: &LemmingState) -> Self {
+        if lemming.floater && lemming.climber {
+            LemmingDescription::Athlete
+        } else if lemming.climber {
+            LemmingDescription::Climber
+        } else if lemming.floater {
+            LemmingDescription::Floater
+        } else {
+            match lemming.activity {
+                Activity::Climbing => LemmingDescription::Climber,
+                Activity::Floating => LemmingDescription::Floater,
+                Activity::Blocking => LemmingDescription::Blocker,
+                Activity::Building => LemmingDescription::Builder,
+                Activity::Bashing => LemmingDescription::Basher,
+                Activity::Mining => LemmingDescription::Miner,
+                Activity::Digging => LemmingDescription::Digger,
+                Activity::Falling(_) | Activity::Splatting => LemmingDescription::Faller,
+                Activity::Walking
+                | Activity::Jumping
+                | Activity::Drowning
+                | Activity::Frying
+                | Activity::Exitting => LemmingDescription::Walker,
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Default)]
+struct SkillPanelStatsModel {
     lemmings_out: u32,
     lemmings_in: u32,
-    release_rate: u32,
 
     remaining_time_seconds: u32,
     paused: bool,
-    selection: Selection,
-    selection_mode: SelectionMode,
+    selected_lemming_count: u32,
+    selected_lemming_description: Option<LemmingDescription>,
+}
+
+#[derive(PartialEq, Default)]
+struct SkillPanelTextModel {
+    remaining_skills: [u32; NUM_SKILLS],
+    release_rate: u32,
+
+    stats: SkillPanelStatsModel,
 }
 
 impl SkillPanelTextModel {
     fn from_state(state: &SceneStateLevel, selection_mode: SelectionMode) -> Self {
         Self {
             remaining_skills: state.remaining_skills,
-            lemmings_out: state.lemmings.len() as u32,
-            lemmings_in: state.lemmings_in,
             release_rate: state.release_rate,
-            remaining_time_seconds: state.remaining_time_seconds,
-            paused: state.paused,
-            selection: state.selection,
-            selection_mode,
+
+            stats: SkillPanelStatsModel {
+                lemmings_out: state.lemmings.len() as u32,
+                lemmings_in: state.lemmings_in,
+                remaining_time_seconds: state.remaining_time_seconds,
+                paused: state.paused,
+                selected_lemming_count: state.selection.lemming_count,
+                selected_lemming_description: state
+                    .selected_lemming(selection_mode)
+                    .map(|i| (&state.lemmings[i]).into()),
+            },
         }
     }
 }
@@ -145,7 +207,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
         let text_model = SkillPanelTextModel::from_state(state, selection_mode);
 
         if text_model != self.text_model || self.full_redraw {
-            self.draw_text_overlay(state, &text_model, canvas)?;
+            self.draw_text_overlay(&text_model, canvas)?;
 
             self.text_model = text_model;
             updated = true;
@@ -190,7 +252,6 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
 
     fn draw_text_overlay(
         &mut self,
-        state: &SceneStateLevel,
         text_model: &SkillPanelTextModel,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
@@ -223,17 +284,10 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 )?;
             }
 
-            if text_model.lemmings_in != self.text_model.lemmings_in
-                || text_model.lemmings_out != self.text_model.lemmings_out
-                || text_model.selection != self.text_model.selection
-                || text_model.remaining_time_seconds != self.text_model.remaining_time_seconds
-                || text_model.paused != self.text_model.paused
-                || self.full_redraw
-            {
+            if text_model.stats != self.text_model.stats {
                 format_stats(
                     &mut self.stats_new,
-                    state,
-                    text_model,
+                    &text_model.stats,
                     self.lemmings_released_total,
                 );
 
@@ -327,48 +381,15 @@ fn draw_stats<T: RenderTarget>(
     Ok(())
 }
 
-fn describe_lemming(lemming: &LemmingState) -> &'static str {
-    if lemming.floater && lemming.climber {
-        "ATHLETE"
-    } else if lemming.climber {
-        "CLIMBER"
-    } else if lemming.floater {
-        "FLOATER"
-    } else {
-        match lemming.activity {
-            Activity::Climbing => "CLIMBER",
-            Activity::Floating => "FLOATER",
-            Activity::Blocking => "BLOCKER",
-            Activity::Building => "BUILDER",
-            Activity::Bashing => "BASHER",
-            Activity::Mining => "MINER",
-            Activity::Digging => "DIGGER",
-            Activity::Falling(_) | Activity::Splatting => "FALLER",
-            Activity::Walking
-            | Activity::Jumping
-            | Activity::Drowning
-            | Activity::Frying
-            | Activity::Exitting => "WALKER",
-        }
-    }
-}
-
-fn format_stats(
-    str: &mut String,
-    state: &SceneStateLevel,
-    model: &SkillPanelTextModel,
-    lemmings_released: u32,
-) {
+fn format_stats(str: &mut String, model: &SkillPanelStatsModel, lemmings_released: u32) {
     str.clear();
 
     // 12 characters for the cursor
-    let selected_lemming = model.selection.selected_lemming(model.selection_mode);
-    if let Some(lemming_index) = selected_lemming {
+    if let Some(description) = model.selected_lemming_description {
         write!(
             str,
             "{:7} {:<2}  ",
-            describe_lemming(&state.lemmings[lemming_index]),
-            model.selection.lemming_count
+            description, model.selected_lemming_count
         )
         .unwrap();
     } else {
