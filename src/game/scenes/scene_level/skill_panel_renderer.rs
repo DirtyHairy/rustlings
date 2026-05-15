@@ -20,7 +20,7 @@ use sdl3::{
 };
 
 use crate::{
-    scenes::scene_level::selection_controller::SelectionMode,
+    scenes::scene_level::{cache::Cache, selection_controller::SelectionMode},
     state::{Activity, LemmingState, SceneStateLevel},
 };
 
@@ -116,7 +116,11 @@ struct SkillPanelTextModel {
 }
 
 impl SkillPanelTextModel {
-    fn from_state(state: &SceneStateLevel, selection_mode: SelectionMode) -> Self {
+    fn from_state(
+        state: &SceneStateLevel,
+        cache: &mut Cache,
+        selection_mode: SelectionMode,
+    ) -> Self {
         Self {
             remaining_skills: state.remaining_skills,
             release_rate: state.release_rate,
@@ -128,7 +132,7 @@ impl SkillPanelTextModel {
                 paused: state.paused,
                 selected_lemming_count: state.selection.lemming_count,
                 selected_lemming_description: state
-                    .selected_lemming(selection_mode)
+                    .selected_lemming(selection_mode, cache)
                     .map(|i| (&state.lemmings[i]).into()),
             },
         }
@@ -199,12 +203,13 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
     pub fn draw(
         &mut self,
         state: &SceneStateLevel,
+        cache: &mut Cache,
         selection_mode: SelectionMode,
         canvas: &mut Canvas<Window>,
     ) -> Result<bool> {
         let mut updated = false;
 
-        let text_model = SkillPanelTextModel::from_state(state, selection_mode);
+        let text_model = SkillPanelTextModel::from_state(state, cache, selection_mode);
 
         if text_model != self.text_model || self.full_redraw {
             self.draw_text_overlay(&text_model, canvas)?;

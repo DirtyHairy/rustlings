@@ -1,3 +1,4 @@
+mod cache;
 mod renderer;
 mod scene_level;
 mod scroll_controller;

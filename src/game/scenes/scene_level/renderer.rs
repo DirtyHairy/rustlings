@@ -33,7 +33,7 @@ use strum::{EnumCount, VariantArray};
 use crate::{
     geometry::Rect,
     scenes::scene_level::{
-        selection_controller::SelectionMode, skill_panel_renderer::SkillPanelRenderer,
+        cache::Cache, selection_controller::SelectionMode, skill_panel_renderer::SkillPanelRenderer,
     },
     state::{Direction, LemmingAnimation, SceneStateLevel},
 };
@@ -312,6 +312,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
     pub fn draw(
         &mut self,
         state: &SceneStateLevel,
+        cache: &mut Cache,
         selection_mode: SelectionMode,
         canvas: &mut Canvas<Window>,
     ) -> Result<bool> {
@@ -331,7 +332,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         if redraw.contains(Redraw::SKILL_PANEL)
             && self
                 .skill_panel_renderer
-                .draw(state, selection_mode, canvas)?
+                .draw(state, cache, selection_mode, canvas)?
         {
             redraw.insert(Redraw::SCREEN);
         }

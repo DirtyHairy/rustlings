@@ -15,6 +15,7 @@ use crate::{
     code::code_for_level,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::scene_level::{
+        cache::Cache,
         renderer::{Redraw, Renderer},
         selection_controller::{SelectionController, SelectionMode},
         simulation::Simulation,
@@ -56,6 +57,8 @@ pub struct SceneLevel<'texture_creator> {
 
     shift_down: bool,
     right_mouse_down: bool,
+
+    cache: Cache,
 }
 
 impl<'texture_creator> SceneLevel<'texture_creator> {
@@ -112,6 +115,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             fast: false,
             shift_down: false,
             right_mouse_down: false,
+            cache: Default::default(),
         })
     }
 
@@ -141,7 +145,10 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
     fn simulation_tick(&mut self) {
         self.simulation.tick(&mut self.state);
-        self.selection_controller.update(&mut self.state);
+        self.cache.clear_selection();
+
+        self.selection_controller
+            .update(&mut self.state, &mut self.cache);
 
         self.renderer
             .mark_for_redraw(Redraw::LEVEL | Redraw::SKILL_PANEL);
@@ -188,8 +195,12 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         self.scroll_controller.set_mouse_enabled(mouse_enabled);
     }
 
-    fn cursor_type(&self) -> CursorType {
-        if self.state.selected_lemming(self.selection_mode()).is_some() {
+    fn cursor_type(&mut self) -> CursorType {
+        if self
+            .state
+            .selected_lemming(self.selection_mode(), &mut self.cache)
+            .is_some()
+        {
             CursorType::Box
         } else {
             CursorType::Crosshair
@@ -199,7 +210,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn dispatch_event(&mut self, event: SceneEvent) {
         if self
             .selection_controller
-            .dispatch_event(event, &mut self.state)
+            .dispatch_event(event, &mut self.state, &mut self.cache)
         {
             self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
         }
@@ -333,8 +344,9 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         let last_draw_at_clock_msec = self.last_draw_at_clock_msec;
         self.last_draw_at_clock_msec = self.state.clock_msec;
 
+        let selection_mode = self.selection_mode();
         self.renderer
-            .draw(&self.state, self.selection_mode(), canvas)
+            .draw(&self.state, &mut self.cache, selection_mode, canvas)
             .map(|updated| {
                 updated
                     | (self.state.clock_msec != last_draw_at_clock_msec

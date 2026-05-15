@@ -2,6 +2,7 @@ use rustlings::game_data::LEVEL_HEIGHT;
 
 use crate::{
     scene::{MouseCoordinates, SceneEvent},
+    scenes::scene_level::cache::Cache,
     state::{Activity, SceneStateLevel},
 };
 
@@ -25,33 +26,41 @@ impl SceneStateLevel {
             .ok()
     }
 
-    pub fn selected_lemming_primary(&self) -> Option<usize> {
-        if self.selection.lemming_count == 0 {
-            return None;
-        }
-
-        self.selection
-            .primary_lemming
-            .and_then(|index| self.resolve_lemming(index))
+    pub fn selected_lemming_primary(&self, cache: &mut Cache) -> Option<usize> {
+        *cache.selected_primary.get_or_insert_with(|| {
+            if self.selection.lemming_count == 0 {
+                None
+            } else {
+                self.selection
+                    .primary_lemming
+                    .and_then(|index| self.resolve_lemming(index))
+            }
+        })
     }
 
-    pub fn selected_lemming_secondary(&self) -> Option<usize> {
-        if self.selection.lemming_count == 0 {
-            return None;
-        }
-
-        self.selection
-            .secondary_lemming
-            .and_then(|index| self.resolve_lemming(index))
+    pub fn selected_lemming_secondary(&self, cache: &mut Cache) -> Option<usize> {
+        *cache.selected_secondary.get_or_insert_with(|| {
+            if self.selection.lemming_count == 0 {
+                None
+            } else {
+                self.selection
+                    .secondary_lemming
+                    .and_then(|index| self.resolve_lemming(index))
+            }
+        })
     }
 
-    pub fn selected_lemming(&self, selection_mode: SelectionMode) -> Option<usize> {
+    pub fn selected_lemming(
+        &self,
+        selection_mode: SelectionMode,
+        cache: &mut Cache,
+    ) -> Option<usize> {
         match selection_mode {
             SelectionMode::Primary => self
-                .selected_lemming_primary()
-                .or_else(|| self.selected_lemming_secondary()),
+                .selected_lemming_primary(cache)
+                .or_else(|| self.selected_lemming_secondary(cache)),
 
-            SelectionMode::Secondary => self.selected_lemming_secondary(),
+            SelectionMode::Secondary => self.selected_lemming_secondary(cache),
         }
     }
 }
@@ -67,7 +76,12 @@ impl SelectionController {
         Default::default()
     }
 
-    pub fn dispatch_event(&mut self, event: SceneEvent, state: &mut SceneStateLevel) -> bool {
+    pub fn dispatch_event(
+        &mut self,
+        event: SceneEvent,
+        state: &mut SceneStateLevel,
+        cache: &mut Cache,
+    ) -> bool {
         match event {
             SceneEvent::MouseMove(MouseCoordinates { x, y, .. })
             | SceneEvent::MouseDown(_, MouseCoordinates { x, y, .. })
@@ -75,13 +89,13 @@ impl SelectionController {
                 self.mouse_x = x;
                 self.mouse_y = y;
 
-                self.update(state)
+                self.update(state, cache)
             }
             _ => false,
         }
     }
 
-    pub fn update(&self, state: &mut SceneStateLevel) -> bool {
+    pub fn update(&self, state: &mut SceneStateLevel, cache: &mut Cache) -> bool {
         let mut selection = state.selection;
 
         selection.lemming_count = 0;
@@ -128,6 +142,10 @@ impl SelectionController {
 
         let modified = state.selection != selection;
         state.selection = selection;
+
+        if modified {
+            cache.clear_selection();
+        }
 
         modified
     }

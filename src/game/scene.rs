@@ -62,7 +62,7 @@ pub trait Scene<'texture_creator> {
     fn set_is_fullscreen(&mut self, is_fullscreen: bool);
     fn set_mouse_enabled(&mut self, mouse_enabled: bool);
 
-    fn cursor_type(&self) -> CursorType;
+    fn cursor_type(&mut self) -> CursorType;
 
     fn dispatch_event(&mut self, event: SceneEvent);
     fn tick(&mut self, clock_msec: u64);
