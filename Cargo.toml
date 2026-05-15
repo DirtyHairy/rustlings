@@ -23,3 +23,6 @@ clap = "4.5.57"
 sdl3 = "0.17.3"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
+
+[profile.release]
+lto = true
