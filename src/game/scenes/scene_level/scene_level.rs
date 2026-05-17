@@ -296,7 +296,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
             SceneEvent::KeyDown {
                 keycode: Keycode::LShift | Keycode::RShift,
-                keymod: Mod::NOMOD,
+                keymod: Mod::LSHIFTMOD | Mod::RSHIFTMOD | Mod::NOMOD,
                 ..
             } => self.shift_down = true,
             SceneEvent::KeyUp {
