@@ -63,6 +63,30 @@ impl SceneStateLevel {
             SelectionMode::Secondary => self.selected_lemming_secondary(cache),
         }
     }
+
+    pub fn selected_lemming_for_ui(
+        &self,
+        selection_mode: SelectionMode,
+        cache: &mut Cache,
+    ) -> Option<usize> {
+        match selection_mode {
+            SelectionMode::Primary => self.selected_lemming_primary(cache).or_else(|| {
+                if self.selection.secondary_lemming_stale {
+                    None
+                } else {
+                    self.selected_lemming_secondary(cache)
+                }
+            }),
+
+            SelectionMode::Secondary => {
+                if self.selection.secondary_lemming_stale {
+                    None
+                } else {
+                    self.selected_lemming_secondary(cache)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Default)]
@@ -101,6 +125,7 @@ impl SelectionController {
         selection.lemming_count = 0;
         selection.primary_lemming = None;
         // DOS selection bug: secondary_lemming is not reset
+        selection.secondary_lemming_stale = true;
 
         if self.mouse_y < LEVEL_HEIGHT {
             let cursor_x = self.mouse_x as i32 + CURSOR_OFFSET_X + state.level_x as i32;
@@ -137,6 +162,7 @@ impl SelectionController {
                             selection.primary_lemming = Some(lemming.id);
                         } else {
                             selection.secondary_lemming = Some(lemming.id);
+                            selection.secondary_lemming_stale = false;
                         }
                     }
                 }

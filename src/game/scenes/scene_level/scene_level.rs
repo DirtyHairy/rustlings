@@ -238,7 +238,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn cursor_type(&mut self) -> CursorType {
         if self
             .state
-            .selected_lemming(self.selection_mode(), &mut self.cache)
+            .selected_lemming_for_ui(self.selection_mode(), &mut self.cache)
             .is_some()
         {
             CursorType::Box

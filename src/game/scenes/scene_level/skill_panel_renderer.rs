@@ -132,7 +132,7 @@ impl SkillPanelTextModel {
                 paused: state.paused,
                 selected_lemming_count: state.selection.lemming_count,
                 selected_lemming_description: state
-                    .selected_lemming(selection_mode, cache)
+                    .selected_lemming_for_ui(selection_mode, cache)
                     .map(|i| (&state.lemmings[i]).into()),
             },
         }

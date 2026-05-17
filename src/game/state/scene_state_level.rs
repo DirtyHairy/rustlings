@@ -75,6 +75,7 @@ pub struct Selection {
     pub lemming_count: u32,
     pub primary_lemming: Option<u32>,
     pub secondary_lemming: Option<u32>,
+    pub secondary_lemming_stale: bool,
 }
 
 #[derive(Clone, Default)]

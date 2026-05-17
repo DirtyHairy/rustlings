@@ -146,23 +146,7 @@ impl Simulation {
         index: usize,
         skill: Skill,
     ) -> SelectionResult {
-        let lemming = &mut state.lemmings[index];
-
-        if !lemming.supports_skill_tier1(skill) {
-            return SelectionResult::Abort;
-        }
-
-        if !lemming.supports_skill_tier2(skill) {
-            return skill_fallback_mode(skill);
-        }
-
-        if !lemming.supports_skill_tier3(skill) {
-            return SelectionResult::Abort;
-        }
-
-        lemming.assign_skill(skill);
-
-        SelectionResult::Success
+        state.lemmings[index].assign_skill(skill)
     }
 
     fn open_entrances(&self, state: &mut SceneStateLevel) {
@@ -247,6 +231,24 @@ impl LemmingState {
 
         keep && self.y < (LEVEL_HEIGHT + self.animation.foot().1) as i32
             && self.process_environment(terrain_map, objects)
+    }
+
+    fn assign_skill(&mut self, skill: Skill) -> SelectionResult {
+        if !self.supports_skill_tier1(skill) {
+            return SelectionResult::Abort;
+        }
+
+        if !self.supports_skill_tier2(skill) {
+            return skill_fallback_mode(skill);
+        }
+
+        if !self.supports_skill_tier3(skill) {
+            return SelectionResult::Abort;
+        }
+
+        self.assign_skill_unchecked(skill);
+
+        SelectionResult::Success
     }
 
     fn process_environment(
@@ -407,7 +409,7 @@ impl LemmingState {
         self.frame > 0
     }
 
-    pub fn assign_skill(&mut self, skill: Skill) {
+    fn assign_skill_unchecked(&mut self, skill: Skill) {
         match skill {
             Skill::Floater => self.floater = true,
             Skill::Climber => self.climber = true,
@@ -420,12 +422,12 @@ impl LemmingState {
         }
     }
 
-    pub fn supports_skill_tier1(&self, _skill: Skill) -> bool {
+    fn supports_skill_tier1(&self, _skill: Skill) -> bool {
         // handle steel / terrain rejection for diggers and builder
         true
     }
 
-    pub fn supports_skill_tier2(&self, skill: Skill) -> bool {
+    fn supports_skill_tier2(&self, skill: Skill) -> bool {
         match skill {
             Skill::Floater if self.floater => return false,
             Skill::Climber if self.climber => return false,
@@ -440,7 +442,7 @@ impl LemmingState {
         }
     }
 
-    pub fn supports_skill_tier3(&self, _skill: Skill) -> bool {
+    fn supports_skill_tier3(&self, _skill: Skill) -> bool {
         // handle steel / terran rejection for bashers and miners
         true
     }
