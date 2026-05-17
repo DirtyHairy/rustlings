@@ -3,7 +3,7 @@ use std::{cmp, collections::VecDeque, rc::Rc};
 use anyhow::Result;
 use rustlings::game_data::{
     Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT,
-    SCREEN_WIDTH, decode_level_index, file::ground::InteractionType,
+    SCREEN_WIDTH, Skill, decode_level_index, file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -18,7 +18,7 @@ use crate::{
         cache::Cache,
         renderer::{Redraw, Renderer},
         selection_controller::{SelectionController, SelectionMode},
-        simulation::Simulation,
+        simulation::{SelectionResult, Simulation},
         skill_panel_controller::SkillPanelController,
     },
     state::TerrainProps,
@@ -153,6 +153,46 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         self.renderer
             .mark_for_redraw(Redraw::LEVEL | Redraw::SKILL_PANEL);
     }
+
+    fn assign_skill(&mut self) {
+        if self.state.paused {
+            return;
+        }
+
+        let skill = self.state.selected_skill;
+
+        if self.state.remaining_skills[skill as usize] == 0 {
+            return;
+        }
+
+        let selection_result = match self.selection_mode() {
+            SelectionMode::Primary => self.try_assign_skill_with_fallback(skill),
+            SelectionMode::Secondary => self.try_assign_skill(skill, SelectionMode::Secondary),
+        };
+
+        if selection_result == SelectionResult::Success {
+            self.state.remaining_skills[self.state.selected_skill as usize] -= 1
+        }
+    }
+
+    fn try_assign_skill_with_fallback(&mut self, skill: Skill) -> SelectionResult {
+        let mut selection_result = self.try_assign_skill(skill, SelectionMode::Primary);
+        if selection_result == SelectionResult::Fallback {
+            selection_result = self.try_assign_skill(skill, SelectionMode::Secondary);
+        }
+
+        selection_result
+    }
+
+    fn try_assign_skill(&mut self, skill: Skill, selection_mode: SelectionMode) -> SelectionResult {
+        let Some(lemming_index) = self.state.selected_lemming(selection_mode, &mut self.cache)
+        else {
+            return SelectionResult::Fallback;
+        };
+
+        self.simulation
+            .assign_skill(&mut self.state, lemming_index, skill)
+    }
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
@@ -234,6 +274,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                     self.status = Status::DoneNextLevel;
                 }
             }
+
             SceneEvent::KeyDown {
                 keycode: Keycode::Space,
                 keymod: Mod::LSHIFTMOD | Mod::RSHIFTMOD,
@@ -252,6 +293,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 keycode: Keycode::Space,
                 ..
             } => self.fast = false,
+
             SceneEvent::KeyDown {
                 keycode: Keycode::LShift | Keycode::RShift,
                 keymod: Mod::NOMOD,
@@ -261,8 +303,17 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 keycode: Keycode::LShift | Keycode::RShift,
                 ..
             } => self.shift_down = false,
+
             SceneEvent::MouseDown(MouseButton::Right, _) => self.right_mouse_down = true,
             SceneEvent::MouseUp(MouseButton::Right, _) => self.right_mouse_down = false,
+
+            SceneEvent::MouseDown(MouseButton::Left, _) => self.assign_skill(),
+            SceneEvent::KeyDown {
+                keycode: Keycode::Return,
+                keymod: Mod::NOMOD,
+                ..
+            } => self.assign_skill(),
+
             _ => (),
         };
 

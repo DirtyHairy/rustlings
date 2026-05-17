@@ -3,7 +3,7 @@ use rustlings::game_data::LEVEL_HEIGHT;
 use crate::{
     scene::{MouseCoordinates, SceneEvent},
     scenes::scene_level::cache::Cache,
-    state::{Activity, SceneStateLevel},
+    state::{Activity, LemmingHealth, SceneStateLevel},
 };
 
 const HITBOX_EXTEND_X: i32 = 12;
@@ -20,9 +20,9 @@ pub enum SelectionMode {
 }
 
 impl SceneStateLevel {
-    fn resolve_lemming(&self, index: u32) -> Option<usize> {
+    fn resolve_lemming(&self, id: u32) -> Option<usize> {
         self.lemmings
-            .binary_search_by_key(&index, |lemming| lemming.index)
+            .binary_search_by_key(&id, |lemming| lemming.id)
             .ok()
     }
 
@@ -116,6 +116,7 @@ impl SelectionController {
                     || cursor_x > (hitbox_x + HITBOX_EXTEND_X)
                     || cursor_y < hitbox_y
                     || cursor_y >= (hitbox_y + HITBOX_EXTEND_Y)
+                    || lemming.health == LemmingHealth::Exploding
                 {
                     continue;
                 }
@@ -128,14 +129,16 @@ impl SelectionController {
                     | Activity::Digging
                     | Activity::Mining
                     | Activity::Building => {
-                        if lemming.ohno {
-                            selection.secondary_lemming = Some(lemming.index);
-                        } else {
-                            selection.primary_lemming = Some(lemming.index);
-                        }
+                        selection.primary_lemming = Some(lemming.id);
                     }
 
-                    _ => selection.secondary_lemming = Some(lemming.index),
+                    _ => {
+                        if lemming.health == LemmingHealth::OhNo {
+                            selection.primary_lemming = Some(lemming.id);
+                        } else {
+                            selection.secondary_lemming = Some(lemming.id);
+                        }
+                    }
                 }
             }
         }

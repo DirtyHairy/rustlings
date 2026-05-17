@@ -2,12 +2,12 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::game_data::{
-    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, file::ground::InteractionType,
+    GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, Skill, file::ground::InteractionType,
 };
 
 use crate::state::{
-    Activity, LemmingAnimation, LemmingState, LevelState, ObjectState, SceneStateLevel,
-    TerrainProps,
+    Activity, LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState,
+    SceneStateLevel, TerrainProps,
 };
 
 #[derive(PartialEq, Clone, Copy)]
@@ -32,6 +32,13 @@ pub struct Simulation {
     released_total: u32,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum SelectionResult {
+    Abort,
+    Fallback,
+    Success,
+}
+
 const TICK_OPEN_ENTRANCES: u64 = 36;
 const TICK_START_SPAWN: u64 = 46;
 
@@ -51,6 +58,8 @@ const MIN_FOOT_Y: i32 = 5;
 const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
+
+const BOMBER_COUNTDOWN_TICKS: u32 = 80;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -131,6 +140,31 @@ impl Simulation {
         self.tick_objects(state);
     }
 
+    pub fn assign_skill(
+        &self,
+        state: &mut SceneStateLevel,
+        index: usize,
+        skill: Skill,
+    ) -> SelectionResult {
+        let lemming = &mut state.lemmings[index];
+
+        if !lemming.supports_skill_tier1(skill) {
+            return SelectionResult::Abort;
+        }
+
+        if !lemming.supports_skill_tier2(skill) {
+            return skill_fallback_mode(skill);
+        }
+
+        if !lemming.supports_skill_tier3(skill) {
+            return SelectionResult::Abort;
+        }
+
+        lemming.assign_skill(skill);
+
+        SelectionResult::Success
+    }
+
     fn open_entrances(&self, state: &mut SceneStateLevel) {
         for (i, object) in self.objects.iter().enumerate() {
             if object.interaction_type != InteractionType::Entrance {
@@ -165,7 +199,7 @@ impl Simulation {
         let entrance = &self.objects[self.entrances[entrance_index]];
 
         let mut lemming = LemmingState {
-            index: state.lemmings_out,
+            id: state.lemmings_out,
             x: (entrance.x + SPAWN_X) as i32,
             y: (entrance.y + SPAWN_Y) as i32,
             ..Default::default()
@@ -372,6 +406,44 @@ impl LemmingState {
 
         self.frame > 0
     }
+
+    pub fn assign_skill(&mut self, skill: Skill) {
+        match skill {
+            Skill::Floater => self.floater = true,
+            Skill::Climber => self.climber = true,
+            Skill::Basher => self.transition_to(Activity::Bashing),
+            Skill::Blocker => self.transition_to(Activity::Blocking),
+            Skill::Bomber => self.countdown = Some(BOMBER_COUNTDOWN_TICKS),
+            Skill::Builder => self.transition_to(Activity::Building),
+            Skill::Digger => self.transition_to(Activity::Digging),
+            Skill::Miner => self.transition_to(Activity::Mining),
+        }
+    }
+
+    pub fn supports_skill_tier1(&self, _skill: Skill) -> bool {
+        // handle steel / terrain rejection for diggers and builder
+        true
+    }
+
+    pub fn supports_skill_tier2(&self, skill: Skill) -> bool {
+        match skill {
+            Skill::Floater if self.floater => return false,
+            Skill::Climber if self.climber => return false,
+            Skill::Bomber if self.countdown.is_some() => return false,
+            _ => (),
+        };
+
+        match self.health {
+            LemmingHealth::Exploding => false,
+            LemmingHealth::OhNo => matches!(skill, Skill::Climber | Skill::Floater),
+            LemmingHealth::Healthy => self.activity.supports_skill(skill),
+        }
+    }
+
+    pub fn supports_skill_tier3(&self, _skill: Skill) -> bool {
+        // handle steel / terran rejection for bashers and miners
+        true
+    }
 }
 
 struct TerrainMap<'a> {
@@ -450,6 +522,40 @@ impl Activity {
             Activity::Walking => LemmingAnimation::Walking,
             Activity::Jumping => LemmingAnimation::Jumping,
         }
+    }
+
+    pub fn supports_skill(&self, skill: Skill) -> bool {
+        match self {
+            Activity::Bashing => skill != Skill::Basher,
+            Activity::Blocking => skill == Skill::Bomber,
+            // caveat: a shrugger can be assigned everything -> needs modelling
+            Activity::Building => skill != Skill::Builder,
+            // caveat: a hoister can be assigned everything -> needs modelling
+            Activity::Climbing => matches!(skill, Skill::Bomber | Skill::Floater),
+            Activity::Falling(_) => {
+                matches!(skill, Skill::Bomber | Skill::Floater | Skill::Climber)
+            }
+            Activity::Digging => skill != Skill::Digger,
+            Activity::Drowning => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
+            Activity::Exitting => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
+            Activity::Floating => matches!(skill, Skill::Climber | Skill::Bomber),
+            Activity::Frying => matches!(skill, Skill::Climber | Skill::Floater),
+            Activity::Mining => skill != Skill::Miner,
+            Activity::Splatting => false,
+            Activity::Walking => true,
+            Activity::Jumping => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
+        }
+    }
+}
+
+fn skill_fallback_mode(skill: Skill) -> SelectionResult {
+    if matches!(
+        skill,
+        Skill::Basher | Skill::Miner | Skill::Digger | Skill::Builder
+    ) {
+        SelectionResult::Fallback
+    } else {
+        SelectionResult::Abort
     }
 }
 

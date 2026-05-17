@@ -62,6 +62,14 @@ impl Direction {
     }
 }
 
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub enum LemmingHealth {
+    #[default]
+    Healthy,
+    OhNo,
+    Exploding,
+}
+
 #[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct Selection {
     pub lemming_count: u32,
@@ -72,7 +80,7 @@ pub struct Selection {
 #[derive(Clone, Default)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct LemmingState {
-    pub index: u32,
+    pub id: u32,
 
     pub x: i32,
     pub y: i32,
@@ -83,7 +91,7 @@ pub struct LemmingState {
     pub frame: usize,
 
     pub countdown: Option<u32>,
-    pub ohno: bool,
+    pub health: LemmingHealth,
     pub floater: bool,
     pub climber: bool,
 }
