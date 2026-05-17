@@ -22,10 +22,13 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
 
     let texture_creator = canvas.texture_creator();
 
+    let level = game_data.resolve_level(0)?;
+    let palette = game_data.resolve_palette(&level)?;
+
     let mut sdl_sprites: Vec<SDLSprite> = game_data
         .lemming_sprites
         .iter()
-        .map(|s| SDLSprite::from_sprite(s, &game_data.static_palette, &texture_creator))
+        .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
         .filter_map(|x| x.ok())
         .collect();
 
