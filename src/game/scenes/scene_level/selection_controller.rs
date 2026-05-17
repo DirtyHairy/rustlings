@@ -70,13 +70,13 @@ impl SceneStateLevel {
         cache: &mut Cache,
     ) -> Option<usize> {
         match selection_mode {
-            SelectionMode::Primary => self.selected_lemming_primary(cache).or_else(|| {
-                if self.selection.secondary_lemming_stale {
-                    None
-                } else {
-                    self.selected_lemming_secondary(cache)
-                }
-            }),
+            // If there are no primary lemmings and the secondary selection is stale,
+            // the the number of lemmings under the cursor is zero, and selected_...
+            // always returns None. No special treatment of secondary_lemming_stale
+            // needed.
+            SelectionMode::Primary => self
+                .selected_lemming_primary(cache)
+                .or_else(|| self.selected_lemming_secondary(cache)),
 
             SelectionMode::Secondary => {
                 if self.selection.secondary_lemming_stale {
@@ -179,3 +179,7 @@ impl SelectionController {
         modified
     }
 }
+
+#[path = "./selection_controller_test.rs"]
+#[cfg(test)]
+mod test;

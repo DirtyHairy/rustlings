@@ -33,6 +33,7 @@ pub struct Simulation {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub enum SelectionResult {
     Abort,
     Fallback,
@@ -59,7 +60,7 @@ const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
 
-const BOMBER_COUNTDOWN_TICKS: u32 = 80;
+const BOMBER_COUNTDOWN_TICKS: u32 = 79;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {

@@ -4,5 +4,6 @@ mod faller;
 mod fixture;
 mod frying;
 mod jumper;
+mod selection;
 mod splatter;
 mod walker;
