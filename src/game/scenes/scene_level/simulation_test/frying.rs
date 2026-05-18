@@ -1,5 +1,5 @@
 use crate::{
-    scenes::scene_level::simulation::test::fixture::TerrainFixtureBuilder,
+    scenes::scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
     state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
 };
 
@@ -12,9 +12,9 @@ fn frying_advances_animation() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Frying);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
         lemming,
         LemmingState {
@@ -36,7 +36,7 @@ fn frying_removes_lemming() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(!keep);
+    assert_eq!(verdict, LemmingVerdict::Death);
 }

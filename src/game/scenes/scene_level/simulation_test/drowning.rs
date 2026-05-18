@@ -1,6 +1,6 @@
 use crate::{
     scenes::scene_level::simulation::{
-        DROWNER_MIN_WALL_DISTANCE, test::fixture::TerrainFixtureBuilder,
+        DROWNER_MIN_WALL_DISTANCE, LemmingVerdict, test::fixture::TerrainFixtureBuilder,
     },
     state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
 };
@@ -14,9 +14,9 @@ fn drowner_moves_in_water_right() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
         lemming,
         LemmingState {
@@ -36,9 +36,9 @@ fn drowner_moves_in_water_left() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
         lemming,
         LemmingState {
@@ -60,9 +60,9 @@ fn drowner_stops_at_wall() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
         lemming,
         LemmingState {
@@ -83,9 +83,9 @@ fn drowner_advances_towards_wall() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
         lemming,
         LemmingState {
@@ -108,7 +108,7 @@ fn drowner_removed_after_animation() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(!keep);
+    assert_eq!(verdict, LemmingVerdict::Death);
 }

@@ -2,7 +2,7 @@ use rustlings::game_data::LEVEL_HEIGHT;
 
 use crate::{
     scenes::scene_level::simulation::{
-        FALL_DISTANCE_PER_FRAME, test::fixture::TerrainFixtureBuilder,
+        FALL_DISTANCE_PER_FRAME, LemmingVerdict, test::fixture::TerrainFixtureBuilder,
     },
     state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
 };
@@ -75,9 +75,9 @@ fn trap_triggers_and_removes_lemming() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(!keep);
+    assert_eq!(verdict, LemmingVerdict::Death);
     assert!(objects_fixture[0].triggered);
 }
 
@@ -100,9 +100,9 @@ fn trap_does_not_retrigger() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(keep);
+    assert_eq!(verdict, LemmingVerdict::Continue);
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn lemming_removed_at_bottom() {
     );
     let mut lemming = lemming_fixture.clone();
 
-    let keep = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
 
-    assert!(!keep);
+    assert_eq!(verdict, LemmingVerdict::Death);
 }

@@ -40,6 +40,14 @@ pub enum SelectionResult {
     Success,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
+enum LemmingVerdict {
+    Continue,
+    Death,
+    Exit,
+}
+
 const TICK_OPEN_ENTRANCES: u64 = 36;
 const TICK_START_SPAWN: u64 = 46;
 
@@ -167,10 +175,19 @@ impl Simulation {
 
     fn tick_lemmings(&self, state: &mut SceneStateLevel) {
         let terrain_map = TerrainMap::new(LEVEL_WIDTH, LEVEL_HEIGHT, &state.terrain_map);
+        let mut lemmings_rescued: u32 = 0;
 
-        state
-            .lemmings
-            .retain_mut(|lemming| lemming.tick(&terrain_map, &mut state.object_state));
+        state.lemmings.retain_mut(|lemming| {
+            let verdict = lemming.tick(&terrain_map, &mut state.object_state);
+
+            if verdict == LemmingVerdict::Exit {
+                lemmings_rescued += 1;
+            }
+
+            verdict == LemmingVerdict::Continue
+        });
+
+        state.lemmings_in += lemmings_rescued;
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
@@ -222,19 +239,26 @@ impl Simulation {
 }
 
 impl LemmingState {
-    fn tick(&mut self, terrain_map: &TerrainMap, objects: &mut [ObjectState]) -> bool {
-        let keep = match &self.activity {
+    fn tick(&mut self, terrain_map: &TerrainMap, objects: &mut [ObjectState]) -> LemmingVerdict {
+        let verdict = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain_map),
             Activity::Walking => self.tick_walker(terrain_map),
             Activity::Splatting | Activity::Frying => self.tick_death(),
             Activity::Jumping => self.tick_jumper(terrain_map),
             Activity::Drowning => self.tick_drowner(terrain_map),
             Activity::Floating(_) => self.tick_floater(terrain_map),
-            _ => true,
+            Activity::Exitting => self.tick_exitting(),
+            _ => LemmingVerdict::Continue,
         };
 
-        keep && self.y < (LEVEL_HEIGHT + self.animation.foot().1) as i32
-            && self.process_environment(terrain_map, objects)
+        if verdict != LemmingVerdict::Death
+            && (self.y >= (LEVEL_HEIGHT + self.animation.foot().1) as i32
+                || !self.process_environment(terrain_map, objects))
+        {
+            LemmingVerdict::Death
+        } else {
+            verdict
+        }
     }
 
     fn assign_skill(&mut self, skill: Skill) -> SelectionResult {
@@ -283,6 +307,10 @@ impl LemmingState {
             self.transition_to(Activity::Drowning);
         }
 
+        if terrain.exit() && !matches!(self.activity, Activity::Falling(_)) {
+            self.transition_to(Activity::Exitting);
+        }
+
         keep
     }
 
@@ -296,7 +324,7 @@ impl LemmingState {
         self.activity = activity;
     }
 
-    fn tick_faller(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick_faller(&mut self, terrain_map: &TerrainMap) -> LemmingVerdict {
         let mut transition_to: Option<Activity> = None;
 
         let Activity::Falling(state) = &mut self.activity else {
@@ -327,10 +355,10 @@ impl LemmingState {
             self.transition_to(activity);
         }
 
-        true
+        LemmingVerdict::Continue
     }
 
-    fn tick_floater(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick_floater(&mut self, terrain_map: &TerrainMap) -> LemmingVerdict {
         const FRAME_PATTERN: &[usize] = &[1, 2, 3, 3, 2, 1, 0, 0];
         let mut transition_to: Option<Activity> = None;
 
@@ -373,10 +401,10 @@ impl LemmingState {
             self.transition_to(activity);
         }
 
-        true
+        LemmingVerdict::Continue
     }
 
-    fn tick_jumper(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick_jumper(&mut self, terrain_map: &TerrainMap) -> LemmingVerdict {
         let old_y = self.y;
         let dy = terrain_map.delta_y_ascend(self.x, self.y - 1, JUMP_DISTANCE + 1);
 
@@ -391,10 +419,10 @@ impl LemmingState {
             self.turn_if_ceiling();
         }
 
-        true
+        LemmingVerdict::Continue
     }
 
-    fn tick_walker(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick_walker(&mut self, terrain_map: &TerrainMap) -> LemmingVerdict {
         let old_y = self.y;
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
@@ -426,7 +454,7 @@ impl LemmingState {
             self.turn_if_ceiling();
         }
 
-        true
+        LemmingVerdict::Continue
     }
 
     fn turn_if_ceiling(&mut self) {
@@ -440,13 +468,17 @@ impl LemmingState {
         }
     }
 
-    fn tick_death(&mut self) -> bool {
+    fn tick_death(&mut self) -> LemmingVerdict {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
-        self.frame > 0
+        if self.frame > 0 {
+            LemmingVerdict::Continue
+        } else {
+            LemmingVerdict::Death
+        }
     }
 
-    fn tick_drowner(&mut self, terrain_map: &TerrainMap) -> bool {
+    fn tick_drowner(&mut self, terrain_map: &TerrainMap) -> LemmingVerdict {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
         if !terrain_map.is_solid(
@@ -456,7 +488,21 @@ impl LemmingState {
             self.x += self.direction.delta(1);
         }
 
-        self.frame > 0
+        if self.frame > 0 {
+            LemmingVerdict::Continue
+        } else {
+            LemmingVerdict::Death
+        }
+    }
+
+    fn tick_exitting(&mut self) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation.frame_count();
+
+        if self.frame > 0 {
+            LemmingVerdict::Continue
+        } else {
+            LemmingVerdict::Exit
+        }
     }
 
     fn assign_skill_unchecked(&mut self, skill: Skill) {
