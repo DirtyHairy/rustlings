@@ -1,6 +1,7 @@
 use crate::{
     scenes::scene_level::simulation::{
-        FALL_DISTANCE_PER_FRAME, MAX_SAFE_FALL, test::fixture::TerrainFixtureBuilder,
+        FALL_DISTANCE_PER_FRAME, FALL_DISTANCE_START_OFFSET, MAX_SAFE_FALL,
+        test::fixture::TerrainFixtureBuilder,
     },
     state::{
         Activity, ActivityStateFalling, Direction, LemmingAnimation, LemmingState, ObjectState,
@@ -30,7 +31,7 @@ fn faller_falls() {
             y: 10 + FALL_DISTANCE_PER_FRAME as i32,
             frame: 1,
             activity: Activity::Falling(ActivityStateFalling {
-                delta_y: FALL_DISTANCE_PER_FRAME
+                delta_y: FALL_DISTANCE_PER_FRAME + FALL_DISTANCE_START_OFFSET
             }),
             ..lemming_fixture
         }
@@ -126,7 +127,7 @@ fn faller_wraps_animation() {
             y: 10 + FALL_DISTANCE_PER_FRAME as i32,
             frame: 0,
             activity: Activity::Falling(ActivityStateFalling {
-                delta_y: FALL_DISTANCE_PER_FRAME
+                delta_y: FALL_DISTANCE_PER_FRAME + FALL_DISTANCE_START_OFFSET
             }),
             ..lemming_fixture
         }

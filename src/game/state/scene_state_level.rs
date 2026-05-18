@@ -11,16 +11,21 @@ pub struct ObjectState {
     pub frame: usize,
 }
 
-#[derive(Clone, Default, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ActivityStateFalling {
     pub delta_y: u32,
+}
+
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct ActivityStateFloating {
+    pub tick: u32,
 }
 
 #[derive(Clone, Default, PartialEq, Debug)]
 pub enum Activity {
     #[default]
     Climbing,
-    Floating,
+    Floating(ActivityStateFloating),
     Blocking,
     Building,
     Bashing,

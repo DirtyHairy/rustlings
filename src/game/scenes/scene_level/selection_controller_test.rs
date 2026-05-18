@@ -7,7 +7,8 @@ use crate::{
     scene::{MouseCoordinates, SceneEvent},
     scenes::scene_level::cache::Cache,
     state::{
-        Activity, ActivityStateFalling, LemmingHealth, LemmingState, SceneStateLevel, Selection,
+        Activity, ActivityStateFalling, ActivityStateFloating, LemmingHealth, LemmingState,
+        SceneStateLevel, Selection,
     },
 };
 
@@ -209,7 +210,7 @@ fn update_classifies_prio_activities_as_primary() {
 fn update_classifies_non_prio_activities_as_secondary() {
     let non_prio_activities = [
         Activity::Climbing,
-        Activity::Floating,
+        Activity::Floating(ActivityStateFloating::default()),
         Activity::Falling(ActivityStateFalling::default()),
         Activity::Walking,
         Activity::Jumping,

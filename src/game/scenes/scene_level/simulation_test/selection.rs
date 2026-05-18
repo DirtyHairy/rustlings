@@ -129,7 +129,7 @@ fn floating_accepts_only_climber_and_bomber() {
             expected_rejection(skill)
         };
         assert_eq!(
-            assign_on(Activity::Floating, skill),
+            assign_on(Activity::Floating(Default::default()), skill),
             expected,
             "skill={}",
             skill
@@ -340,7 +340,7 @@ fn climbing_with_floater_false_accepts_floater() {
 
 #[test]
 fn floating_with_climber_false_accepts_climber() {
-    let mut lemming = fixture_in(Activity::Floating);
+    let mut lemming = fixture_in(Activity::Floating(Default::default()));
 
     assert_eq!(
         lemming.assign_skill(Skill::Climber),

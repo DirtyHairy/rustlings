@@ -6,8 +6,8 @@ use rustlings::game_data::{
 };
 
 use crate::state::{
-    Activity, LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState,
-    SceneStateLevel, TerrainProps,
+    Activity, ActivityStateFalling, LemmingAnimation, LemmingHealth, LemmingState, LevelState,
+    ObjectState, SceneStateLevel, TerrainProps,
 };
 
 #[derive(PartialEq, Clone, Copy)]
@@ -47,8 +47,10 @@ const SPAWN_COUNTDOWN_DEFAULT: u32 = 10;
 const SPAWN_X: u32 = 24;
 const SPAWN_Y: u32 = 14;
 
-const MAX_SAFE_FALL: u32 = 57;
+const MAX_SAFE_FALL: u32 = 60;
 const FALL_DISTANCE_PER_FRAME: u32 = 3;
+const FALL_DISTANCE_START_OFFSET: u32 = 3;
+const FALL_DISTANCE_FLOAT: u32 = 16;
 
 const MAX_STEP_UP: u32 = 2;
 const MAX_JUMP: u32 = 6;
@@ -227,6 +229,7 @@ impl LemmingState {
             Activity::Splatting | Activity::Frying => self.tick_death(),
             Activity::Jumping => self.tick_jumper(terrain_map),
             Activity::Drowning => self.tick_drowner(terrain_map),
+            Activity::Floating(_) => self.tick_floater(terrain_map),
             _ => true,
         };
 
@@ -296,35 +299,81 @@ impl LemmingState {
     fn tick_faller(&mut self, terrain_map: &TerrainMap) -> bool {
         let mut transition_to: Option<Activity> = None;
 
-        let keep = if let Activity::Falling(state) = &mut self.activity {
-            let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
-
-            if dy <= FALL_DISTANCE_PER_FRAME {
-                self.y += dy as i32;
-                state.delta_y += dy;
-
-                transition_to = Some(if state.delta_y <= MAX_SAFE_FALL {
-                    Activity::Walking
-                } else {
-                    Activity::Splatting
-                });
-            } else {
-                self.frame = (self.frame + 1) % self.animation.frame_count();
-
-                self.y += FALL_DISTANCE_PER_FRAME as i32;
-                state.delta_y += FALL_DISTANCE_PER_FRAME;
-            }
-
-            true
-        } else {
-            unreachable!()
+        let Activity::Falling(state) = &mut self.activity else {
+            unreachable!();
         };
+
+        let dy = terrain_map.delta_y_descend(self.x, self.y, 4);
+
+        if dy <= FALL_DISTANCE_PER_FRAME {
+            self.y += dy as i32;
+            state.delta_y += dy;
+
+            transition_to = Some(if state.delta_y <= MAX_SAFE_FALL {
+                Activity::Walking
+            } else {
+                Activity::Splatting
+            });
+        } else if self.floater && state.delta_y >= FALL_DISTANCE_FLOAT {
+            self.transition_to(Activity::Floating(Default::default()));
+        } else {
+            self.frame = (self.frame + 1) % self.animation.frame_count();
+
+            self.y += FALL_DISTANCE_PER_FRAME as i32;
+            state.delta_y += FALL_DISTANCE_PER_FRAME;
+        }
 
         if let Some(activity) = transition_to {
             self.transition_to(activity);
         }
 
-        keep
+        true
+    }
+
+    fn tick_floater(&mut self, terrain_map: &TerrainMap) -> bool {
+        const FRAME_PATTERN: &[usize] = &[1, 2, 3, 3, 2, 1, 0, 0];
+        let mut transition_to: Option<Activity> = None;
+
+        let Activity::Floating(state) = &mut self.activity else {
+            unreachable!();
+        };
+
+        let descent: i32 = match state.tick {
+            0..=2 => {
+                self.frame += 1;
+                3
+            }
+            3 => {
+                self.animation = LemmingAnimation::Umbrella;
+                self.frame = 1;
+                3
+            }
+            4 => -1,
+            5 => 0,
+            6 | 7 => 1,
+            _ => {
+                self.frame = FRAME_PATTERN[(state.tick - 8) as usize % FRAME_PATTERN.len()];
+                2
+            }
+        };
+
+        state.tick += 1;
+
+        let dy = terrain_map.delta_y_descend(self.x, self.y, 4) as i32;
+
+        if dy <= descent {
+            self.y += dy;
+
+            transition_to = Some(Activity::Walking);
+        } else {
+            self.y += descent;
+        }
+
+        if let Some(activity) = transition_to {
+            self.transition_to(activity);
+        }
+
+        true
     }
 
     fn tick_jumper(&mut self, terrain_map: &TerrainMap) -> bool {
@@ -518,7 +567,7 @@ impl Activity {
             Activity::Digging => LemmingAnimation::Digging,
             Activity::Drowning => LemmingAnimation::Drowning,
             Activity::Exitting => LemmingAnimation::Exitting,
-            Activity::Floating => LemmingAnimation::PreUmbrella,
+            Activity::Floating(_) => LemmingAnimation::PreUmbrella,
             Activity::Frying => LemmingAnimation::Frying,
             Activity::Mining => LemmingAnimation::Mining,
             Activity::Splatting => LemmingAnimation::Splatting,
@@ -541,7 +590,7 @@ impl Activity {
             Activity::Digging => skill != Skill::Digger,
             Activity::Drowning => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
             Activity::Exitting => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
-            Activity::Floating => matches!(skill, Skill::Climber | Skill::Bomber),
+            Activity::Floating(_) => matches!(skill, Skill::Climber | Skill::Bomber),
             Activity::Frying => matches!(skill, Skill::Climber | Skill::Floater),
             Activity::Mining => skill != Skill::Miner,
             Activity::Splatting => false,
@@ -559,6 +608,14 @@ fn skill_fallback_mode(skill: Skill) -> SelectionResult {
         SelectionResult::Fallback
     } else {
         SelectionResult::Abort
+    }
+}
+
+impl Default for ActivityStateFalling {
+    fn default() -> Self {
+        Self {
+            delta_y: FALL_DISTANCE_START_OFFSET,
+        }
     }
 }
 
