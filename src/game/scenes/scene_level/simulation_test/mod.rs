@@ -2,6 +2,7 @@ mod drowning;
 mod environment;
 mod faller;
 mod fixture;
+mod floater;
 mod frying;
 mod jumper;
 mod selection;

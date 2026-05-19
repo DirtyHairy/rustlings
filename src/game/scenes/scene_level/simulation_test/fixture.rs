@@ -19,6 +19,12 @@ impl TerrainFixtureBuilder {
         self
     }
 
+    pub fn with_non_solid(mut self, x: u32, y: u32, terrain_props: TerrainProps) -> Self {
+        self.map[(x + y * self.width) as usize] = terrain_props;
+
+        self
+    }
+
     pub fn with_col(mut self, x: u32, y: u32, len: u32, terrain_props: TerrainProps) -> Self {
         for row in 0..len {
             self.map[(x + y.saturating_sub(row) * self.width) as usize] =

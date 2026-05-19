@@ -106,6 +106,95 @@ fn trap_does_not_retrigger() {
 }
 
 #[test]
+fn exit_transitions_walker_to_exitting() {
+    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        .with(10, 10, TerrainProps::new())
+        .with(11, 10, TerrainProps::new().with_exit(true))
+        .build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
+    let mut lemming = lemming_fixture.clone();
+
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(verdict, LemmingVerdict::Continue);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            x: 11,
+            frame: 0,
+            activity: Activity::Exitting,
+            animation: LemmingAnimation::Exitting,
+            ..lemming_fixture
+        }
+    );
+}
+
+#[test]
+fn exit_does_not_trigger_during_fall() {
+    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        .with_non_solid(10, 13, TerrainProps::new().with_exit(true))
+        .build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState::fixture(
+        10,
+        10,
+        Direction::Right,
+        Activity::Falling(Default::default()),
+    );
+    let mut lemming = lemming_fixture.clone();
+
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(verdict, LemmingVerdict::Continue);
+    assert!(matches!(lemming.activity, Activity::Falling(_)));
+    assert_eq!(lemming.y, 10 + FALL_DISTANCE_PER_FRAME as i32);
+    assert_eq!(lemming.animation, LemmingAnimation::Falling);
+}
+
+#[test]
+fn exitting_advances_animation() {
+    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Exitting);
+    let mut lemming = lemming_fixture.clone();
+
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(verdict, LemmingVerdict::Continue);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            frame: 1,
+            ..lemming_fixture
+        }
+    );
+}
+
+#[test]
+fn exitting_completes_with_exit_verdict() {
+    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState {
+        frame: LemmingAnimation::Exitting.frame_count() - 1,
+        ..LemmingState::fixture(10, 10, Direction::Right, Activity::Exitting)
+    };
+    let mut lemming = lemming_fixture.clone();
+
+    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(verdict, LemmingVerdict::Exit);
+}
+
+#[test]
 fn lemming_removed_at_bottom() {
     let foot_height = LemmingAnimation::Falling.foot().1;
     let initial_y = (LEVEL_HEIGHT + foot_height - FALL_DISTANCE_PER_FRAME) as i32;
