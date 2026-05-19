@@ -16,17 +16,16 @@ use rustlings::{
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect as SdlRect,
-    render::{BlendMode::Blend, Canvas, FPoint, ScaleMode, Texture, TextureAccess, TextureCreator},
+    render::{
+        BlendMode, Canvas, FPoint, RenderTarget, ScaleMode, Texture, TextureAccess, TextureCreator,
+    },
     sys::blendmode::{
         SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
         SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_ZERO, SDL_BLENDMODE_BLEND,
-        SDL_BLENDMODE_MOD, SDL_BLENDOPERATION_ADD, SDL_BlendMode, SDL_ComposeCustomBlendMode,
+        SDL_BLENDMODE_MOD, SDL_BLENDMODE_NONE, SDL_BLENDOPERATION_ADD, SDL_BlendMode,
+        SDL_ComposeCustomBlendMode,
     },
     video::Window,
-};
-use sdl3::{
-    render::{BlendMode, RenderTarget},
-    sys::blendmode::SDL_BLENDMODE_NONE,
 };
 use strum::{EnumCount, VariantArray};
 
@@ -53,7 +52,7 @@ const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
 
-const MIMIMAP_LEMMING_COLOR: Color = Color::RGBA(255, 255, 255, 200);
+const MINIMAP_LEMMING_COLOR: Color = Color::RGBA(255, 255, 255, 200);
 
 struct Object {
     index: usize,
@@ -519,7 +518,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 &mut self.minimap_points_lookup,
             )?;
 
-            self.texture_minimap_frame.set_blend_mode(Blend);
+            self.texture_minimap_frame.set_blend_mode(BlendMode::Blend);
             self.texture_minimap_frame
                 .set_scale_mode(ScaleMode::Nearest);
             canvas.copy(
@@ -667,7 +666,7 @@ fn draw_minimap_lemmings<T: RenderTarget>(
         return Ok(());
     }
 
-    canvas.set_draw_color(MIMIMAP_LEMMING_COLOR);
+    canvas.set_draw_color(MINIMAP_LEMMING_COLOR);
     canvas.set_blend_mode(BlendMode::Blend);
     canvas
         .draw_points(&minimap_points[0..num_points])

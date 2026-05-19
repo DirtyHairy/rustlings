@@ -4,7 +4,7 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result, bail};
 
 use crate::game_data::file::encoding::datfile;
-use crate::game_data::file::read::{read_byte, read_word_le};
+use crate::game_data::file::read::{read_byte, read_word_be};
 use crate::game_data::skill::{NUM_SKILLS, SKILLS};
 
 const ODDTABLE_ENTRIES: usize = 80;
@@ -156,7 +156,7 @@ fn read8(data: &[u8], offset: usize) -> Result<u8> {
 }
 
 fn read16(data: &[u8], offset: usize) -> Result<u16> {
-    Ok(read_word_le(data, offset)?.0)
+    Ok(read_word_be(data, offset)?.0)
 }
 
 fn read_name(data: &[u8], offset: usize) -> Result<String> {

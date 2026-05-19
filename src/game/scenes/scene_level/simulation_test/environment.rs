@@ -106,7 +106,7 @@ fn trap_does_not_retrigger() {
 }
 
 #[test]
-fn exit_transitions_walker_to_exitting() {
+fn exit_transitions_walker_to_exiting() {
     let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 10, TerrainProps::new())
         .with(11, 10, TerrainProps::new().with_exit(true))
@@ -125,8 +125,8 @@ fn exit_transitions_walker_to_exitting() {
         LemmingState {
             x: 11,
             frame: 0,
-            activity: Activity::Exitting,
-            animation: LemmingAnimation::Exitting,
+            activity: Activity::Exiting,
+            animation: LemmingAnimation::Exiting,
             ..lemming_fixture
         }
     );
@@ -157,12 +157,12 @@ fn exit_does_not_trigger_during_fall() {
 }
 
 #[test]
-fn exitting_advances_animation() {
+fn exiting_advances_animation() {
     let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
-    let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Exitting);
+    let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Exiting);
     let mut lemming = lemming_fixture.clone();
 
     let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
@@ -178,14 +178,14 @@ fn exitting_advances_animation() {
 }
 
 #[test]
-fn exitting_completes_with_exit_verdict() {
+fn exiting_completes_with_exit_verdict() {
     let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
     let lemming_fixture = LemmingState {
-        frame: LemmingAnimation::Exitting.frame_count() - 1,
-        ..LemmingState::fixture(10, 10, Direction::Right, Activity::Exitting)
+        frame: LemmingAnimation::Exiting.frame_count() - 1,
+        ..LemmingState::fixture(10, 10, Direction::Right, Activity::Exiting)
     };
     let mut lemming = lemming_fixture.clone();
 

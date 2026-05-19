@@ -1,6 +1,6 @@
 use crate::{
     scenes::scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState},
 };
 
 #[test]

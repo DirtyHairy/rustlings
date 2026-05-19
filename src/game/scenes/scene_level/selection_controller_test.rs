@@ -217,7 +217,7 @@ fn update_classifies_non_prio_activities_as_secondary() {
         Activity::Splatting,
         Activity::Drowning,
         Activity::Frying,
-        Activity::Exitting,
+        Activity::Exiting,
     ];
 
     for activity in non_prio_activities {

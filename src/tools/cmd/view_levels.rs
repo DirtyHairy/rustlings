@@ -63,7 +63,7 @@ fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_
     } else {
         data.tilesets
             .get(level.graphics_set as usize)
-            .ok_or(anyhow!("invlid graphics set {}", level.graphics_set))
+            .ok_or(anyhow!("invalid graphics set {}", level.graphics_set))
             .map(|x| x.palettes.custom)
     }
 }

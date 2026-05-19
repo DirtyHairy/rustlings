@@ -90,7 +90,7 @@ impl From<&LemmingState> for LemmingDescription {
                 | Activity::Jumping
                 | Activity::Drowning
                 | Activity::Frying
-                | Activity::Exitting => LemmingDescription::Walker,
+                | Activity::Exiting => LemmingDescription::Walker,
             }
         }
     }

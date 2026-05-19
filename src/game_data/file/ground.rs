@@ -1,11 +1,11 @@
 use std::{fmt, fs, path::Path};
 
-use anyhow::*;
+use anyhow::{Result, bail};
 
 use crate::game_data::file::palette::{
     LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry,
 };
-use crate::game_data::file::read::{read_byte, read_word_be};
+use crate::game_data::file::read::{read_byte, read_word_le};
 
 pub const OBJECTS_PER_TILESET: usize = 16;
 pub const TILES_PER_TILESET: usize = 64;
@@ -149,21 +149,21 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
 }
 
 fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)> {
-    let (animation_flags, offset) = read_word_be::<u32>(buffer, offset)?;
+    let (animation_flags, offset) = read_word_le::<u32>(buffer, offset)?;
     let (animation_start, offset) = read_byte::<usize>(buffer, offset)?;
     let (animation_end, offset) = read_byte::<usize>(buffer, offset)?;
     let (width, offset) = read_byte::<u32>(buffer, offset)?;
     let (height, offset) = read_byte::<u32>(buffer, offset)?;
-    let (animation_frame_size, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (mask_offset, offset) = read_word_be(buffer, offset)?;
+    let (animation_frame_size, offset) = read_word_le::<usize>(buffer, offset)?;
+    let (mask_offset, offset) = read_word_le(buffer, offset)?;
     let offset = offset + 4;
-    let (trigger_left, offset) = read_word_be::<u32>(buffer, offset)?;
-    let (trigger_top, offset) = read_word_be::<u32>(buffer, offset)?;
+    let (trigger_left, offset) = read_word_le::<u32>(buffer, offset)?;
+    let (trigger_top, offset) = read_word_le::<u32>(buffer, offset)?;
     let (trigger_width, offset) = read_byte::<u32>(buffer, offset)?;
     let (trigger_height, offset) = read_byte::<u32>(buffer, offset)?;
     let (trigger_effect, offset) = read_byte::<u32>(buffer, offset)?;
-    let (frames_offset, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (preview_frame_offset, offset) = read_word_be::<usize>(buffer, offset)?;
+    let (frames_offset, offset) = read_word_le::<usize>(buffer, offset)?;
+    let (preview_frame_offset, offset) = read_word_le::<usize>(buffer, offset)?;
     let offset = offset + 2;
     let (trap_sound_effect, offset) = read_byte::<u32>(buffer, offset)?;
 
@@ -194,8 +194,8 @@ fn read_object_info(buffer: &[u8], offset: usize) -> Result<(ObjectInfo, usize)>
 fn read_terrain_info(buffer: &[u8], offset: usize) -> Result<(TerrainInfo, usize)> {
     let (width, offset) = read_byte::<u32>(buffer, offset)?;
     let (height, offset) = read_byte::<u32>(buffer, offset)?;
-    let (image_offset, offset) = read_word_be::<usize>(buffer, offset)?;
-    let (mask_offset, offset) = read_word_be::<usize>(buffer, offset)?;
+    let (image_offset, offset) = read_word_le::<usize>(buffer, offset)?;
+    let (mask_offset, offset) = read_word_le::<usize>(buffer, offset)?;
     let offset = offset + 2;
 
     Ok((

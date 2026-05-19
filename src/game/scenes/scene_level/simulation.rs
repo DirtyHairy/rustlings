@@ -247,7 +247,7 @@ impl LemmingState {
             Activity::Jumping => self.tick_jumper(terrain_map),
             Activity::Drowning => self.tick_drowner(terrain_map),
             Activity::Floating(_) => self.tick_floater(terrain_map),
-            Activity::Exitting => self.tick_exitting(),
+            Activity::Exiting => self.tick_exiting(),
             _ => LemmingVerdict::Continue,
         };
 
@@ -308,7 +308,7 @@ impl LemmingState {
         }
 
         if terrain.exit() && !matches!(self.activity, Activity::Falling(_)) {
-            self.transition_to(Activity::Exitting);
+            self.transition_to(Activity::Exiting);
         }
 
         keep
@@ -495,7 +495,7 @@ impl LemmingState {
         }
     }
 
-    fn tick_exitting(&mut self) -> LemmingVerdict {
+    fn tick_exiting(&mut self) -> LemmingVerdict {
         self.frame = (self.frame + 1) % self.animation.frame_count();
 
         if self.frame > 0 {
@@ -539,7 +539,7 @@ impl LemmingState {
     }
 
     fn supports_skill_tier3(&self, _skill: Skill) -> bool {
-        // handle steel / terran rejection for bashers and miners
+        // handle steel / terrain rejection for bashers and miners
         true
     }
 }
@@ -612,7 +612,7 @@ impl Activity {
             Activity::Falling(_) => LemmingAnimation::Falling,
             Activity::Digging => LemmingAnimation::Digging,
             Activity::Drowning => LemmingAnimation::Drowning,
-            Activity::Exitting => LemmingAnimation::Exitting,
+            Activity::Exiting => LemmingAnimation::Exiting,
             Activity::Floating(_) => LemmingAnimation::PreUmbrella,
             Activity::Frying => LemmingAnimation::Frying,
             Activity::Mining => LemmingAnimation::Mining,
@@ -635,7 +635,7 @@ impl Activity {
             }
             Activity::Digging => skill != Skill::Digger,
             Activity::Drowning => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
-            Activity::Exitting => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
+            Activity::Exiting => matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber),
             Activity::Floating(_) => matches!(skill, Skill::Climber | Skill::Bomber),
             Activity::Frying => matches!(skill, Skill::Climber | Skill::Floater),
             Activity::Mining => skill != Skill::Miner,

@@ -155,7 +155,7 @@ fn drowning_accepts_climber_floater_bomber() {
 }
 
 #[test]
-fn exitting_accepts_climber_floater_bomber() {
+fn exiting_accepts_climber_floater_bomber() {
     for skill in SKILLS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
@@ -163,7 +163,7 @@ fn exitting_accepts_climber_floater_bomber() {
             expected_rejection(skill)
         };
         assert_eq!(
-            assign_on(Activity::Exitting, skill),
+            assign_on(Activity::Exiting, skill),
             expected,
             "skill={}",
             skill

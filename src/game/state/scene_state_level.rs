@@ -37,7 +37,7 @@ pub enum Activity {
     Splatting,
     Drowning,
     Frying,
-    Exitting,
+    Exiting,
 }
 
 #[derive(Clone, Copy, PartialEq, Default, Debug)]

@@ -75,7 +75,7 @@ pub enum LemmingSprite {
     PreUmbrellaL = 20,
     UmbrellaL = 21,
     Splatting = 22,
-    Exitting = 23,
+    Exiting = 23,
     Frying = 24,
     Blocking = 25,
     ShruggingR = 26,

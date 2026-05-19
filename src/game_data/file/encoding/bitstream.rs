@@ -78,7 +78,7 @@ impl<'a> Bitstream<'a> {
             let current_byte = *self
                 .buffer
                 .get(self.buffer.len() - self.byte_index - 1)
-                .ok_or(anyhow!("cosume: out of bounds"))?;
+                .ok_or(anyhow!("consume: out of bounds"))?;
 
             value <<= 1;
             value |= (current_byte >> self.bit_index) & 0x01;

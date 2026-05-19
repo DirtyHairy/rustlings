@@ -18,7 +18,7 @@ pub enum LemmingAnimation {
     PreUmbrella,
     Umbrella,
     Shrugging, // last assymetric animation
-    Exitting,  // first symmetric animation
+    Exiting,   // first symmetric animation
     Frying,
     Blocking,
     OhNo,
@@ -82,7 +82,7 @@ impl LemmingAnimation {
             (Self::Umbrella, Direction::Left) => LemmingSprite::UmbrellaL,
             (Self::Shrugging, Direction::Right) => LemmingSprite::ShruggingR,
             (Self::Shrugging, Direction::Left) => LemmingSprite::ShruggingL,
-            (Self::Exitting, _) => LemmingSprite::Exitting,
+            (Self::Exiting, _) => LemmingSprite::Exiting,
             (Self::Frying, _) => LemmingSprite::Frying,
             (Self::Blocking, _) => LemmingSprite::Blocking,
             (Self::OhNo, _) => LemmingSprite::OhNo,
