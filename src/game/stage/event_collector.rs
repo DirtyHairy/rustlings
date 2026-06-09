@@ -1,7 +1,5 @@
-use std::{
-    cmp,
-    time::{Duration, Instant},
-};
+use core::time::Duration;
+use std::{cmp, time::Instant};
 
 use anyhow::anyhow;
 use sdl3::{
@@ -110,7 +108,7 @@ impl EventCollector {
                 aggregation_time_remaining,
             );
 
-            if let Some(event) = event_pump.wait_event_timeout(wait_timeout as u32)
+            if let Some(event) = event_pump.wait_event_timeout(Duration::from_millis(wait_timeout))
                 && let Some(decoded_event) = decode_sdl_event(&event)
             {
                 self.aggregate_event(&decoded_event);

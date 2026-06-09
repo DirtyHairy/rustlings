@@ -16,11 +16,11 @@ too_many_arguments = "allow"
 module_inception = "allow"
 
 [dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 bitfield-struct = "0.13.0"
-bitflags = "2.11.0"
-clap = "4.5.57"
-sdl3 = "0.17.3"
+bitflags = "2.13.0"
+clap = "4.6.1"
+sdl3 = "0.18.4"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
 
