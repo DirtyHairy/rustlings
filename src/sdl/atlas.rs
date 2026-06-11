@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+
 use anyhow::{Result, anyhow};
 use sdl3::sys::blendmode::SDL_BlendMode;
 use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
@@ -131,7 +133,7 @@ impl<'a> SdlAtlasBuilder<'a> {
             .collect();
 
         let mut sprites_sorted: Vec<_> = self.sprites.iter().copied().enumerate().collect();
-        sprites_sorted.sort_by(|s1, s2| s2.1.height.cmp(&s1.1.height));
+        sprites_sorted.sort_by_key(|s| Reverse(s.1.height));
 
         let mut x: u32 = 0;
         let mut y: u32 = 0;
