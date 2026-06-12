@@ -14,19 +14,21 @@ pub fn texture_from_bitmap<'a, T>(
     bitmap: &Bitmap,
     palette: &[PaletteEntry; PALETTE_SIZE],
     texture_creator: &'a TextureCreator<T>,
+    access: TextureAccess,
 ) -> Result<Texture<'a>> {
-    texture_from_bitmap_mapped(bitmap, palette, texture_creator, |c| c)
+    texture_from_bitmap_mapped(bitmap, palette, texture_creator, access, |c| c)
 }
 
 pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
     bitmap: &Bitmap,
     palette: &[PaletteEntry; PALETTE_SIZE],
     texture_creator: &'a TextureCreator<T>,
+    access: TextureAccess,
     mapping: F,
 ) -> Result<Texture<'a>> {
     let mut texture = texture_creator.create_texture(
         PixelFormat::RGBA8888,
-        TextureAccess::Static,
+        access,
         bitmap.width,
         bitmap.height,
     )?;

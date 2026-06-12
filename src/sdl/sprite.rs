@@ -63,7 +63,7 @@ impl<'a> SDLSprite<'a> {
         palette: &[PaletteEntry; PALETTE_SIZE],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<Self> {
-        let texture = texture_from_bitmap(bitmap, palette, texture_creator)?;
+        let texture = texture_from_bitmap(bitmap, palette, texture_creator, TextureAccess::Static)?;
 
         Ok(SDLSprite {
             width: bitmap.width,

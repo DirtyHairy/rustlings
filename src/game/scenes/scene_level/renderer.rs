@@ -15,7 +15,7 @@ use rustlings::{
 };
 use sdl3::{
     pixels::{Color, PixelFormat},
-    rect::Rect as SdlRect,
+    rect::{Point, Rect as SdlRect},
     render::{
         BlendMode, Canvas, FPoint, RenderTarget, ScaleMode, Texture, TextureAccess, TextureCreator,
     },
@@ -32,7 +32,10 @@ use strum::{EnumCount, VariantArray};
 use crate::{
     geometry::Rect,
     scenes::scene_level::{
-        cache::Cache, selection_controller::SelectionMode, skill_panel_renderer::SkillPanelRenderer,
+        cache::Cache,
+        selection_controller::SelectionMode,
+        skill_panel_renderer::SkillPanelRenderer,
+        terrain_diff::{TerrainDiff, TerrainDiffKind, VisibilityTarget},
     },
     state::{Direction, LemmingAnimation, SceneStateLevel},
 };
@@ -108,12 +111,18 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let palette = game_data.resolve_palette(level)?;
         let palette_skill_panel = game_data.resolve_skill_panel_palette(0);
 
-        let texture_terrain = texture_from_bitmap(&scene_state.terrain, &palette, texture_creator)?;
+        let texture_terrain = texture_from_bitmap(
+            &scene_state.terrain,
+            &palette,
+            texture_creator,
+            TextureAccess::Target,
+        )?;
 
         let texture_minimap_frame = texture_from_bitmap(
             &game_data.skill_panel.minimap_frame,
             &palette_skill_panel,
             texture_creator,
+            TextureAccess::Static,
         )?;
 
         let texture_level = texture_creator.create_texture_target(
@@ -199,8 +208,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let mut texture_probe =
             texture_creator.create_texture(PixelFormat::RGBA8888, TextureAccess::Static, 1, 1)?;
 
-        let render_mode = if apply_blend_mode(&mut texture_probe, blend_mode_background)
-            && apply_blend_mode(&mut texture_probe, blend_mode_merge)
+        let render_mode = if apply_blend_mode(&mut texture_probe, blend_mode_merge)
+            && apply_blend_mode(&mut texture_probe, blend_mode_background)
         {
             RenderStrategy::Blend
         } else {
@@ -210,6 +219,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 &scene_state.terrain,
                 &palette,
                 texture_creator,
+                TextureAccess::Target,
                 |Color { a, .. }| {
                     if a == 0 {
                         Color::RGBA(0, 0, 0, 0)
@@ -261,6 +271,113 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             minimap_points,
             minimap_points_lookup,
+        })
+    }
+
+    pub fn apply_diff(
+        &mut self,
+        canvas: &mut Canvas<Window>,
+        diff: &[TerrainDiff],
+        target: VisibilityTarget,
+    ) -> Result<()> {
+        if !diff.iter().any(|d| d.visibility_target() == target) {
+            return Ok(());
+        }
+
+        match self.render_strategy {
+            RenderStrategy::Blend => self.apply_diff_gpu(canvas, diff, target),
+            RenderStrategy::Stencil(_) => self.apply_diff_software(canvas, diff, target),
+        }?;
+
+        self.mark_for_redraw(Redraw::LEVEL);
+
+        Ok(())
+    }
+
+    fn apply_diff_gpu(
+        &mut self,
+        canvas: &mut Canvas<Window>,
+        diff: &[TerrainDiff],
+        target: VisibilityTarget,
+    ) -> Result<()> {
+        with_texture_canvas(canvas, &mut self.texture_terrain, |canvas| -> Result<()> {
+            for &entry in diff {
+                if entry.visibility_target() != target {
+                    continue;
+                }
+
+                match entry.kind {
+                    TerrainDiffKind::Dig => {
+                        canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                        canvas.set_blend_mode(BlendMode::None);
+
+                        canvas.draw_line(
+                            Point::new(entry.x, entry.y),
+                            Point::new(entry.x + 8, entry.y),
+                        )?;
+                    }
+                }
+            }
+
+            Ok(())
+        })
+    }
+
+    fn apply_diff_software(
+        &mut self,
+        canvas: &mut Canvas<Window>,
+        diff: &[TerrainDiff],
+        target: VisibilityTarget,
+    ) -> Result<()> {
+        let RenderStrategy::Stencil(StencilTextures {
+            stencil_terrain, ..
+        }) = &mut self.render_strategy
+        else {
+            unreachable!();
+        };
+
+        with_texture_canvas(canvas, &mut self.texture_terrain, |canvas| -> Result<()> {
+            for &entry in diff {
+                if entry.visibility_target() != target {
+                    continue;
+                }
+
+                match entry.kind {
+                    TerrainDiffKind::Dig => {
+                        canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                        canvas.set_blend_mode(BlendMode::None);
+
+                        canvas.draw_line(
+                            Point::new(entry.x, entry.y),
+                            Point::new(entry.x + 8, entry.y),
+                        )?;
+                    }
+                }
+            }
+
+            Ok(())
+        })?;
+
+        with_texture_canvas(canvas, stencil_terrain, |canvas| -> Result<()> {
+            for &entry in diff {
+                if entry.visibility_target() != target {
+                    continue;
+                }
+
+                match entry.kind {
+                    TerrainDiffKind::Dig => {
+                        canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
+                        canvas.set_blend_mode(BlendMode::None);
+
+                        canvas.draw_line(
+                            Point::new(entry.x, entry.y),
+                            Point::new(entry.x + 8, entry.y),
+                        )?;
+                    }
+                }
+            }
+
+            Ok(())
         })
     }
 

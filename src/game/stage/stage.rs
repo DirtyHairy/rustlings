@@ -133,7 +133,7 @@ impl<'sdl> Stage<'sdl> {
 
             if !self.suspended {
                 self.time_old = time;
-                scene.tick(time);
+                scene.tick(self.canvas, time)?;
 
                 if scene.is_complete() {
                     return Ok(StopReason::NextScene);

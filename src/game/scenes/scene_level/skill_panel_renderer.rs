@@ -14,7 +14,7 @@ use rustlings::{
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect,
-    render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureCreator},
+    render::{BlendMode, Canvas, RenderTarget, ScaleMode, Texture, TextureAccess, TextureCreator},
     sys::blendmode::SDL_BLENDMODE_NONE,
     video::Window,
 };
@@ -151,12 +151,14 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
             &game_data.skill_panel.panel,
             &palette_skill_panel,
             texture_creator,
+            TextureAccess::Static,
         )?;
 
         let texture_selected_skill_frame = texture_from_bitmap(
             &game_data.skill_panel.skill_tile_frame,
             &palette_skill_panel,
             texture_creator,
+            TextureAccess::Static,
         )?;
 
         let texture_font_overlay = texture_creator.create_texture_target(

@@ -169,6 +169,14 @@ impl Simulation {
         state.lemmings[index].assign_skill(skill)
     }
 
+    pub fn get_diff(&self) -> &[TerrainDiff] {
+        &self.terrain_diff
+    }
+
+    pub fn clear_diff(&mut self) {
+        self.terrain_diff.clear();
+    }
+
     fn open_entrances(&self, state: &mut SceneStateLevel) {
         for (i, object) in self.objects.iter().enumerate() {
             if object.interaction_type != InteractionType::Entrance {
@@ -183,8 +191,6 @@ impl Simulation {
     }
 
     fn tick_lemmings(&mut self, state: &mut SceneStateLevel) {
-        self.terrain_diff.clear();
-
         let mut terrain = Terrain::new(
             &mut state.terrain,
             &mut state.terrain_map,

@@ -10,7 +10,7 @@ use rustlings::{
 use sdl3::{
     pixels::{Color, PixelFormat},
     rect::Rect,
-    render::{BlendMode, ScaleMode, Texture, TextureCreator},
+    render::{BlendMode, ScaleMode, Texture, TextureAccess, TextureCreator},
     surface::Surface,
 };
 
@@ -78,7 +78,7 @@ impl<'texture_creator> StaticTexture<'texture_creator> {
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         Ok(StaticTexture {
-            texture: texture_from_bitmap(bitmap, palette, texture_creator)?,
+            texture: texture_from_bitmap(bitmap, palette, texture_creator, TextureAccess::Static)?,
             intermediate_texture: None,
             prescaling_mode: PrescalingMode::None(ScaleMode::Nearest),
         })
