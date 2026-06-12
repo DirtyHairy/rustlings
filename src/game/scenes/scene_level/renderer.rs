@@ -366,7 +366,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                 match entry.kind {
                     TerrainDiffKind::Dig => {
-                        canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
+                        canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
                         canvas.set_blend_mode(BlendMode::None);
 
                         canvas.draw_line(
