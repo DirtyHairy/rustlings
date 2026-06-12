@@ -84,7 +84,7 @@ impl From<&LemmingState> for LemmingDescription {
                 Activity::Building => LemmingDescription::Builder,
                 Activity::Bashing => LemmingDescription::Basher,
                 Activity::Mining => LemmingDescription::Miner,
-                Activity::Digging => LemmingDescription::Digger,
+                Activity::Digging(_) => LemmingDescription::Digger,
                 Activity::Falling(_) | Activity::Splatting => LemmingDescription::Faller,
                 Activity::Walking
                 | Activity::Jumping

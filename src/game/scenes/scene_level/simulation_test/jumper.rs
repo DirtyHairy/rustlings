@@ -7,7 +7,7 @@ use crate::{
 
 #[test]
 fn jumper_continues() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, 15, 4, TerrainProps::new())
         .build();
 
@@ -16,7 +16,7 @@ fn jumper_continues() {
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -29,7 +29,7 @@ fn jumper_continues() {
 
 #[test]
 fn jumper_continues_exact() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, 15, 3, TerrainProps::new())
         .build();
 
@@ -38,7 +38,7 @@ fn jumper_continues_exact() {
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -51,7 +51,7 @@ fn jumper_continues_exact() {
 
 #[test]
 fn jumper_clears_obstacle() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, 15, 2, TerrainProps::new())
         .build();
 
@@ -60,7 +60,7 @@ fn jumper_clears_obstacle() {
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -76,7 +76,7 @@ fn jumper_clears_obstacle() {
 
 #[test]
 fn jumper_clears_obstacle_exact() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, 15, 1, TerrainProps::new())
         .build();
 
@@ -85,7 +85,7 @@ fn jumper_clears_obstacle_exact() {
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -100,7 +100,7 @@ fn jumper_clears_obstacle_exact() {
 
 #[test]
 fn jumper_hits_ceiling() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, MIN_FOOT_Y as u32 + 1, 3, TerrainProps::new())
         .build();
 
@@ -110,7 +110,7 @@ fn jumper_hits_ceiling() {
         LemmingState::fixture(10, MIN_FOOT_Y + 1, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -127,7 +127,7 @@ fn jumper_hits_ceiling() {
 
 #[test]
 fn jumper_touches_ceiling() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_col(10, MIN_FOOT_Y as u32 + 1, 2, TerrainProps::new())
         .build();
 
@@ -137,7 +137,7 @@ fn jumper_touches_ceiling() {
         LemmingState::fixture(10, MIN_FOOT_Y + 1, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,

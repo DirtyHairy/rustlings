@@ -5,14 +5,14 @@ use crate::{
 
 #[test]
 fn splatting_advances_animation() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Splatting);
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
@@ -26,7 +26,7 @@ fn splatting_advances_animation() {
 
 #[test]
 fn splatting_removes_lemming() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -36,7 +36,7 @@ fn splatting_removes_lemming() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Death);
 }

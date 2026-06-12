@@ -228,7 +228,7 @@ fn terrain_activity_rejects_own_skill() {
         (Activity::Bashing, Skill::Basher),
         (Activity::Building, Skill::Builder),
         (Activity::Mining, Skill::Miner),
-        (Activity::Digging, Skill::Digger),
+        (Activity::Digging(Default::default()), Skill::Digger),
     ];
 
     for (activity, own_skill) in pairs {
@@ -491,7 +491,7 @@ fn assign_digger_transitions_to_digging() {
     assert_eq!(
         lemming,
         LemmingState {
-            activity: Activity::Digging,
+            activity: Activity::Digging(Default::default()),
             animation: LemmingAnimation::Digging,
             frame: 0,
             ..fixture

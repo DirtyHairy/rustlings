@@ -151,7 +151,7 @@ impl SelectionController {
                 match lemming.activity {
                     Activity::Blocking
                     | Activity::Bashing
-                    | Activity::Digging
+                    | Activity::Digging(_)
                     | Activity::Mining
                     | Activity::Building => {
                         selection.primary_lemming = Some(lemming.id);

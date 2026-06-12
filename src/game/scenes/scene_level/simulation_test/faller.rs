@@ -11,7 +11,7 @@ use crate::{
 
 #[test]
 fn faller_falls() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -23,7 +23,7 @@ fn faller_falls() {
     );
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -40,7 +40,7 @@ fn faller_falls() {
 
 #[test]
 fn faller_lands_safely() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 12, TerrainProps::new())
         .build();
 
@@ -56,7 +56,7 @@ fn faller_lands_safely() {
     );
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -72,7 +72,7 @@ fn faller_lands_safely() {
 
 #[test]
 fn faller_splats() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 12, TerrainProps::new())
         .build();
 
@@ -88,7 +88,7 @@ fn faller_splats() {
     );
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -104,7 +104,7 @@ fn faller_splats() {
 
 #[test]
 fn faller_with_floater_transitions_to_floating() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -121,7 +121,7 @@ fn faller_with_floater_transitions_to_floating() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -135,7 +135,7 @@ fn faller_with_floater_transitions_to_floating() {
 
 #[test]
 fn faller_with_floater_below_threshold_keeps_falling() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -152,7 +152,7 @@ fn faller_with_floater_below_threshold_keeps_falling() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -169,7 +169,7 @@ fn faller_with_floater_below_threshold_keeps_falling() {
 
 #[test]
 fn faller_without_floater_does_not_float() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -183,7 +183,7 @@ fn faller_without_floater_does_not_float() {
     );
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -200,7 +200,7 @@ fn faller_without_floater_does_not_float() {
 
 #[test]
 fn faller_wraps_animation() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -215,7 +215,7 @@ fn faller_wraps_animation() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,

@@ -21,6 +21,11 @@ pub struct ActivityStateFloating {
     pub tick: u32,
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct ActivityStateDigging {
+    pub newborn: bool,
+}
+
 #[derive(Clone, Default, PartialEq, Debug)]
 pub enum Activity {
     #[default]
@@ -30,7 +35,7 @@ pub enum Activity {
     Building,
     Bashing,
     Mining,
-    Digging,
+    Digging(ActivityStateDigging),
     Falling(ActivityStateFalling),
     Walking,
     Jumping,

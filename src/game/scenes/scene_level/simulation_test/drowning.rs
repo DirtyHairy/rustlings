@@ -7,14 +7,14 @@ use crate::{
 
 #[test]
 fn drowner_moves_in_water_right() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
@@ -29,14 +29,14 @@ fn drowner_moves_in_water_right() {
 
 #[test]
 fn drowner_moves_in_water_left() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
@@ -51,7 +51,7 @@ fn drowner_moves_in_water_left() {
 
 #[test]
 fn drowner_stops_at_wall() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10 + DROWNER_MIN_WALL_DISTANCE, 10, TerrainProps::new())
         .build();
 
@@ -60,7 +60,7 @@ fn drowner_stops_at_wall() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
@@ -74,7 +74,7 @@ fn drowner_stops_at_wall() {
 
 #[test]
 fn drowner_advances_towards_wall() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10 + DROWNER_MIN_WALL_DISTANCE + 1, 10, TerrainProps::new())
         .build();
 
@@ -83,7 +83,7 @@ fn drowner_advances_towards_wall() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert_eq!(
@@ -98,7 +98,7 @@ fn drowner_advances_towards_wall() {
 
 #[test]
 fn drowner_removed_after_animation() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -108,7 +108,7 @@ fn drowner_removed_after_animation() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    let verdict = lemming.tick(&terrain_fixture, &mut objects_fixture);
+    let verdict = lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(verdict, LemmingVerdict::Death);
 }

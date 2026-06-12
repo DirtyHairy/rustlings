@@ -42,8 +42,14 @@ impl TerrainFixtureBuilder {
         self
     }
 
-    pub fn build(self) -> TerrainMap<'static> {
-        TerrainMap::new(self.width, self.height, self.map.leak())
+    pub fn build(self) -> Terrain<'static> {
+        let bitmap = Box::new(Bitmap::filled(self.width, self.height, 0, true));
+
+        Terrain::new(
+            Box::leak(bitmap),
+            self.map.leak(),
+            Box::leak(Box::default()),
+        )
     }
 }
 

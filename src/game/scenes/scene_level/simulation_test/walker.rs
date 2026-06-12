@@ -9,7 +9,7 @@ use crate::{
 #[test]
 fn walker_steps_up_right() {
     for step in 0..=MAX_STEP_UP {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 19, TerrainProps::new())
             .with_col(11, 19, step + 1, TerrainProps::new())
             .build();
@@ -19,7 +19,7 @@ fn walker_steps_up_right() {
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -38,7 +38,7 @@ fn walker_steps_up_right() {
 #[test]
 fn walker_steps_up_left() {
     for step in 0..=MAX_STEP_UP {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 19, TerrainProps::new())
             .with_col(9, 19, step + 1, TerrainProps::new())
             .build();
@@ -48,7 +48,7 @@ fn walker_steps_up_left() {
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -67,7 +67,7 @@ fn walker_steps_up_left() {
 #[test]
 fn walker_jumps_right() {
     for step in MAX_STEP_UP + 1..=MAX_JUMP {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 19, TerrainProps::new())
             .with_col(11, 19, step + 1, TerrainProps::new())
             .build();
@@ -77,7 +77,7 @@ fn walker_jumps_right() {
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -98,7 +98,7 @@ fn walker_jumps_right() {
 #[test]
 fn walker_jumps_left() {
     for step in MAX_STEP_UP + 1..=MAX_JUMP {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 19, TerrainProps::new())
             .with_col(9, 19, step + 1, TerrainProps::new())
             .build();
@@ -108,7 +108,7 @@ fn walker_jumps_left() {
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -128,7 +128,7 @@ fn walker_jumps_left() {
 
 #[test]
 fn walker_should_turn_left() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 19, TerrainProps::new())
         .with_col(11, 19, MAX_JUMP + 2, TerrainProps::new())
         .build();
@@ -138,7 +138,7 @@ fn walker_should_turn_left() {
     let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -153,7 +153,7 @@ fn walker_should_turn_left() {
 
 #[test]
 fn walker_should_turn_right() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 19, TerrainProps::new())
         .with_col(9, 19, MAX_JUMP + 2, TerrainProps::new())
         .build();
@@ -163,7 +163,7 @@ fn walker_should_turn_right() {
     let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -178,7 +178,7 @@ fn walker_should_turn_right() {
 
 #[test]
 fn walker_wraps_animation() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_row(10, 19, 2, TerrainProps::new())
         .build();
 
@@ -190,7 +190,7 @@ fn walker_wraps_animation() {
     };
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -205,7 +205,7 @@ fn walker_wraps_animation() {
 #[test]
 fn walker_steps_down_right() {
     for step in 1..=MAX_STEP_DOWN {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 10, TerrainProps::new())
             .with(11, 10 + step, TerrainProps::new())
             .build();
@@ -215,7 +215,7 @@ fn walker_steps_down_right() {
         let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -234,7 +234,7 @@ fn walker_steps_down_right() {
 #[test]
 fn walker_steps_down_left() {
     for step in 1..=MAX_STEP_DOWN {
-        let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with(10, 10, TerrainProps::new())
             .with(9, 10 + step, TerrainProps::new())
             .build();
@@ -244,7 +244,7 @@ fn walker_steps_down_left() {
         let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
 
-        lemming.tick(&terrain_fixture, &mut objects_fixture);
+        lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         assert_eq!(
             lemming,
@@ -262,7 +262,7 @@ fn walker_steps_down_left() {
 
 #[test]
 fn walker_starts_falling_right() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 10, TerrainProps::new())
         .with(11, 10 + MAX_STEP_DOWN + 1, TerrainProps::new())
         .build();
@@ -272,7 +272,7 @@ fn walker_starts_falling_right() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -289,7 +289,7 @@ fn walker_starts_falling_right() {
 
 #[test]
 fn walker_starts_falling_left() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, 10, TerrainProps::new())
         .with(9, 10 + MAX_STEP_DOWN + 1, TerrainProps::new())
         .build();
@@ -299,7 +299,7 @@ fn walker_starts_falling_left() {
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -316,7 +316,7 @@ fn walker_starts_falling_left() {
 
 #[test]
 fn walker_turns_at_left_boundary() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_row(0, 10, 2, TerrainProps::new())
         .build();
 
@@ -325,7 +325,7 @@ fn walker_turns_at_left_boundary() {
     let lemming_fixture = LemmingState::fixture(1, 10, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -340,7 +340,7 @@ fn walker_turns_at_left_boundary() {
 
 #[test]
 fn walker_turns_at_right_boundary() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with_row(18, 10, 2, TerrainProps::new())
         .build();
 
@@ -349,7 +349,7 @@ fn walker_turns_at_right_boundary() {
     let lemming_fixture = LemmingState::fixture(18, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -364,7 +364,7 @@ fn walker_turns_at_right_boundary() {
 
 #[test]
 fn walker_hits_ceiling_right() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, MIN_FOOT_Y as u32, TerrainProps::new())
         .with_col(11, MIN_FOOT_Y as u32, 2, TerrainProps::new())
         .build();
@@ -375,7 +375,7 @@ fn walker_hits_ceiling_right() {
         LemmingState::fixture(10, MIN_FOOT_Y, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,
@@ -391,7 +391,7 @@ fn walker_hits_ceiling_right() {
 
 #[test]
 fn walker_hits_ceiling_left() {
-    let terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
         .with(10, MIN_FOOT_Y as u32, TerrainProps::new())
         .with_col(9, MIN_FOOT_Y as u32, 2, TerrainProps::new())
         .build();
@@ -401,7 +401,7 @@ fn walker_hits_ceiling_left() {
     let lemming_fixture = LemmingState::fixture(10, MIN_FOOT_Y, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
 
-    lemming.tick(&terrain_fixture, &mut objects_fixture);
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
     assert_eq!(
         lemming,

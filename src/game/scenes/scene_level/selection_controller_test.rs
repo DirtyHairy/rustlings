@@ -180,7 +180,7 @@ fn update_classifies_prio_activities_as_primary() {
     let prio_activities = [
         Activity::Blocking,
         Activity::Bashing,
-        Activity::Digging,
+        Activity::Digging(Default::default()),
         Activity::Mining,
         Activity::Building,
     ];
