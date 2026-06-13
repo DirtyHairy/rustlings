@@ -349,11 +349,10 @@ impl LemmingState {
             unreachable!();
         };
 
-        let dy = terrain.delta_y_descend(self.x, self.y, 4);
+        let dy = terrain.delta_y_descend(self.x, self.y, FALL_DISTANCE_PER_FRAME);
 
-        if dy <= FALL_DISTANCE_PER_FRAME {
+        if dy < FALL_DISTANCE_PER_FRAME {
             self.y += dy as i32;
-            state.delta_y += dy;
 
             transition_to = Some(if state.delta_y <= MAX_SAFE_FALL {
                 Activity::Walking

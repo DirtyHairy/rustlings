@@ -11,7 +11,9 @@ use crate::{
 
 #[test]
 fn faller_falls() {
-    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        .with(10, 13, TerrainProps::new())
+        .build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
@@ -51,7 +53,7 @@ fn faller_lands_safely() {
         10,
         Direction::Right,
         Activity::Falling(ActivityStateFalling {
-            delta_y: MAX_SAFE_FALL - 2,
+            delta_y: MAX_SAFE_FALL,
         }),
     );
     let mut lemming = lemming_fixture.clone();
@@ -83,7 +85,7 @@ fn faller_splats() {
         10,
         Direction::Right,
         Activity::Falling(ActivityStateFalling {
-            delta_y: MAX_SAFE_FALL - 1,
+            delta_y: MAX_SAFE_FALL + 1,
         }),
     );
     let mut lemming = lemming_fixture.clone();
