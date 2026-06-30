@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TerrainDiffKind {
     Dig,
 }
@@ -9,7 +9,7 @@ pub enum VisibilityTarget {
     Late,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TerrainDiff {
     pub x: i32,
     pub y: i32,

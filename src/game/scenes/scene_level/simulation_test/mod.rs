@@ -1,3 +1,4 @@
+mod digger;
 mod drowning;
 mod environment;
 mod faller;

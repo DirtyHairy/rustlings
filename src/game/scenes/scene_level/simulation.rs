@@ -71,7 +71,8 @@ const MAX_JUMP: u32 = 6;
 const MAX_STEP_DOWN: u32 = 3;
 const JUMP_DISTANCE: u32 = 2;
 
-const BASH_LINE_WIDTH: u32 = 9;
+const DIG_LINE_WIDTH: u32 = 9;
+const DIG_X_OFFSET: i32 = -4;
 
 const MIN_FOOT_Y: i32 = 5;
 const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
@@ -483,20 +484,22 @@ impl LemmingState {
         state.newborn = false;
 
         if newborn {
-            terrain.dig(self.x - 4, self.y - 2);
-            terrain.dig(self.x - 4, self.y - 1);
+            terrain.dig(self.x + DIG_X_OFFSET, self.y - 2);
+            terrain.dig(self.x + DIG_X_OFFSET, self.y - 1);
         }
 
         if self.frame == 0 || self.frame == 8 {
             let y = self.y;
             self.y += 1;
 
-            if !terrain.dig(self.x - 4, y) {
+            if !terrain.dig(self.x + DIG_X_OFFSET, y) {
                 self.transition_to(Activity::Falling(Default::default()));
             }
         }
 
-        self.frame = (self.frame + 1) % self.animation.frame_count();
+        if matches!(self.activity, Activity::Digging(_)) {
+            self.frame = (self.frame + 1) % self.animation.frame_count();
+        }
 
         LemmingVerdict::Continue
     }
@@ -667,7 +670,7 @@ impl<'a> Terrain<'a> {
 
         let x_start = x.max(0);
         let x_end = x
-            .saturating_add_unsigned(BASH_LINE_WIDTH)
+            .saturating_add_unsigned(DIG_LINE_WIDTH)
             .min(terrain_width as i32 - 1);
 
         if x_end < 0 {
