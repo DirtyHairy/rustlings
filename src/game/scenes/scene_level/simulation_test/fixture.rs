@@ -81,6 +81,10 @@ impl LemmingState {
 
         lemming
     }
+
+    pub fn with_frame(self, frame: usize) -> Self {
+        Self { frame, ..self }
+    }
 }
 
 impl Terrain<'_> {

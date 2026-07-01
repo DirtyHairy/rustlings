@@ -360,12 +360,15 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         let engine_ticks_old = clock_msec_old / self.engine_tick_msec();
         let engine_ticks = clock_msec / self.engine_tick_msec();
 
-        self.renderer
-            .apply_diff(canvas, self.simulation.get_diff(), VisibilityTarget::Late)?;
-        self.simulation.clear_diff();
-
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
+                self.renderer.apply_diff(
+                    canvas,
+                    self.simulation.get_diff(),
+                    VisibilityTarget::Late,
+                )?;
+                self.simulation.clear_diff();
+
                 self.simulation_tick();
                 self.pause_tick_scheduled = false;
 

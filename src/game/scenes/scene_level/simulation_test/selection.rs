@@ -493,7 +493,7 @@ fn assign_digger_transitions_to_digging() {
         LemmingState {
             activity: Activity::Digging(Default::default()),
             animation: LemmingAnimation::Digging,
-            frame: 0,
+            frame: 15,
             ..fixture
         }
     );

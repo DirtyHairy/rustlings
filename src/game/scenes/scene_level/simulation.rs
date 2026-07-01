@@ -338,7 +338,11 @@ impl LemmingState {
             return;
         }
 
-        self.frame = 0;
+        self.frame = match activity {
+            Activity::Digging(_) => activity.default_animation().frame_count() - 1,
+            _ => 0,
+        };
+
         self.animation = activity.default_animation();
         self.activity = activity;
     }
@@ -488,7 +492,7 @@ impl LemmingState {
             terrain.dig(self.x + DIG_X_OFFSET, self.y - 1);
         }
 
-        if self.frame == 0 || self.frame == 8 {
+        if self.frame == 15 || self.frame == 7 {
             let y = self.y;
             self.y += 1;
 

@@ -18,7 +18,8 @@ fn digger_digs_three_lines_and_moves_down_on_first_frame() {
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
     let lemming_fixture =
-        LemmingState::fixture(8, 7, Direction::Left, Activity::Digging(Default::default()));
+        LemmingState::fixture(8, 7, Direction::Left, Activity::Digging(Default::default()))
+            .with_frame(15);
     let mut lemming = lemming_fixture.clone();
 
     lemming.tick(&mut terrain_fixture, &mut objects_fixture);
@@ -27,7 +28,7 @@ fn digger_digs_three_lines_and_moves_down_on_first_frame() {
         lemming,
         LemmingState {
             y: 8,
-            frame: 1,
+            frame: 0,
             activity: Activity::Digging(ActivityStateDigging { newborn: false }),
             ..lemming_fixture
         }
@@ -57,7 +58,7 @@ fn digger_digs_three_lines_and_moves_down_on_first_frame() {
 }
 
 #[test]
-fn digger_digs_and_moves_down_on_frames_0_and_8() {
+fn digger_digs_and_moves_down_on_frames_15_and_7() {
     for frame in 0..LemmingAnimation::Digging.frame_count() {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
             .with_block(5, 5, 10, 10, TerrainProps::new())
@@ -65,21 +66,19 @@ fn digger_digs_and_moves_down_on_frames_0_and_8() {
 
         let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
-        let lemming_fixture = LemmingState {
-            frame,
-            ..LemmingState::fixture(
-                8,
-                5,
-                Direction::Left,
-                Activity::Digging(ActivityStateDigging { newborn: false }),
-            )
-        };
+        let lemming_fixture = LemmingState::fixture(
+            8,
+            5,
+            Direction::Left,
+            Activity::Digging(ActivityStateDigging { newborn: false }),
+        )
+        .with_frame(frame);
         let mut lemming = lemming_fixture.clone();
 
         lemming.tick(&mut terrain_fixture, &mut objects_fixture);
 
         match frame {
-            0 | 8 => {
+            7 | 15 => {
                 assert_eq!(
                     lemming,
                     LemmingState {
@@ -126,7 +125,8 @@ fn digger_transitions_to_faller_if_it_cannot_dig() {
         5,
         Direction::Left,
         Activity::Digging(ActivityStateDigging { newborn: false }),
-    );
+    )
+    .with_frame(15);
     let mut lemming = lemming_fixture.clone();
 
     lemming.tick(&mut terrain_fixture, &mut objects_fixture);
@@ -137,6 +137,7 @@ fn digger_transitions_to_faller_if_it_cannot_dig() {
             y: 6,
             activity: Activity::Falling(Default::default()),
             animation: LemmingAnimation::Falling,
+            frame: 0,
             ..lemming_fixture
         }
     );
@@ -148,15 +149,13 @@ fn digger_does_not_transition_to_faller_if_it_does_not_attempt_to_dig() {
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 
-    let lemming_fixture = LemmingState {
-        frame: 1,
-        ..LemmingState::fixture(
-            8,
-            5,
-            Direction::Left,
-            Activity::Digging(ActivityStateDigging { newborn: false }),
-        )
-    };
+    let lemming_fixture = LemmingState::fixture(
+        8,
+        5,
+        Direction::Left,
+        Activity::Digging(ActivityStateDigging { newborn: false }),
+    )
+    .with_frame(0);
     let mut lemming = lemming_fixture.clone();
 
     lemming.tick(&mut terrain_fixture, &mut objects_fixture);
@@ -164,7 +163,7 @@ fn digger_does_not_transition_to_faller_if_it_does_not_attempt_to_dig() {
     assert_eq!(
         lemming,
         LemmingState {
-            frame: 2,
+            frame: 1,
             ..lemming_fixture
         }
     );
