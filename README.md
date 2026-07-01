@@ -6,9 +6,8 @@ physics and high-quality upscaled graphics rendered at the native screen refresh
 rate.
 
 The game loads all original levels in the correct order, the interface is fully
-working, and I am currently in the progress of implementing the skills. As
-skills get implemented, more and more levels become completable. Still missing
-are
+working, and I am currently in progress of implementing the skills. As skills
+get implemented, more and more levels become completable. Still missing are
 
 - Bashers, Miners, Bombers, Builders, Blockers
 - Steel areas
