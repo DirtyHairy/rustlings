@@ -162,12 +162,18 @@ impl Simulation {
     }
 
     pub fn assign_skill(
-        &self,
+        &mut self,
         state: &mut SceneStateLevel,
         index: usize,
         skill: Skill,
     ) -> SelectionResult {
-        state.lemmings[index].assign_skill(skill)
+        let terrain = Terrain::new(
+            &mut state.terrain,
+            &mut state.terrain_map,
+            &mut self.terrain_diff,
+        );
+
+        state.lemmings[index].assign_skill(&terrain, skill)
     }
 
     pub fn get_diff(&self) -> &[TerrainDiff] {
@@ -284,8 +290,8 @@ impl LemmingState {
         }
     }
 
-    fn assign_skill(&mut self, skill: Skill) -> SelectionResult {
-        if !self.supports_skill_tier1(skill) {
+    fn assign_skill(&mut self, terrain: &Terrain, skill: Skill) -> SelectionResult {
+        if !self.supports_skill_tier1(terrain, skill) {
             return SelectionResult::Abort;
         }
 
@@ -498,6 +504,8 @@ impl LemmingState {
 
             if !terrain.dig(self.x + DIG_X_OFFSET, y) {
                 self.transition_to(Activity::Falling(Default::default()));
+            } else if terrain.is_steel(self.x, self.y) {
+                self.transition_to(Activity::Walking);
             }
         }
 
@@ -569,9 +577,11 @@ impl LemmingState {
         }
     }
 
-    fn supports_skill_tier1(&self, _skill: Skill) -> bool {
-        // handle steel / terrain rejection for diggers and builder
-        true
+    fn supports_skill_tier1(&self, terrain: &Terrain, skill: Skill) -> bool {
+        match skill {
+            Skill::Digger => !terrain.is_steel(self.x, self.y),
+            _ => true,
+        }
     }
 
     fn supports_skill_tier2(&self, skill: Skill) -> bool {
@@ -634,6 +644,12 @@ impl<'a> Terrain<'a> {
             .unwrap_or(false)
     }
 
+    fn is_steel(&self, x: i32, y: i32) -> bool {
+        self.terrain_at(x, y)
+            .map(|terrain_info| terrain_info.steel())
+            .unwrap_or(false)
+    }
+
     fn delta_y_ascend(&self, x: i32, y: i32, limit: u32) -> u32 {
         let mut dy: u32 = 0;
 
@@ -687,6 +703,10 @@ impl<'a> Terrain<'a> {
         if !self.map[extend_start..extend_end].iter().any(|t| t.solid()) {
             return false;
         }
+
+        self.map[extend_start..extend_end]
+            .iter_mut()
+            .for_each(|terrain_prop| terrain_prop.set_solid(false));
 
         self.map[extend_start..extend_end].fill(TerrainProps::new());
         self.bitmap.data[extend_start..extend_end].fill(0);

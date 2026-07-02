@@ -32,6 +32,14 @@ pub struct Object {
 }
 
 #[derive(Clone)]
+pub struct SteelArea {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Clone)]
 pub struct LevelParameters {
     pub release_rate: u32,
     pub released: u32,
@@ -48,6 +56,7 @@ pub struct Level {
     pub graphics_set: u32,
     pub extended_graphics_set: u32,
     pub terrain_tiles: Vec<TerrainTile>,
+    pub steel_areas: Vec<SteelArea>,
     pub objects: Vec<Object>,
 }
 
@@ -104,19 +113,20 @@ fn decode_level(data: &[u8]) -> Result<Level> {
         *skill = read16(data, 0x08 + 2 * i)? as u32;
     }
 
-    let mut terrain_tiles: Vec<TerrainTile> = Vec::new();
-    for i in 0..400 {
-        if let Some(tile) = read_terrain_tile(data, i)? {
-            terrain_tiles.push(tile);
-        }
-    }
+    let terrain_tiles = (0..400)
+        .map(|i| read_terrain_tile(data, i))
+        .filter_map(Result::transpose)
+        .collect::<Result<_>>()?;
 
-    let mut objects: Vec<Object> = Vec::new();
-    for i in 0..32 {
-        if let Some(object) = read_object(data, i)? {
-            objects.push(object);
-        }
-    }
+    let objects = (0..32)
+        .map(|i| read_object(data, i))
+        .filter_map(Result::transpose)
+        .collect::<Result<_>>()?;
+
+    let steel_areas = (0..32)
+        .map(|i| read_steel_area(data, i))
+        .filter_map(Result::transpose)
+        .collect::<Result<_>>()?;
 
     Ok(Level {
         parameters: LevelParameters {
@@ -132,6 +142,7 @@ fn decode_level(data: &[u8]) -> Result<Level> {
         extended_graphics_set: read16(data, 0x1c)? as u32,
         terrain_tiles,
         objects,
+        steel_areas,
     })
 }
 
@@ -215,6 +226,27 @@ fn read_object(data: &[u8], index: usize) -> Result<Option<Object>> {
         do_not_overwrite: (flags & 0x80) != 0,
         draw_only_over_terrain: (flags & 0x40) != 0,
         flip_y: (flip & 0x80) != 0,
+    }))
+}
+
+fn read_steel_area(data: &[u8], index: usize) -> Result<Option<SteelArea>> {
+    if index >= 32 {
+        bail!("invalid steel area index");
+    }
+
+    let x = read16(data, 0x760 + 4 * index)? as u16;
+    let area = read8(data, 0x762 + 4 * index)? as u8;
+    let fill = read8(data, 0x763 + 4 * index)? as u8;
+
+    if x == 0 && area == 0 && fill == 0 {
+        return Ok(None);
+    }
+
+    Ok(Some(SteelArea {
+        x: 4 * ((x >> 7) as i32) - 16,
+        y: (x & 0x7f) as i32 * 4,
+        width: 4 * ((area >> 4) + 1) as u32,
+        height: 4 * ((area & 0x0f) + 1) as u32,
     }))
 }
 

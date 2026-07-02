@@ -144,6 +144,38 @@ fn digger_transitions_to_faller_if_it_cannot_dig() {
 }
 
 #[test]
+fn digger_transitions_to_walker_if_it_hits_steel() {
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        .with_row(0, 5, 20, TerrainProps::new())
+        .with(8, 6, TerrainProps::new().with_steel(true))
+        .build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState::fixture(
+        8,
+        5,
+        Direction::Left,
+        Activity::Digging(ActivityStateDigging { newborn: false }),
+    )
+    .with_frame(15);
+    let mut lemming = lemming_fixture.clone();
+
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(
+        lemming,
+        LemmingState {
+            y: 6,
+            activity: Activity::Walking,
+            animation: LemmingAnimation::Walking,
+            frame: 0,
+            ..lemming_fixture
+        }
+    );
+}
+
+#[test]
 fn digger_does_not_transition_to_faller_if_it_does_not_attempt_to_dig() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 

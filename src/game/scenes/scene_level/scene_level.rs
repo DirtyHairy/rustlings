@@ -488,5 +488,16 @@ fn init_terrain_map(
         }
     }
 
+    for steel_area in level.steel_areas.iter() {
+        let steel_x = steel_area.x.max(0) as u32;
+        let steel_y = steel_area.y.max(0) as u32;
+
+        for y in steel_y..(steel_y + steel_area.height).min(LEVEL_HEIGHT) {
+            for x in steel_x..(steel_x + steel_area.width).min(LEVEL_WIDTH) {
+                terrain_map[(y * LEVEL_WIDTH + x) as usize].set_steel(true);
+            }
+        }
+    }
+
     Ok(())
 }
