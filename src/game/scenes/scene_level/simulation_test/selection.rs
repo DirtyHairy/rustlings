@@ -450,6 +450,25 @@ fn assign_blocker_transitions_to_blocking() {
 }
 
 #[test]
+fn assign_blocker_fails_if_block_field_overlaps() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20).build();
+    terrain.create_block_field(9, 9);
+
+    let fixture = LemmingState {
+        activity: Activity::Walking,
+        x: 9,
+        y: 9,
+        ..Default::default()
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Blocker);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
 fn assign_builder_transitions_to_building() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
