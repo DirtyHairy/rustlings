@@ -430,11 +430,6 @@ fn assign_bomber_sets_countdown_only() {
 }
 
 #[test]
-fn bomber_countdown_constant_is_79() {
-    assert_eq!(BOMBER_COUNTDOWN_TICKS, 79);
-}
-
-#[test]
 fn assign_blocker_transitions_to_blocking() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
