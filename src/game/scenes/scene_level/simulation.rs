@@ -6,10 +6,11 @@ use rustlings::game_data::{
 };
 
 use crate::{
-    scenes::scene_level::terrain_diff::{TerrainDiff, TerrainDiffKind},
+    scenes::scene_level::terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
     state::{
-        Activity, ActivityStateDigging, ActivityStateFalling, LemmingAnimation, LemmingHealth,
-        LemmingState, LevelState, ObjectState, SceneStateLevel, TerrainProps,
+        Activity, ActivityStateDigging, ActivityStateFalling, BlockField, Direction,
+        LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel,
+        TerrainProps,
     },
 };
 
@@ -71,7 +72,6 @@ const MAX_JUMP: u32 = 6;
 const MAX_STEP_DOWN: u32 = 3;
 const JUMP_DISTANCE: u32 = 2;
 
-const DIG_LINE_WIDTH: u32 = 9;
 const DIG_X_OFFSET: i32 = -4;
 
 const MIN_FOOT_Y: i32 = 5;
@@ -167,13 +167,13 @@ impl Simulation {
         index: usize,
         skill: Skill,
     ) -> SelectionResult {
-        let terrain = Terrain::new(
+        let mut terrain = Terrain::new(
             &mut state.terrain,
             &mut state.terrain_map,
             &mut self.terrain_diff,
         );
 
-        state.lemmings[index].assign_skill(&terrain, skill)
+        state.lemmings[index].assign_skill(&mut terrain, skill)
     }
 
     pub fn get_diff(&self) -> &[TerrainDiff] {
@@ -268,10 +268,11 @@ impl Simulation {
 
 impl LemmingState {
     fn tick(&mut self, terrain: &mut Terrain, objects: &mut [ObjectState]) -> LemmingVerdict {
-        let verdict = match &self.activity {
+        let mut verdict = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain),
             Activity::Walking => self.tick_walker(terrain),
             Activity::Digging(_) => self.tick_digger(terrain),
+            Activity::Blocking => self.tick_blocker(terrain),
             Activity::Splatting | Activity::Frying => self.tick_death(),
             Activity::Jumping => self.tick_jumper(terrain),
             Activity::Drowning => self.tick_drowner(terrain),
@@ -280,17 +281,36 @@ impl LemmingState {
             _ => LemmingVerdict::Continue,
         };
 
+        self.turn_if_blocked(terrain);
+
         if verdict != LemmingVerdict::Death
             && (self.y >= (LEVEL_HEIGHT + self.animation.foot().1) as i32
                 || !self.process_environment(terrain, objects))
         {
-            LemmingVerdict::Death
-        } else {
-            verdict
+            verdict = LemmingVerdict::Death;
+        }
+
+        if verdict == LemmingVerdict::Death && matches!(self.activity, Activity::Blocking) {
+            terrain.clear_block_field(self.x, self.y);
+        }
+
+        verdict
+    }
+
+    fn turn_if_blocked(&mut self, terrain: &Terrain) {
+        let block_field = terrain
+            .terrain_at(self.x, self.y)
+            .unwrap_or_default()
+            .block_field();
+
+        match (block_field, self.direction) {
+            (BlockField::Left, Direction::Right) => self.direction = Direction::Left,
+            (BlockField::Right, Direction::Left) => self.direction = Direction::Right,
+            _ => (),
         }
     }
 
-    fn assign_skill(&mut self, terrain: &Terrain, skill: Skill) -> SelectionResult {
+    fn assign_skill(&mut self, terrain: &mut Terrain, skill: Skill) -> SelectionResult {
         if !self.supports_skill_tier1(terrain, skill) {
             return SelectionResult::Abort;
         }
@@ -303,7 +323,7 @@ impl LemmingState {
             return SelectionResult::Abort;
         }
 
-        self.assign_skill_unchecked(skill);
+        self.assign_skill_unchecked(terrain, skill);
 
         SelectionResult::Success
     }
@@ -516,6 +536,17 @@ impl LemmingState {
         LemmingVerdict::Continue
     }
 
+    fn tick_blocker(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        if terrain.is_solid(self.x, self.y) {
+            self.frame = (self.frame + 1) % self.animation.frame_count();
+        } else {
+            terrain.clear_block_field(self.x, self.y);
+            self.transition_to(Activity::Walking);
+        }
+
+        LemmingVerdict::Continue
+    }
+
     fn turn_if_ceiling(&mut self) {
         if self.y < MIN_FOOT_Y {
             self.direction = !self.direction;
@@ -564,12 +595,15 @@ impl LemmingState {
         }
     }
 
-    fn assign_skill_unchecked(&mut self, skill: Skill) {
+    fn assign_skill_unchecked(&mut self, terrain: &mut Terrain, skill: Skill) {
         match skill {
             Skill::Floater => self.floater = true,
             Skill::Climber => self.climber = true,
             Skill::Basher => self.transition_to(Activity::Bashing),
-            Skill::Blocker => self.transition_to(Activity::Blocking),
+            Skill::Blocker => {
+                self.transition_to(Activity::Blocking);
+                terrain.create_block_field(self.x, self.y);
+            }
             Skill::Bomber => self.countdown = Some(BOMBER_COUNTDOWN_TICKS),
             Skill::Builder => self.transition_to(Activity::Building),
             Skill::Digger => self.transition_to(Activity::Digging(Default::default())),
@@ -580,6 +614,7 @@ impl LemmingState {
     fn supports_skill_tier1(&self, terrain: &Terrain, skill: Skill) -> bool {
         match skill {
             Skill::Digger => !terrain.is_steel(self.x, self.y),
+            Skill::Blocker => !terrain.block_field_overlaps(self.x, self.y),
             _ => true,
         }
     }
@@ -691,7 +726,7 @@ impl<'a> Terrain<'a> {
         let x_start = x.max(0);
         let x_end = x
             .saturating_add_unsigned(DIG_LINE_WIDTH)
-            .min(terrain_width as i32 - 1);
+            .min(terrain_width as i32);
 
         if x_end < 0 {
             return false;
@@ -719,6 +754,98 @@ impl<'a> Terrain<'a> {
         });
 
         true
+    }
+
+    fn block_field_overlaps(&self, x: i32, y: i32) -> bool {
+        let terrain_width = self.width();
+
+        let Some((x_left, x_right, y_top, y_bottom)) = self.block_field_bounds(x, y) else {
+            return false;
+        };
+
+        for iy in y_top..y_bottom {
+            let extend_start = iy as usize * terrain_width as usize + x_left as usize;
+            let extend_end = iy as usize * terrain_width as usize + x_right as usize;
+
+            if self.map[extend_start..extend_end]
+                .iter()
+                .any(|t| t.block_field() != BlockField::None)
+            {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn clear_block_field(&mut self, x: i32, y: i32) {
+        let terrain_width = self.width();
+
+        let Some((x_left, x_right, y_top, y_bottom)) = self.block_field_bounds(x, y) else {
+            return;
+        };
+
+        for iy in y_top..y_bottom {
+            let extend_start = iy as usize * terrain_width as usize + x_left as usize;
+            let extend_end = iy as usize * terrain_width as usize + x_right as usize;
+
+            self.map[extend_start..extend_end].iter_mut().for_each(|t| {
+                t.set_block_field(BlockField::None);
+            });
+        }
+    }
+
+    fn create_block_field(&mut self, x: i32, y: i32) {
+        let terrain_height = self.height();
+
+        let x_left = (x - 4) & !0x03;
+
+        let y_top = ((y - 6) & !0x03).max(0);
+        let y_bottom = ((y + 6) & !0x03).min(terrain_height as i32);
+
+        if y_bottom < 0 || y_top >= terrain_height as i32 {
+            return;
+        }
+
+        for iy in y_top..y_bottom {
+            (x_left..x_left + 4).for_each(|ix| self.set_block_field_at(ix, iy, BlockField::Left));
+            (x_left + 4..x_left + 8)
+                .for_each(|ix| self.set_block_field_at(ix, iy, BlockField::Center));
+            (x_left + 8..x_left + 12)
+                .for_each(|ix| self.set_block_field_at(ix, iy, BlockField::Right));
+        }
+    }
+
+    fn set_block_field_at(&mut self, x: i32, y: i32, block_field: BlockField) {
+        let terrain_width = self.width();
+        let terrain_height = self.height();
+
+        if x < 0 || x >= terrain_width as i32 || y < 0 || y >= terrain_height as i32 {
+            return;
+        }
+
+        self.map[y as usize * terrain_width as usize + x as usize].set_block_field(block_field);
+    }
+
+    fn block_field_bounds(&self, x: i32, y: i32) -> Option<(u32, u32, u32, u32)> {
+        let terrain_width = self.width();
+        let terrain_height = self.height();
+
+        let x_left = ((x - 4) & !0x03).max(0);
+        let x_right = ((x + 8) & !0x03).min(terrain_width as i32);
+
+        if x_right < 0 || x_left >= terrain_width as i32 {
+            return None;
+        }
+
+        let y_top = ((y - 6) & !0x03).max(0);
+        let y_bottom = ((y + 6) & !0x03).min(terrain_height as i32);
+
+        if y_bottom < 0 || y_top >= terrain_height as i32 {
+            return None;
+        }
+
+        Some((x_left as u32, x_right as u32, y_top as u32, y_bottom as u32))
     }
 }
 

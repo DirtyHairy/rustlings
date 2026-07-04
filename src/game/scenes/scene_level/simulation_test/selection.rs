@@ -26,17 +26,17 @@ fn fixture_in(activity: Activity) -> LemmingState {
 }
 
 fn assign_on(activity: Activity, skill: Skill) -> SelectionResult {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
 
-    fixture_in(activity).assign_skill(&terrain, skill)
+    fixture_in(activity).assign_skill(&mut terrain, skill)
 }
 
 fn assign_with_health(activity: Activity, health: LemmingHealth, skill: Skill) -> SelectionResult {
     let mut lemming = fixture_in(activity);
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
 
     lemming.health = health;
-    lemming.assign_skill(&terrain, skill)
+    lemming.assign_skill(&mut terrain, skill)
 }
 
 #[test]
@@ -297,43 +297,43 @@ fn exploding_rejects_all_skills() {
 
 #[test]
 fn climber_flag_rejects_climber_skill() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Walking);
     lemming.climber = true;
 
     assert_eq!(
-        lemming.assign_skill(&terrain, Skill::Climber),
+        lemming.assign_skill(&mut terrain, Skill::Climber),
         SelectionResult::Abort
     );
 }
 
 #[test]
 fn floater_flag_rejects_floater_skill() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Walking);
     lemming.floater = true;
 
     assert_eq!(
-        lemming.assign_skill(&terrain, Skill::Floater),
+        lemming.assign_skill(&mut terrain, Skill::Floater),
         SelectionResult::Abort
     );
 }
 
 #[test]
 fn countdown_rejects_bomber_skill() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Walking);
     lemming.countdown = Some(42);
 
     assert_eq!(
-        lemming.assign_skill(&terrain, Skill::Bomber),
+        lemming.assign_skill(&mut terrain, Skill::Bomber),
         SelectionResult::Abort
     );
 }
 
 #[test]
 fn athlete_walking_rejects_climber_and_floater_but_admits_terrain() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
 
     for skill in SKILLS {
         let mut lemming = fixture_in(Activity::Walking);
@@ -345,7 +345,7 @@ fn athlete_walking_rejects_climber_and_floater_but_admits_terrain() {
             _ => SelectionResult::Success,
         };
         assert_eq!(
-            lemming.assign_skill(&terrain, skill),
+            lemming.assign_skill(&mut terrain, skill),
             expected,
             "skill={}",
             skill
@@ -355,33 +355,33 @@ fn athlete_walking_rejects_climber_and_floater_but_admits_terrain() {
 
 #[test]
 fn climbing_with_floater_false_accepts_floater() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Climbing);
 
     assert_eq!(
-        lemming.assign_skill(&terrain, Skill::Floater),
+        lemming.assign_skill(&mut terrain, Skill::Floater),
         SelectionResult::Success
     );
 }
 
 #[test]
 fn floating_with_climber_false_accepts_climber() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Floating(Default::default()));
 
     assert_eq!(
-        lemming.assign_skill(&terrain, Skill::Climber),
+        lemming.assign_skill(&mut terrain, Skill::Climber),
         SelectionResult::Success
     );
 }
 
 #[test]
 fn assign_climber_sets_climber_flag_only() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Climber);
+    let result = lemming.assign_skill(&mut terrain, Skill::Climber);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -395,11 +395,11 @@ fn assign_climber_sets_climber_flag_only() {
 
 #[test]
 fn assign_floater_sets_floater_flag_only() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Floater);
+    let result = lemming.assign_skill(&mut terrain, Skill::Floater);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -413,11 +413,11 @@ fn assign_floater_sets_floater_flag_only() {
 
 #[test]
 fn assign_bomber_sets_countdown_only() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Bomber);
+    let result = lemming.assign_skill(&mut terrain, Skill::Bomber);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -436,11 +436,11 @@ fn bomber_countdown_constant_is_79() {
 
 #[test]
 fn assign_blocker_transitions_to_blocking() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Blocker);
+    let result = lemming.assign_skill(&mut terrain, Skill::Blocker);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -456,11 +456,11 @@ fn assign_blocker_transitions_to_blocking() {
 
 #[test]
 fn assign_builder_transitions_to_building() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Builder);
+    let result = lemming.assign_skill(&mut terrain, Skill::Builder);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -476,11 +476,11 @@ fn assign_builder_transitions_to_building() {
 
 #[test]
 fn assign_basher_transitions_to_bashing() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Basher);
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -496,11 +496,11 @@ fn assign_basher_transitions_to_bashing() {
 
 #[test]
 fn assign_miner_transitions_to_mining() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Miner);
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -516,11 +516,11 @@ fn assign_miner_transitions_to_mining() {
 
 #[test]
 fn assign_digger_transitions_to_digging() {
-    let terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Digger);
+    let result = lemming.assign_skill(&mut terrain, Skill::Digger);
 
     assert_eq!(result, SelectionResult::Success);
     assert_eq!(
@@ -536,13 +536,13 @@ fn assign_digger_transitions_to_digging() {
 
 #[test]
 fn assign_digger_fails_if_on_steel() {
-    let terrain = TerrainFixtureBuilder::new(1, 1)
+    let mut terrain = TerrainFixtureBuilder::new(1, 1)
         .with(0, 0, TerrainProps::new().with_steel(true))
         .build();
     let fixture = fixture_in(Activity::Walking);
     let mut lemming = fixture.clone();
 
-    let result = lemming.assign_skill(&terrain, Skill::Digger);
+    let result = lemming.assign_skill(&mut terrain, Skill::Digger);
 
     assert_eq!(result, SelectionResult::Abort);
     assert_eq!(lemming, fixture);

@@ -2,6 +2,7 @@ use std::{collections::VecDeque, ops::Not};
 
 use bitfield_struct::bitfield;
 use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill};
+use strum::FromRepr;
 
 use crate::state::LemmingAnimation;
 
@@ -116,6 +117,28 @@ pub enum LevelState {
     Late,
 }
 
+#[repr(u8)]
+#[derive(FromRepr, Debug, PartialEq)]
+pub enum BlockField {
+    None = 0,
+    Left = 1,
+    Right = 2,
+    Center = 3,
+}
+
+impl BlockField {
+    const fn into_bits(self) -> u8 {
+        self as u8
+    }
+
+    const fn from_bits(value: u8) -> Self {
+        match Self::from_repr(value) {
+            Some(x) => x,
+            None => Self::None,
+        }
+    }
+}
+
 #[bitfield(u16)]
 pub struct TerrainProps {
     pub solid: bool,
@@ -126,6 +149,9 @@ pub struct TerrainProps {
     pub drown: bool,
     pub disintegrate: bool,
     pub trap: bool,
+    #[bits(2)]
+    pub block_field: BlockField,
+    #[bits(6)]
     pub object_index: u8,
 }
 

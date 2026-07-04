@@ -1,3 +1,5 @@
+pub const DIG_LINE_WIDTH: u32 = 8;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TerrainDiffKind {
     Dig,

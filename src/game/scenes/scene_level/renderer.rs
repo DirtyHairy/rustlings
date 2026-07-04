@@ -35,7 +35,7 @@ use crate::{
         cache::Cache,
         selection_controller::SelectionMode,
         skill_panel_renderer::SkillPanelRenderer,
-        terrain_diff::{TerrainDiff, TerrainDiffKind, VisibilityTarget},
+        terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind, VisibilityTarget},
     },
     state::{Direction, LemmingAnimation, SceneStateLevel},
 };
@@ -313,7 +313,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                         canvas.draw_line(
                             Point::new(entry.x, entry.y),
-                            Point::new(entry.x + 8, entry.y),
+                            Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
                         )?;
                     }
                 }
@@ -349,7 +349,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                         canvas.draw_line(
                             Point::new(entry.x, entry.y),
-                            Point::new(entry.x + 8, entry.y),
+                            Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
                         )?;
                     }
                 }
