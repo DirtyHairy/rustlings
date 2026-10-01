@@ -69,7 +69,7 @@ pub trait LevelStructure {
 
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
-    println!("reading {}", &filename);
+    println!("reading {}", filename);
 
     let compressed_level_data = fs::read(path.join(filename).as_os_str())?;
 

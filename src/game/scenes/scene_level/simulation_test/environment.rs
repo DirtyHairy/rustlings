@@ -199,7 +199,8 @@ fn lemming_removed_at_bottom() {
     let foot_height = LemmingAnimation::Falling.foot().1;
     let initial_y = (LEVEL_HEIGHT + foot_height - FALL_DISTANCE_PER_FRAME) as i32;
 
-    let mut terrain_fixture = TerrainFixtureBuilder::new(20, LEVEL_HEIGHT + foot_height + 10).build();
+    let mut terrain_fixture =
+        TerrainFixtureBuilder::new(20, LEVEL_HEIGHT + foot_height + 10).build();
 
     let mut objects_fixture: Vec<ObjectState> = Vec::new();
 

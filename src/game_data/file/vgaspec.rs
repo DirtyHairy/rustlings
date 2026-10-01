@@ -22,7 +22,7 @@ pub struct Content {
 
 pub fn read_vgaspec(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("vgaspec{}.dat", index);
-    println!("reading {}", &filename);
+    println!("reading {}", filename);
 
     let data = fs::read(path.join(&filename).as_os_str())?;
 

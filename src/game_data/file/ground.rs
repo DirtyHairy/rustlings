@@ -105,7 +105,7 @@ pub struct Content {
 
 pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
-    println!("reading {}", &filename);
+    println!("reading {}", filename);
 
     let data = fs::read(path.join(&filename).as_os_str())?;
 
@@ -135,7 +135,7 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     if offset != data.len() {
         bail!(
             "extra data left in {}: read {} bytes, but got {} bytes",
-            &filename,
+            filename,
             offset,
             data.len()
         );

@@ -20,7 +20,7 @@ pub fn read_vgagr(
     terrain_info: &[TerrainInfo],
 ) -> Result<Content> {
     let filename = format!("vgagr{}.dat", index);
-    println!("reading {}", &filename);
+    println!("reading {}", filename);
 
     let data = fs::read(path.join(&filename).as_os_str())?;
 
