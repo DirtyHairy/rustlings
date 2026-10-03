@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use rustlings::game_data::{
     Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS, Skill,
 };
@@ -8,12 +9,20 @@ use crate::{
     state::SceneStateLevel,
 };
 
+bitflags! {
+    #[derive( Clone, Copy, Default )]
+    struct InteractionSource: u32 {
+        const KEYBOARD = 0x01;
+        const MOUSE = 0x02;
+    }
+}
+
 #[derive(Default)]
 pub struct SkillPanelController {
-    incrementing: bool,
+    incrementing: InteractionSource,
     incremented: u32,
 
-    decrementing: bool,
+    decrementing: InteractionSource,
     decremented: u32,
 
     release_rate_min: u32,
@@ -37,11 +46,11 @@ impl SkillPanelController {
             SceneEvent::MouseUp(MouseButton::Left, _) => self.handle_mouse_up(state),
             SceneEvent::KeyDown { keycode, .. } => match keycode {
                 Keycode::Plus => {
-                    self.start_increment();
+                    self.start_increment(InteractionSource::KEYBOARD);
                     false
                 }
                 Keycode::Minus => {
-                    self.start_decrement();
+                    self.start_decrement(InteractionSource::KEYBOARD);
                     false
                 }
                 Keycode::_1 => {
@@ -84,11 +93,11 @@ impl SkillPanelController {
             },
             SceneEvent::KeyUp { keycode, .. } => match keycode {
                 Keycode::Plus => {
-                    self.stop_increment(state);
+                    self.stop_increment(state, InteractionSource::KEYBOARD);
                     true
                 }
                 Keycode::Minus => {
-                    self.stop_decrement(state);
+                    self.stop_decrement(state, InteractionSource::KEYBOARD);
                     true
                 }
                 _ => false,
@@ -98,15 +107,15 @@ impl SkillPanelController {
     }
 
     pub fn tick(&mut self, state: &mut SceneStateLevel) -> bool {
-        if self.incrementing {
+        if !self.incrementing.is_empty() {
             self.increase_release(state);
         }
 
-        if self.decrementing {
+        if !self.decrementing.is_empty() {
             self.decrement_release(state);
         }
 
-        self.incrementing || self.decrementing
+        !(self.incrementing.is_empty() && self.decrementing.is_empty())
     }
 
     fn handle_mouse_down(&mut self, state: &mut SceneStateLevel, x: u32, y: u32) -> bool {
@@ -118,11 +127,11 @@ impl SkillPanelController {
 
         match tile_index {
             0 => {
-                self.start_decrement();
+                self.start_decrement(InteractionSource::MOUSE);
                 false
             }
             1 => {
-                self.start_increment();
+                self.start_increment(InteractionSource::MOUSE);
                 false
             }
             2..10 => {
@@ -142,38 +151,52 @@ impl SkillPanelController {
     }
 
     fn handle_mouse_up(&mut self, state: &mut SceneStateLevel) -> bool {
-        let redraw = self.incrementing || self.decrementing;
+        let mut redraw = false;
 
-        self.stop_decrement(state);
-        self.stop_increment(state);
+        redraw |= self.stop_decrement(state, InteractionSource::MOUSE);
+        redraw |= self.stop_increment(state, InteractionSource::MOUSE);
 
         redraw
     }
 
-    fn start_increment(&mut self) {
-        self.incrementing = true;
-        self.incremented = 0;
+    fn start_increment(&mut self, source: InteractionSource) {
+        if self.incrementing.is_empty() {
+            self.incremented = 0;
+        }
+
+        self.incrementing.insert(source);
     }
 
-    fn stop_increment(&mut self, state: &mut SceneStateLevel) {
-        if self.incrementing && self.incremented == 0 {
+    fn stop_increment(&mut self, state: &mut SceneStateLevel, source: InteractionSource) -> bool {
+        let was_incrementing = self.incrementing;
+        self.incrementing.remove(source);
+
+        if !was_incrementing.is_empty() && self.incrementing.is_empty() && self.incremented == 0 {
             self.increase_release(state);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn start_decrement(&mut self, source: InteractionSource) {
+        if !self.decrementing.is_empty() {
+            self.decremented = 0;
         }
 
-        self.incrementing = false;
+        self.decrementing.insert(source);
     }
 
-    fn start_decrement(&mut self) {
-        self.decrementing = true;
-        self.decremented = 0;
-    }
+    fn stop_decrement(&mut self, state: &mut SceneStateLevel, source: InteractionSource) -> bool {
+        let was_decrementing = self.decrementing;
+        self.decrementing.remove(source);
 
-    fn stop_decrement(&mut self, state: &mut SceneStateLevel) {
-        if self.decrementing && self.decremented == 0 {
+        if !was_decrementing.is_empty() && self.decrementing.is_empty() && self.decremented == 0 {
             self.decrement_release(state);
+            true
+        } else {
+            false
         }
-
-        self.decrementing = false;
     }
 
     fn increase_release(&mut self, state: &mut SceneStateLevel) {

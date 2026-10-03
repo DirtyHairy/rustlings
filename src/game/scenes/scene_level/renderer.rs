@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::{Error, Result, anyhow, bail};
+use bitflags::bitflags;
 use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
@@ -40,13 +41,12 @@ use crate::{
     state::{Direction, LemmingAnimation, SceneStateLevel},
 };
 
-bitflags::bitflags! {
+bitflags! {
     #[derive(Clone, Copy)]
     pub struct Redraw: u32 {
         const LEVEL = 0x01;
         const SCREEN = 0x02;
         const SKILL_PANEL = 0x04;
-        const ALL = !0;
     }
 }
 
@@ -249,7 +249,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             vec![0; (minimap_pixel_count as f32 / 32.).ceil() as usize];
 
         Ok(Renderer {
-            redraw: Redraw::ALL,
+            redraw: Redraw::all(),
 
             texture_terrain,
             texture_minimap_frame,
