@@ -27,15 +27,7 @@ pub fn main(path: &Path) -> Result<()> {
 
         println!("’{}’", c);
         println!("===");
-        for y in 0..bitmap.height {
-            for x in 0..bitmap.width {
-                print!("{:#04x} ", bitmap.data[(y * bitmap.width + x) as usize]);
-            }
-
-            println!();
-        }
-
-        println!();
+        println!("{}", bitmap);
     }
 
     println!("skills");
@@ -54,15 +46,23 @@ pub fn main(path: &Path) -> Result<()> {
 
         println!("’{}’", c);
         println!("===");
-        for y in 0..bitmap.height {
-            for x in 0..bitmap.width {
-                print!("{:#04x} ", bitmap.data[(y * bitmap.width + x) as usize]);
-            }
+        println!("{}", bitmap);
+    }
 
-            println!();
-        }
+    println!("countdown");
+    println!("######");
+    println!();
 
-        println!();
+    for i in 0..10 {
+        let bitmap = game_data
+            .font_countdown
+            .frames
+            .get(i)
+            .ok_or(anyhow!("invalid countdown font index {}", i))?;
+
+        println!("'{}'", i);
+        println!("===");
+        println!("{}", bitmap);
     }
 
     Ok(())

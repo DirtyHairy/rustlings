@@ -10,6 +10,7 @@ pub const NUM_LEMMING_SPRITES: usize = 30;
 
 pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
+pub const FONT_COUNTDOWN_SIZE: usize = 10;
 
 const COLOR_WHITE: u8 = 0x03;
 const COLOR_BLACK: u8 = 0x00;
@@ -89,6 +90,7 @@ pub struct Content {
     pub skill_panel: Bitmap,
     pub font_skill_panel_skills: Sprite,
     pub font_skill_panel: Sprite,
+    pub font_countdown: Sprite,
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
@@ -121,9 +123,10 @@ pub fn read_main(path: &Path) -> Result<Content> {
 
     let mut font_skill_panel_skills = Sprite::blank(4, 8, FONT_SKILL_PANEL_SKILLS_SIZE);
     let mut font_skill_panel = Sprite::blank(8, 16, FONT_SKILL_PANEL_SIZE);
+    let mut font_countdown = Sprite::blank(8, 8, FONT_COUNTDOWN_SIZE);
 
     for i in 0..FONT_SKILL_PANEL_SKILLS_SIZE - 1 {
-        let font_bitmap = Bitmap::read_planar_mapped(
+        let char_bitmap = Bitmap::read_planar_mapped(
             8,
             8,
             1,
@@ -136,13 +139,13 @@ pub fn read_main(path: &Path) -> Result<Content> {
         )?
         .sub(0, 0, 4, 8)?;
 
-        font_skill_panel_skills.add_frame(&font_bitmap)?;
+        font_skill_panel_skills.add_frame(&char_bitmap)?;
     }
 
     font_skill_panel_skills.add_frame(&Bitmap::filled(4, 8, COLOR_WHITE, false))?;
 
     for i in 0..FONT_SKILL_PANEL_SIZE - 1 {
-        let font_bitmap = Bitmap::read_planar_mapped(
+        let char_bitmap = Bitmap::read_planar_mapped(
             8,
             16,
             3,
@@ -159,10 +162,26 @@ pub fn read_main(path: &Path) -> Result<Content> {
             },
         )?;
 
-        font_skill_panel.add_frame(&font_bitmap)?;
+        font_skill_panel.add_frame(&char_bitmap)?;
     }
 
     font_skill_panel.add_frame(&Bitmap::filled(8, 16, COLOR_BLACK, false))?;
+
+    for i in 0..FONT_COUNTDOWN_SIZE {
+        let char_bitmap = Bitmap::read_planar_mapped(
+            8,
+            8,
+            1,
+            sections[1]
+                .data
+                .get(0x134 + (FONT_COUNTDOWN_SIZE - 1 - i) * 8..)
+                .ok_or(anyhow!("countdown font data out of bounds"))?,
+            TransparencyEncoding::Black,
+            |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
+        )?;
+
+        font_countdown.add_frame(&char_bitmap)?;
+    }
 
     Ok(Content {
         lemming_sprites: lemming_sprites
@@ -172,6 +191,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
         skill_panel,
         font_skill_panel_skills,
         font_skill_panel,
+        font_countdown,
     })
 }
 

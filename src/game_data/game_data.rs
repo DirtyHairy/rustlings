@@ -49,6 +49,7 @@ pub struct GameData {
     pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
     pub static_palette: [PaletteEntry; PALETTE_SIZE],
     pub cursors: Cursors,
+    pub font_countdown: Sprite,
 }
 
 impl GameData {

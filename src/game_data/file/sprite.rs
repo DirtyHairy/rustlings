@@ -25,6 +25,30 @@ pub enum TransparencyEncoding<'a> {
     Opaque,
 }
 
+impl Display for Bitmap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        const HEX_CHARS: [char; 16] = [
+            '.', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+        ];
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let index = (y * self.width + x) as usize;
+
+                if self.transparency[index] {
+                    write!(f, "  ")?;
+                } else {
+                    write!(f, "{} ", HEX_CHARS[(self.data[index] % 16) as usize])?;
+                }
+            }
+
+            writeln!(f)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Bitmap {
     pub fn filled(width: u32, height: u32, fill: u8, transparency: bool) -> Self {
         let size = (width * height) as usize;
@@ -195,27 +219,9 @@ impl Bitmap {
 
 impl Display for Sprite {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for frame in &self.frames {
-            let mut i: usize = 0;
-
-            for _ in 0..self.height {
-                for _ in 0..self.width {
-                    let pixel = frame.data[i];
-                    let char = if pixel == 0 {
-                        String::from(" ")
-                    } else {
-                        pixel.to_string()
-                    };
-
-                    i += 1;
-                    write!(f, "{}{}", char, char)?;
-                }
-
-                writeln!(f)?;
-            }
-
-            writeln!(f)?;
-        }
+        self.frames
+            .iter()
+            .try_for_each(|frame| writeln!(f, "{}", frame))?;
 
         std::fmt::Result::Ok(())
     }
