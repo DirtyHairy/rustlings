@@ -85,6 +85,7 @@ pub struct Renderer<'texture_creator> {
     texture_screen: Texture<'texture_creator>,
 
     atlas: SdlAtlas<'texture_creator>,
+    sprite_index_countdown: usize,
 
     objects_background: Vec<Object>,
     objects_foreground: Vec<Object>,
@@ -138,7 +139,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         )?;
 
         let mut atlas_builder =
-            SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET);
+            SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET + 1);
 
         LemmingAnimation::VARIANTS
             .iter()
@@ -169,6 +170,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
             .iter()
             .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
             .collect();
+
+        let atlas_index_countdown = atlas_builder.add_sprite(&game_data.font_countdown);
 
         let atlas = atlas_builder.build(&palette, texture_creator)?;
         println!("built atlas, size is {}x{}", atlas.width(), atlas.height());
@@ -257,6 +260,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             texture_screen,
 
             atlas,
+            sprite_index_countdown: atlas_index_countdown,
 
             objects_merge,
             objects_foreground,
@@ -501,7 +505,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 &mut self.atlas,
             )?;
 
-            draw_lemmings(canvas, state, &mut self.atlas)?;
+            draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
 
             Ok(())
         })?;
@@ -535,7 +539,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &mut self.atlas)?;
+                draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
 
                 Ok(())
             })
@@ -594,7 +598,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &mut self.atlas)?;
+                draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
 
                 Ok(())
             })
@@ -722,6 +726,7 @@ fn draw_lemmings<T: RenderTarget>(
     canvas: &mut Canvas<T>,
     state: &SceneStateLevel,
     atlas: &mut SdlAtlas,
+    sprint_index_countdown: usize,
 ) -> Result<()> {
     if !atlas.apply_blend_mode(SDL_BLENDMODE_BLEND) {
         bail!("failed to apply blend mode");
@@ -744,6 +749,18 @@ fn draw_lemmings<T: RenderTarget>(
             false,
             false,
         )?;
+
+        if let Some(countdown) = lemming.countdown {
+            atlas.blit(
+                canvas,
+                sprint_index_countdown,
+                lemming.x - 1,
+                lemming.y - foot_y as i32 - 12,
+                (countdown / 16) as usize + 1,
+                false,
+                false,
+            )?;
+        }
     }
 
     Ok(())

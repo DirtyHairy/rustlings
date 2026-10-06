@@ -268,6 +268,10 @@ impl Simulation {
 
 impl LemmingState {
     fn tick(&mut self, terrain: &mut Terrain, objects: &mut [ObjectState]) -> LemmingVerdict {
+        if let Some(x) = &mut self.countdown {
+            *x = x.saturating_sub(1);
+        }
+
         let mut verdict = match &self.activity {
             Activity::Falling(_) => self.tick_faller(terrain),
             Activity::Walking => self.tick_walker(terrain),
