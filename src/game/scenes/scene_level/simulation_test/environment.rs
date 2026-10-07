@@ -27,7 +27,7 @@ fn disintegrate_transitions_to_frying() {
             x: 11,
             frame: 0,
             activity: Activity::Frying,
-            animation: LemmingAnimation::Frying,
+            animation: Some(LemmingAnimation::Frying),
             ..lemming_fixture
         }
     );
@@ -53,7 +53,7 @@ fn drown_transitions_to_drowning() {
             x: 11,
             frame: 0,
             activity: Activity::Drowning,
-            animation: LemmingAnimation::Drowning,
+            animation: Some(LemmingAnimation::Drowning),
             ..lemming_fixture
         }
     );
@@ -126,7 +126,7 @@ fn exit_transitions_walker_to_exiting() {
             x: 11,
             frame: 0,
             activity: Activity::Exiting,
-            animation: LemmingAnimation::Exiting,
+            animation: Some(LemmingAnimation::Exiting),
             ..lemming_fixture
         }
     );
@@ -153,7 +153,7 @@ fn exit_does_not_trigger_during_fall() {
     assert_eq!(verdict, LemmingVerdict::Continue);
     assert!(matches!(lemming.activity, Activity::Falling(_)));
     assert_eq!(lemming.y, 10 + FALL_DISTANCE_PER_FRAME as i32);
-    assert_eq!(lemming.animation, LemmingAnimation::Falling);
+    assert_eq!(lemming.animation, Some(LemmingAnimation::Falling));
 }
 
 #[test]

@@ -268,27 +268,29 @@ impl Simulation {
 
 impl LemmingState {
     fn tick(&mut self, terrain: &mut Terrain, objects: &mut [ObjectState]) -> LemmingVerdict {
-        if let Some(x) = &mut self.countdown {
-            *x = x.saturating_sub(1);
-        }
+        self.tick_countdown();
 
-        let mut verdict = match &self.activity {
-            Activity::Falling(_) => self.tick_faller(terrain),
-            Activity::Walking => self.tick_walker(terrain),
-            Activity::Digging(_) => self.tick_digger(terrain),
-            Activity::Blocking => self.tick_blocker(terrain),
-            Activity::Splatting | Activity::Frying => self.tick_death(),
-            Activity::Jumping => self.tick_jumper(terrain),
-            Activity::Drowning => self.tick_drowner(terrain),
-            Activity::Floating(_) => self.tick_floater(terrain),
-            Activity::Exiting => self.tick_exiting(),
-            _ => LemmingVerdict::Continue,
+        let mut verdict = match self.health {
+            LemmingHealth::Healthy => match &self.activity {
+                Activity::Falling(_) => self.tick_faller(terrain),
+                Activity::Walking => self.tick_walker(terrain),
+                Activity::Digging(_) => self.tick_digger(terrain),
+                Activity::Blocking => self.tick_blocker(terrain),
+                Activity::Splatting | Activity::Frying => self.tick_death(),
+                Activity::Jumping => self.tick_jumper(terrain),
+                Activity::Drowning => self.tick_drowner(terrain),
+                Activity::Floating(_) => self.tick_floater(terrain),
+                Activity::Exiting => self.tick_exiting(),
+                _ => LemmingVerdict::Continue,
+            },
+            LemmingHealth::OhNo => self.tick_ohno(terrain),
+            LemmingHealth::Exploding => self.tick_exploding(),
         };
 
         self.turn_if_blocked(terrain);
 
         if verdict != LemmingVerdict::Death
-            && (self.y >= (LEVEL_HEIGHT + self.animation.foot().1) as i32
+            && (self.y >= (LEVEL_HEIGHT + self.animation.map_or_default(|a| a.foot().1)) as i32
                 || !self.process_environment(terrain, objects))
         {
             verdict = LemmingVerdict::Death;
@@ -299,6 +301,41 @@ impl LemmingState {
         }
 
         verdict
+    }
+
+    fn tick_countdown(&mut self) {
+        let Some(countdown) = &mut self.countdown else {
+            return;
+        };
+
+        if *countdown > 0 {
+            *countdown -= 1;
+        } else {
+            self.countdown = None;
+
+            self.set_health(match self.activity {
+                Activity::Falling(_)
+                | Activity::Floating(_)
+                | Activity::Drowning
+                | Activity::Frying => LemmingHealth::Exploding,
+                _ => LemmingHealth::OhNo,
+            });
+        }
+    }
+
+    fn set_health(&mut self, health: LemmingHealth) {
+        match health {
+            LemmingHealth::Exploding => {
+                self.animation = Some(LemmingAnimation::Explosion);
+            }
+            LemmingHealth::OhNo => {
+                self.animation = Some(LemmingAnimation::OhNo);
+            }
+            _ => (),
+        }
+
+        self.frame = 0;
+        self.health = health;
     }
 
     fn turn_if_blocked(&mut self, terrain: &Terrain) {
@@ -373,7 +410,7 @@ impl LemmingState {
             _ => 0,
         };
 
-        self.animation = activity.default_animation();
+        self.animation = Some(activity.default_animation());
         self.activity = activity;
     }
 
@@ -397,7 +434,7 @@ impl LemmingState {
         } else if self.floater && state.delta_y >= FALL_DISTANCE_FLOAT {
             self.transition_to(Activity::Floating(Default::default()));
         } else {
-            self.frame = (self.frame + 1) % self.animation.frame_count();
+            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
             self.y += FALL_DISTANCE_PER_FRAME as i32;
             state.delta_y += FALL_DISTANCE_PER_FRAME;
@@ -424,7 +461,7 @@ impl LemmingState {
                 3
             }
             3 => {
-                self.animation = LemmingAnimation::Umbrella;
+                self.animation = Some(LemmingAnimation::Umbrella);
                 self.frame = 1;
                 3
             }
@@ -476,7 +513,7 @@ impl LemmingState {
 
     fn tick_walker(&mut self, terrain: &Terrain) -> LemmingVerdict {
         let old_y = self.y;
-        self.frame = (self.frame + 1) % self.animation.frame_count();
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
         self.x += self.direction.delta(1);
 
@@ -534,7 +571,7 @@ impl LemmingState {
         }
 
         if matches!(self.activity, Activity::Digging(_)) {
-            self.frame = (self.frame + 1) % self.animation.frame_count();
+            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
         }
 
         LemmingVerdict::Continue
@@ -542,7 +579,7 @@ impl LemmingState {
 
     fn tick_blocker(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
         if terrain.is_solid(self.x, self.y) {
-            self.frame = (self.frame + 1) % self.animation.frame_count();
+            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
         } else {
             terrain.clear_block_field(self.x, self.y);
             self.transition_to(Activity::Walking);
@@ -563,7 +600,7 @@ impl LemmingState {
     }
 
     fn tick_death(&mut self) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.frame_count();
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
         if self.frame > 0 {
             LemmingVerdict::Continue
@@ -573,7 +610,7 @@ impl LemmingState {
     }
 
     fn tick_drowner(&mut self, terrain: &Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.frame_count();
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
         if !terrain.is_solid(
             self.x + self.direction.delta(DROWNER_MIN_WALL_DISTANCE),
@@ -590,12 +627,34 @@ impl LemmingState {
     }
 
     fn tick_exiting(&mut self) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.frame_count();
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
         if self.frame > 0 {
             LemmingVerdict::Continue
         } else {
             LemmingVerdict::Exit
+        }
+    }
+
+    fn tick_ohno(&mut self, terrain: &Terrain) -> LemmingVerdict {
+        if self.frame == self.animation.unwrap().frame_count() - 1 {
+            self.set_health(LemmingHealth::Exploding);
+        } else {
+            self.frame += 1;
+
+            let dy = terrain.delta_y_descend(self.x, self.y, FALL_DISTANCE_PER_FRAME);
+            self.y += dy as i32;
+        }
+
+        LemmingVerdict::Continue
+    }
+
+    fn tick_exploding(&mut self) -> LemmingVerdict {
+        if self.frame == self.animation.unwrap().frame_count() - 1 {
+            LemmingVerdict::Death
+        } else {
+            self.frame += 1;
+            LemmingVerdict::Continue
         }
     }
 

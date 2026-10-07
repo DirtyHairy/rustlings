@@ -26,7 +26,7 @@ fn blocker_creates_a_block_zone() {
         lemming,
         LemmingState {
             activity: Activity::Blocking,
-            animation: LemmingAnimation::Blocking,
+            animation: Some(LemmingAnimation::Blocking),
             ..fixture
         }
     );
@@ -44,6 +44,7 @@ fn block_field_left_turns_walker_right() {
 
     let fixture = LemmingState {
         activity: Activity::Walking,
+        animation: Some(LemmingAnimation::Walking),
         direction: Direction::Right,
         x: 6,
         y: 9,
@@ -76,6 +77,7 @@ fn block_field_left_does_not_turn_walker_left() {
 
     let fixture = LemmingState {
         activity: Activity::Walking,
+        animation: Some(LemmingAnimation::Walking),
         direction: Direction::Left,
         x: 6,
         y: 9,
@@ -107,6 +109,7 @@ fn block_field_right_turns_walker_left() {
 
     let fixture = LemmingState {
         activity: Activity::Walking,
+        animation: Some(LemmingAnimation::Walking),
         direction: Direction::Left,
         x: 14,
         y: 9,
@@ -139,6 +142,7 @@ fn block_field_right_does_not_turn_walker_right() {
 
     let fixture = LemmingState {
         activity: Activity::Walking,
+        animation: Some(LemmingAnimation::Walking),
         direction: Direction::Right,
         x: 14,
         y: 9,
@@ -166,6 +170,7 @@ fn blocker_without_ground_turns_into_walker() {
 
     let fixture = LemmingState {
         activity: Activity::Walking,
+        animation: Some(LemmingAnimation::Walking),
         x: 9,
         y: 9,
         ..Default::default()
@@ -182,7 +187,7 @@ fn blocker_without_ground_turns_into_walker() {
         lemming,
         LemmingState {
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..fixture
         }
     );

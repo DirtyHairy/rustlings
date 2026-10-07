@@ -7,8 +7,8 @@ use crate::{
     scene::{MouseCoordinates, SceneEvent},
     scenes::scene_level::cache::Cache,
     state::{
-        Activity, ActivityStateFalling, ActivityStateFloating, LemmingHealth, LemmingState,
-        SceneStateLevel, Selection,
+        Activity, ActivityStateFalling, ActivityStateFloating, LemmingAnimation, LemmingHealth,
+        LemmingState, SceneStateLevel, Selection,
     },
 };
 
@@ -38,6 +38,7 @@ impl FixtureBuilder {
             y,
             activity,
             health,
+            animation: Some(LemmingAnimation::Walking),
             ..Default::default()
         })
     }

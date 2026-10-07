@@ -132,7 +132,11 @@ impl SelectionController {
             let cursor_y = self.mouse_y as i32 + CURSOR_OFFSET_Y;
 
             for lemming in state.lemmings.iter() {
-                let (foot_x, foot_y) = lemming.animation.foot();
+                let Some(animation) = lemming.animation else {
+                    continue;
+                };
+
+                let (foot_x, foot_y) = animation.foot();
 
                 let hitbox_x = lemming.x - foot_x as i32;
                 let hitbox_y = lemming.y - foot_y as i32;
@@ -141,7 +145,7 @@ impl SelectionController {
                     || cursor_x > (hitbox_x + HITBOX_EXTEND_X)
                     || cursor_y < hitbox_y
                     || cursor_y >= (hitbox_y + HITBOX_EXTEND_Y)
-                    || lemming.health == LemmingHealth::Exploding
+                    || matches!(lemming.health, LemmingHealth::Exploding)
                 {
                     continue;
                 }
@@ -158,7 +162,7 @@ impl SelectionController {
                     }
 
                     _ => {
-                        if lemming.health == LemmingHealth::OhNo {
+                        if matches!(lemming.health, LemmingHealth::OhNo) {
                             selection.primary_lemming = Some(lemming.id);
                         } else {
                             selection.secondary_lemming = Some(lemming.id);

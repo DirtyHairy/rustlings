@@ -68,7 +68,7 @@ fn jumper_clears_obstacle() {
             y: 14,
             frame: 0,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );
@@ -92,7 +92,7 @@ fn jumper_clears_obstacle_exact() {
         LemmingState {
             frame: 0,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );
@@ -119,7 +119,7 @@ fn jumper_hits_ceiling() {
             frame: 0,
             direction: Direction::Left,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );
@@ -145,7 +145,7 @@ fn jumper_touches_ceiling() {
             y: MIN_FOOT_Y,
             frame: 0,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );

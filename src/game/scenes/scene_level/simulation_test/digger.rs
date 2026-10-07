@@ -136,7 +136,7 @@ fn digger_transitions_to_faller_if_it_cannot_dig() {
         LemmingState {
             y: 6,
             activity: Activity::Falling(Default::default()),
-            animation: LemmingAnimation::Falling,
+            animation: Some(LemmingAnimation::Falling),
             frame: 0,
             ..lemming_fixture
         }
@@ -168,7 +168,7 @@ fn digger_transitions_to_walker_if_it_hits_steel() {
         LemmingState {
             y: 6,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             frame: 0,
             ..lemming_fixture
         }

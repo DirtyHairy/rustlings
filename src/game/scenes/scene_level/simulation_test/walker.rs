@@ -86,7 +86,7 @@ fn walker_jumps_right() {
                 y: 17,
                 frame: 0,
                 activity: Activity::Jumping,
-                animation: LemmingAnimation::Jumping,
+                animation: Some(LemmingAnimation::Jumping),
                 ..lemming_fixture
             },
             "should jump {} pixels",
@@ -117,7 +117,7 @@ fn walker_jumps_left() {
                 y: 17,
                 frame: 0,
                 activity: Activity::Jumping,
-                animation: LemmingAnimation::Jumping,
+                animation: Some(LemmingAnimation::Jumping),
                 ..lemming_fixture
             },
             "should jump {} pixels",
@@ -281,7 +281,7 @@ fn walker_starts_falling_right() {
             y: 10 + (MAX_STEP_DOWN + 1) as i32,
             frame: 0,
             activity: Activity::Falling(Default::default()),
-            animation: LemmingAnimation::Falling,
+            animation: Some(LemmingAnimation::Falling),
             ..lemming_fixture
         }
     );
@@ -308,7 +308,7 @@ fn walker_starts_falling_left() {
             y: 10 + (MAX_STEP_DOWN + 1) as i32,
             frame: 0,
             activity: Activity::Falling(Default::default()),
-            animation: LemmingAnimation::Falling,
+            animation: Some(LemmingAnimation::Falling),
             ..lemming_fixture
         }
     );

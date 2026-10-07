@@ -442,7 +442,7 @@ fn assign_blocker_transitions_to_blocking() {
         lemming,
         LemmingState {
             activity: Activity::Blocking,
-            animation: LemmingAnimation::Blocking,
+            animation: Some(LemmingAnimation::Blocking),
             frame: 0,
             ..fixture
         }
@@ -481,7 +481,7 @@ fn assign_builder_transitions_to_building() {
         lemming,
         LemmingState {
             activity: Activity::Building,
-            animation: LemmingAnimation::Building,
+            animation: Some(LemmingAnimation::Building),
             frame: 0,
             ..fixture
         }
@@ -501,7 +501,7 @@ fn assign_basher_transitions_to_bashing() {
         lemming,
         LemmingState {
             activity: Activity::Bashing,
-            animation: LemmingAnimation::Bashing,
+            animation: Some(LemmingAnimation::Bashing),
             frame: 0,
             ..fixture
         }
@@ -521,7 +521,7 @@ fn assign_miner_transitions_to_mining() {
         lemming,
         LemmingState {
             activity: Activity::Mining,
-            animation: LemmingAnimation::Mining,
+            animation: Some(LemmingAnimation::Mining),
             frame: 0,
             ..fixture
         }
@@ -541,7 +541,7 @@ fn assign_digger_transitions_to_digging() {
         lemming,
         LemmingState {
             activity: Activity::Digging(Default::default()),
-            animation: LemmingAnimation::Digging,
+            animation: Some(LemmingAnimation::Digging),
             frame: 15,
             ..fixture
         }

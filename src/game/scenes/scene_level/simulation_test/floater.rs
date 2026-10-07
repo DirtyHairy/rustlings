@@ -12,7 +12,7 @@ fn floater_at_tick(tick: u32, animation: LemmingAnimation, frame: usize) -> Lemm
         y: 10,
         direction: Direction::Right,
         activity: Activity::Floating(ActivityStateFloating { tick }),
-        animation,
+        animation: Some(animation),
         frame,
         ..Default::default()
     }
@@ -58,7 +58,7 @@ fn floater_opens_umbrella() {
         LemmingState {
             y: 10 + 3,
             frame: 1,
-            animation: LemmingAnimation::Umbrella,
+            animation: Some(LemmingAnimation::Umbrella),
             activity: Activity::Floating(ActivityStateFloating { tick: 4 }),
             ..lemming_fixture
         }
@@ -173,7 +173,7 @@ fn floater_lands_on_ground() {
             y: 12,
             frame: 0,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );

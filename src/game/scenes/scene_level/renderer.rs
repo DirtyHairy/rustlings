@@ -733,11 +733,15 @@ fn draw_lemmings<T: RenderTarget>(
     }
 
     for lemming in &state.lemmings {
-        let (foot_x, foot_y) = lemming.animation.foot();
+        let Some(animation) = lemming.animation else {
+            continue;
+        };
+
+        let (foot_x, foot_y) = animation.foot();
 
         let sprite_index = match lemming.direction {
-            Direction::Right => lemming.animation as usize,
-            Direction::Left => lemming.animation as usize + LemmingAnimation::COUNT,
+            Direction::Right => animation as usize,
+            Direction::Left => animation as usize + LemmingAnimation::COUNT,
         };
 
         atlas.blit(

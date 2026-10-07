@@ -66,7 +66,7 @@ fn faller_lands_safely() {
             y: 12,
             frame: 0,
             activity: Activity::Walking,
-            animation: LemmingAnimation::Walking,
+            animation: Some(LemmingAnimation::Walking),
             ..lemming_fixture
         }
     );
@@ -98,7 +98,7 @@ fn faller_splats() {
             y: 12,
             frame: 0,
             activity: Activity::Splatting,
-            animation: LemmingAnimation::Splatting,
+            animation: Some(LemmingAnimation::Splatting),
             ..lemming_fixture
         }
     );
@@ -129,7 +129,7 @@ fn faller_with_floater_transitions_to_floating() {
         lemming,
         LemmingState {
             activity: Activity::Floating(ActivityStateFloating::default()),
-            animation: LemmingAnimation::PreUmbrella,
+            animation: Some(LemmingAnimation::PreUmbrella),
             ..lemming_fixture
         }
     );
