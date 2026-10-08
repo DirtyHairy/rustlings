@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, GameData, LEVEL_HEIGHT, Level, Skill, file::ground::InteractionType,
+    Bitmap, GameData, LEVEL_HEIGHT, Level, Skill, Sprite,
+    file::{ground::InteractionType, main::MaskSprite},
 };
 
 use crate::{
@@ -35,6 +36,7 @@ pub struct Simulation {
     entrances: Vec<usize>,
     released_total: u32,
     terrain_diff: Vec<TerrainDiff>,
+    game_data: Rc<GameData>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -120,6 +122,7 @@ impl Simulation {
             entrances,
             released_total: level.parameters.released,
             terrain_diff: Vec::with_capacity(TERRAIN_DIFF_CAPACITY),
+            game_data: Rc::clone(&game_data),
         })
     }
 
@@ -171,6 +174,7 @@ impl Simulation {
             &mut state.terrain,
             &mut state.terrain_map,
             &mut self.terrain_diff,
+            &self.game_data.mask_sprites,
         );
 
         state.lemmings[index].assign_skill(&mut terrain, skill)
@@ -202,6 +206,7 @@ impl Simulation {
             &mut state.terrain,
             &mut state.terrain_map,
             &mut self.terrain_diff,
+            &self.game_data.mask_sprites,
         );
         let mut lemmings_rescued: u32 = 0;
 
@@ -284,7 +289,7 @@ impl LemmingState {
                 _ => LemmingVerdict::Continue,
             },
             LemmingHealth::OhNo => self.tick_ohno(terrain),
-            LemmingHealth::Exploding => self.tick_exploding(),
+            LemmingHealth::Exploding => self.tick_exploding(terrain),
         };
 
         self.turn_if_blocked(terrain);
@@ -649,8 +654,9 @@ impl LemmingState {
         LemmingVerdict::Continue
     }
 
-    fn tick_exploding(&mut self) -> LemmingVerdict {
+    fn tick_exploding(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
         if self.frame == self.animation.unwrap().frame_count() - 1 {
+            terrain.explode(self.x, self.y);
             LemmingVerdict::Death
         } else {
             self.frame += 1;
@@ -707,6 +713,7 @@ struct Terrain<'a> {
     bitmap: &'a mut Bitmap,
     map: &'a mut [TerrainProps],
     diff: &'a mut Vec<TerrainDiff>,
+    masks_sprites: &'a [Sprite],
 }
 
 impl<'a> Terrain<'a> {
@@ -714,10 +721,16 @@ impl<'a> Terrain<'a> {
         bitmap: &'a mut Bitmap,
         map: &'a mut [TerrainProps],
         diff: &'a mut Vec<TerrainDiff>,
+        masks_sprites: &'a [Sprite],
     ) -> Self {
         assert!((bitmap.width * bitmap.height) as usize == map.len());
 
-        Self { bitmap, map, diff }
+        Self {
+            bitmap,
+            map,
+            diff,
+            masks_sprites,
+        }
     }
 
     fn width(&self) -> u32 {
@@ -819,6 +832,15 @@ impl<'a> Terrain<'a> {
         true
     }
 
+    fn explode(&mut self, x: i32, y: i32) {
+        self.apply_mask(x - 8, y - 14, MaskSprite::Explosion, 0);
+        self.diff.push(TerrainDiff {
+            x: x - 8,
+            y: y - 14,
+            kind: TerrainDiffKind::Mask(MaskSprite::Explosion, 0),
+        });
+    }
+
     fn block_field_overlaps(&self, x: i32, y: i32) -> bool {
         let terrain_width = self.width();
 
@@ -909,6 +931,40 @@ impl<'a> Terrain<'a> {
         }
 
         Some((x_left as u32, x_right as u32, y_top as u32, y_bottom as u32))
+    }
+
+    fn apply_mask(&mut self, x: i32, y: i32, sprite: MaskSprite, frame: usize) {
+        let sprite = &self.masks_sprites[sprite as usize];
+
+        let terrain_width = self.width();
+        let terrain_height = self.height();
+
+        if x + (sprite.width as i32) < 0
+            || x >= terrain_width as i32
+            || y + (sprite.height as i32) < 0
+            || y >= terrain_height as i32
+        {
+            return;
+        }
+
+        let x_eff = x.max(0) as u32;
+        let y_eff = y.max(0) as u32;
+        let offset_x = (x_eff as i32 - x) as u32;
+        let offset_y = (y_eff as i32 - y) as u32;
+        let width_eff = (x + sprite.width as i32).min(terrain_width as i32) as u32 - x_eff;
+        let height_eff = (y + sprite.height as i32).min(terrain_height as i32) as u32 - y_eff;
+        let frame = &sprite.frames[frame];
+
+        for iy in 0..height_eff {
+            for ix in 0..width_eff {
+                if frame.transparency[((offset_y + iy) * sprite.width + offset_x + ix) as usize] {
+                    let index = ((y_eff + iy) * terrain_width + x_eff + ix) as usize;
+
+                    self.map[index].set_solid(false);
+                    self.bitmap.data[index] = 0;
+                }
+            }
+        }
     }
 }
 

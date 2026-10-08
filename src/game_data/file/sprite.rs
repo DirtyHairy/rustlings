@@ -10,7 +10,7 @@ pub struct Bitmap {
     pub transparency: Vec<bool>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Sprite {
     pub width: u32,
     pub height: u32,
@@ -238,6 +238,54 @@ impl Sprite {
         frame_size: usize,
         transparency_encoding: TransparencyEncoding,
     ) -> Result<Sprite> {
+        Self::read_planar_impl::<fn(u8) -> u8>(
+            frame_count,
+            width,
+            height,
+            bpp,
+            data,
+            offset,
+            frame_size,
+            transparency_encoding,
+            None,
+        )
+    }
+
+    pub fn read_planar_mapped<T: Fn(u8) -> u8>(
+        frame_count: usize,
+        width: u32,
+        height: u32,
+        bpp: usize,
+        data: &[u8],
+        offset: &mut usize,
+        frame_size: usize,
+        transparency_encoding: TransparencyEncoding,
+        mapping: T,
+    ) -> Result<Sprite> {
+        Self::read_planar_impl(
+            frame_count,
+            width,
+            height,
+            bpp,
+            data,
+            offset,
+            frame_size,
+            transparency_encoding,
+            Some(mapping),
+        )
+    }
+
+    pub fn read_planar_impl<T: Fn(u8) -> u8>(
+        frame_count: usize,
+        width: u32,
+        height: u32,
+        bpp: usize,
+        data: &[u8],
+        offset: &mut usize,
+        frame_size: usize,
+        transparency_encoding: TransparencyEncoding,
+        mapping: Option<T>,
+    ) -> Result<Sprite> {
         let mut sprite = Sprite {
             width,
             height,
@@ -247,14 +295,26 @@ impl Sprite {
         for iframe in 0..frame_count {
             let base = *offset + iframe * frame_size;
 
-            sprite.frames.push(Bitmap::read_planar(
-                width,
-                height,
-                bpp,
-                data.get(base..base + frame_size)
-                    .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
-                transparency_encoding,
-            )?);
+            sprite.frames.push(if let Some(mapping_fun) = &mapping {
+                Bitmap::read_planar_mapped(
+                    width,
+                    height,
+                    bpp,
+                    data.get(base..base + frame_size)
+                        .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
+                    transparency_encoding,
+                    mapping_fun,
+                )?
+            } else {
+                Bitmap::read_planar(
+                    width,
+                    height,
+                    bpp,
+                    data.get(base..base + frame_size)
+                        .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
+                    transparency_encoding,
+                )?
+            });
         }
 
         *offset += frame_size * frame_count;

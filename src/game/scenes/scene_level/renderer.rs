@@ -22,9 +22,9 @@ use sdl3::{
     },
     sys::blendmode::{
         SDL_BLENDFACTOR_DST_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
-        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_ZERO, SDL_BLENDMODE_BLEND,
-        SDL_BLENDMODE_MOD, SDL_BLENDMODE_NONE, SDL_BLENDOPERATION_ADD, SDL_BlendMode,
-        SDL_ComposeCustomBlendMode,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDFACTOR_ZERO,
+        SDL_BLENDMODE_BLEND, SDL_BLENDMODE_MOD, SDL_BLENDMODE_NONE, SDL_BLENDOPERATION_ADD,
+        SDL_BlendMode, SDL_ComposeCustomBlendMode,
     },
     video::Window,
 };
@@ -86,6 +86,9 @@ pub struct Renderer<'texture_creator> {
 
     atlas: SdlAtlas<'texture_creator>,
     sprite_index_countdown: usize,
+    sprite_index_mask: usize,
+
+    mask_points: Vec<FPoint>,
 
     objects_background: Vec<Object>,
     objects_foreground: Vec<Object>,
@@ -93,6 +96,7 @@ pub struct Renderer<'texture_creator> {
 
     blend_mode_merge: SDL_BlendMode,
     blend_mode_background: SDL_BlendMode,
+    blend_mode_apply_mask: SDL_BlendMode,
 
     skill_panel_renderer: SkillPanelRenderer<'texture_creator>,
 
@@ -100,6 +104,8 @@ pub struct Renderer<'texture_creator> {
 
     minimap_points: Vec<FPoint>,
     minimap_points_lookup: Vec<u32>,
+
+    game_data: Rc<GameData>,
 }
 
 impl<'texture_creator> Renderer<'texture_creator> {
@@ -138,58 +144,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SCREEN_HEIGHT,
         )?;
 
-        let mut atlas_builder =
-            SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET + 1);
-
-        LemmingAnimation::VARIANTS
-            .iter()
-            .copied()
-            .map(|animation| {
-                &game_data.lemming_sprites
-                    [animation.sprite(crate::state::Direction::Right) as usize]
-            })
-            .for_each(|sprite| {
-                atlas_builder.add_sprite(sprite);
-            });
-
-        LemmingAnimation::VARIANTS
-            .iter()
-            .copied()
-            .map(|animation| {
-                &game_data.lemming_sprites[animation.sprite(crate::state::Direction::Left) as usize]
-            })
-            .for_each(|sprite| {
-                atlas_builder.add_sprite(sprite);
-            });
-
-        let object_atlas_index: Vec<Option<usize>> = game_data
-            .tilesets
-            .get(level.graphics_set as usize)
-            .ok_or(anyhow!("invalid tileset {}", level.graphics_set))?
-            .object_sprites
-            .iter()
-            .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
-            .collect();
-
-        let atlas_index_countdown = atlas_builder.add_sprite(&game_data.font_countdown);
-
-        let atlas = atlas_builder.build(&palette, texture_creator)?;
-        println!("built atlas, size is {}x{}", atlas.width(), atlas.height());
-
-        let objects_merge =
-            create_objects(&object_atlas_index, level, |o| o.draw_only_over_terrain)?;
-
-        let objects_foreground = create_objects(&object_atlas_index, level, |o| {
-            !o.draw_only_over_terrain && !o.do_not_overwrite
-        })?;
-
-        let objects_background = create_objects(&object_atlas_index, level, |o| {
-            !o.draw_only_over_terrain && o.do_not_overwrite
-        })?;
-
-        let skill_panel_renderer =
-            SkillPanelRenderer::new(level, Rc::clone(&game_data), texture_creator)?;
-
         let blend_mode_merge = SDL_ComposeCustomBlendMode(
             SDL_BLENDFACTOR_DST_ALPHA,
             SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
@@ -205,6 +159,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
             SDL_BLENDOPERATION_ADD,
             SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
             SDL_BLENDFACTOR_ONE,
+            SDL_BLENDOPERATION_ADD,
+        );
+
+        let blend_mode_apply_mask = SDL_ComposeCustomBlendMode(
+            SDL_BLENDFACTOR_ZERO,
+            SDL_BLENDFACTOR_SRC_ALPHA,
+            SDL_BLENDOPERATION_ADD,
+            SDL_BLENDFACTOR_ZERO,
+            SDL_BLENDFACTOR_SRC_ALPHA,
             SDL_BLENDOPERATION_ADD,
         );
 
@@ -244,6 +207,65 @@ impl<'texture_creator> Renderer<'texture_creator> {
             })
         };
 
+        let mut atlas_builder =
+            SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET + 1);
+
+        [Direction::Right, Direction::Left]
+            .iter()
+            .cloned()
+            .for_each(|direction| {
+                LemmingAnimation::VARIANTS
+                    .iter()
+                    .copied()
+                    .map(|animation| {
+                        &game_data.lemming_sprites[animation.sprite(direction) as usize]
+                    })
+                    .for_each(|sprite| {
+                        atlas_builder.add_sprite(sprite);
+                    })
+            });
+
+        let object_atlas_index: Vec<Option<usize>> = game_data
+            .tilesets
+            .get(level.graphics_set as usize)
+            .ok_or(anyhow!("invalid tileset {}", level.graphics_set))?
+            .object_sprites
+            .iter()
+            .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
+            .collect();
+
+        let sprite_index_countdown = atlas_builder.add_sprite(&game_data.font_countdown);
+
+        let (sprite_index_mask, mask_points): (usize, Vec<FPoint>) =
+            if matches!(render_mode, RenderStrategy::Blend) {
+                let mut first_index: Option<usize> = None;
+
+                for sprite in &game_data.mask_sprites {
+                    first_index.get_or_insert(atlas_builder.add_sprite(sprite));
+                }
+
+                (first_index.unwrap(), Vec::with_capacity(16 * 22))
+            } else {
+                (0, Vec::new())
+            };
+
+        let atlas = atlas_builder.build(&palette, texture_creator)?;
+        println!("built atlas, size is {}x{}", atlas.width(), atlas.height());
+
+        let objects_merge =
+            create_objects(&object_atlas_index, level, |o| o.draw_only_over_terrain)?;
+
+        let objects_foreground = create_objects(&object_atlas_index, level, |o| {
+            !o.draw_only_over_terrain && !o.do_not_overwrite
+        })?;
+
+        let objects_background = create_objects(&object_atlas_index, level, |o| {
+            !o.draw_only_over_terrain && o.do_not_overwrite
+        })?;
+
+        let skill_panel_renderer =
+            SkillPanelRenderer::new(level, Rc::clone(&game_data), texture_creator)?;
+
         let minimap_pixel_count = MINIMAP_VIEW_WIDTH as usize * MINIMAP_VIEW_HEIGHT as usize;
 
         let minimap_points: Vec<FPoint> =
@@ -260,7 +282,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
             texture_screen,
 
             atlas,
-            sprite_index_countdown: atlas_index_countdown,
+            sprite_index_countdown,
+            sprite_index_mask,
+
+            mask_points,
 
             objects_merge,
             objects_foreground,
@@ -268,6 +293,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             blend_mode_merge,
             blend_mode_background,
+            blend_mode_apply_mask,
 
             skill_panel_renderer,
 
@@ -275,6 +301,8 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             minimap_points,
             minimap_points_lookup,
+
+            game_data: Rc::clone(&game_data),
         })
     }
 
@@ -290,7 +318,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
         match self.render_strategy {
             RenderStrategy::Blend => self.apply_diff_gpu(canvas, diff, target),
-            RenderStrategy::Stencil(_) => self.apply_diff_software(canvas, diff, target),
+            RenderStrategy::Stencil(_) => self.apply_diff_fallback(canvas, diff, target),
         }?;
 
         self.mark_for_redraw(Redraw::LEVEL);
@@ -320,6 +348,19 @@ impl<'texture_creator> Renderer<'texture_creator> {
                             Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
                         )?;
                     }
+                    TerrainDiffKind::Mask(sprite, frame) => {
+                        self.atlas.apply_blend_mode(self.blend_mode_apply_mask);
+
+                        self.atlas.blit(
+                            canvas,
+                            self.sprite_index_mask + sprite as usize,
+                            entry.x,
+                            entry.y,
+                            frame,
+                            false,
+                            false,
+                        )?;
+                    }
                 }
             }
 
@@ -327,7 +368,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         })
     }
 
-    fn apply_diff_software(
+    fn apply_diff_fallback(
         &mut self,
         canvas: &mut Canvas<Window>,
         diff: &[TerrainDiff],
@@ -340,49 +381,59 @@ impl<'texture_creator> Renderer<'texture_creator> {
             unreachable!();
         };
 
-        with_texture_canvas(canvas, &mut self.texture_terrain, |canvas| -> Result<()> {
-            for &entry in diff {
-                if entry.visibility_target() != target {
-                    continue;
-                }
+        for entry in diff {
+            if entry.visibility_target() != target {
+                continue;
+            }
 
-                match entry.kind {
-                    TerrainDiffKind::Dig => {
-                        canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
-                        canvas.set_blend_mode(BlendMode::None);
+            if let TerrainDiffKind::Mask(sprite, frame) = entry.kind {
+                let sprite = &self.game_data.mask_sprites[sprite as usize];
+                let frame = &sprite.frames[frame];
 
-                        canvas.draw_line(
-                            Point::new(entry.x, entry.y),
-                            Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
-                        )?;
+                self.mask_points.clear();
+
+                let mut i = 0;
+                for y in 0..sprite.height {
+                    for x in 0..sprite.width {
+                        if frame.transparency[i] {
+                            self.mask_points.push(FPoint::new(
+                                (entry.x + x as i32) as f32,
+                                (entry.y + y as i32) as f32,
+                            ));
+                        }
+
+                        i += 1;
                     }
                 }
             }
 
-            Ok(())
-        })?;
+            for texture in [&mut self.texture_terrain, stencil_terrain] {
+                with_texture_canvas(canvas, texture, |canvas| -> Result<()> {
+                    match entry.kind {
+                        TerrainDiffKind::Dig => {
+                            canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                            canvas.set_blend_mode(BlendMode::None);
 
-        with_texture_canvas(canvas, stencil_terrain, |canvas| -> Result<()> {
-            for &entry in diff {
-                if entry.visibility_target() != target {
-                    continue;
-                }
+                            canvas.draw_line(
+                                Point::new(entry.x, entry.y),
+                                Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
+                            )?;
+                        }
+                        TerrainDiffKind::Mask(_, _) => {
+                            canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+                            canvas.set_blend_mode(BlendMode::None);
 
-                match entry.kind {
-                    TerrainDiffKind::Dig => {
-                        canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
-                        canvas.set_blend_mode(BlendMode::None);
-
-                        canvas.draw_line(
-                            Point::new(entry.x, entry.y),
-                            Point::new(entry.x + 8, entry.y),
-                        )?;
+                            let points: &[FPoint] = &self.mask_points;
+                            canvas.draw_points(points)?;
+                        }
                     }
-                }
-            }
 
-            Ok(())
-        })
+                    Ok(())
+                })?;
+            }
+        }
+
+        Ok(())
     }
 
     pub fn mark_for_redraw(&mut self, redraw: Redraw) {

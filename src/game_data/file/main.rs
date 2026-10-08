@@ -1,12 +1,11 @@
-use std::{convert::TryInto, fs, path::Path};
+use std::{fs, path::Path};
 
 use anyhow::{Result, anyhow, bail};
+use strum::EnumCount;
 
 use crate::game_data::Bitmap;
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
-
-pub const NUM_LEMMING_SPRITES: usize = 30;
 
 pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
@@ -17,40 +16,7 @@ const COLOR_BLACK: u8 = 0x00;
 const COLOR_DARK_GREEN: u8 = 0x02;
 const COLOR_LIGHT_GREEN: u8 = 0x09;
 
-pub const LEMMING_SPRITE_LAYOUT: [(usize, u32, u32, usize); NUM_LEMMING_SPRITES] = [
-    (8, 16, 10, 2),
-    (1, 16, 10, 2),
-    (8, 16, 10, 2),
-    (1, 16, 10, 2),
-    (16, 16, 14, 3),
-    (8, 16, 12, 2),
-    (8, 16, 12, 2),
-    (16, 16, 10, 2),
-    (8, 16, 12, 2),
-    (8, 16, 12, 2),
-    (16, 16, 13, 3),
-    (16, 16, 13, 3),
-    (32, 16, 10, 3),
-    (32, 16, 10, 3),
-    (24, 16, 13, 3),
-    (24, 16, 13, 3),
-    (4, 16, 10, 2),
-    (4, 16, 10, 2),
-    (4, 16, 16, 3),
-    (4, 16, 16, 3),
-    (4, 16, 16, 3),
-    (4, 16, 16, 3),
-    (16, 16, 10, 2),
-    (8, 16, 13, 2),
-    (14, 16, 14, 4),
-    (16, 16, 10, 2),
-    (8, 16, 10, 2),
-    (8, 16, 10, 2),
-    (16, 16, 10, 2),
-    (1, 32, 32, 3),
-];
-
-#[derive(Copy, Clone, PartialEq, Default)]
+#[derive(Copy, Clone, PartialEq, Default, EnumCount)]
 pub enum LemmingSprite {
     #[default]
     WalkingR = 0,
@@ -85,12 +51,64 @@ pub enum LemmingSprite {
     Explosion = 29,
 }
 
+pub const LEMMING_SPRITE_LAYOUT: [(usize, u32, u32, usize); LemmingSprite::COUNT] = [
+    (8, 16, 10, 2),
+    (1, 16, 10, 2),
+    (8, 16, 10, 2),
+    (1, 16, 10, 2),
+    (16, 16, 14, 3),
+    (8, 16, 12, 2),
+    (8, 16, 12, 2),
+    (16, 16, 10, 2),
+    (8, 16, 12, 2),
+    (8, 16, 12, 2),
+    (16, 16, 13, 3),
+    (16, 16, 13, 3),
+    (32, 16, 10, 3),
+    (32, 16, 10, 3),
+    (24, 16, 13, 3),
+    (24, 16, 13, 3),
+    (4, 16, 10, 2),
+    (4, 16, 10, 2),
+    (4, 16, 16, 3),
+    (4, 16, 16, 3),
+    (4, 16, 16, 3),
+    (4, 16, 16, 3),
+    (16, 16, 10, 2),
+    (8, 16, 13, 2),
+    (14, 16, 14, 4),
+    (16, 16, 10, 2),
+    (8, 16, 10, 2),
+    (8, 16, 10, 2),
+    (16, 16, 10, 2),
+    (1, 32, 32, 3),
+];
+
+#[derive(Copy, Clone, PartialEq, Default, Debug, EnumCount)]
+pub enum MaskSprite {
+    #[default]
+    BashR = 0,
+    BashL = 1,
+    MineR = 2,
+    MineL = 3,
+    Explosion = 4,
+}
+
+pub const MASK_SPRITE_LAYOUT: [(usize, u32, u32); MaskSprite::COUNT] = [
+    (4, 16, 10),
+    (4, 16, 10),
+    (2, 16, 13),
+    (2, 16, 13),
+    (1, 16, 22),
+];
+
 pub struct Content {
-    pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
+    pub lemming_sprites: [Sprite; LemmingSprite::COUNT],
     pub skill_panel: Bitmap,
     pub font_skill_panel_skills: Sprite,
     pub font_skill_panel: Sprite,
     pub font_countdown: Sprite,
+    pub mask_sprites: [Sprite; MaskSprite::COUNT],
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
@@ -102,11 +120,12 @@ pub fn read_main(path: &Path) -> Result<Content> {
         bail!("invalid main.dat");
     }
 
-    let mut lemming_sprites: Vec<Sprite> = Vec::new();
+    let mut lemming_sprites: [Sprite; LemmingSprite::COUNT] = Default::default();
     let mut offset = 0;
 
-    for (frame_count, width, height, bpp) in LEMMING_SPRITE_LAYOUT {
-        lemming_sprites.push(Sprite::read_planar(
+    for (i, (frame_count, width, height, bpp)) in LEMMING_SPRITE_LAYOUT.iter().copied().enumerate()
+    {
+        lemming_sprites[i] = Sprite::read_planar(
             frame_count,
             width,
             height,
@@ -115,7 +134,24 @@ pub fn read_main(path: &Path) -> Result<Content> {
             &mut offset,
             (width as usize * height as usize * bpp) / 8,
             TransparencyEncoding::Black,
-        )?);
+        )?;
+    }
+
+    let mut mask_sprites: [Sprite; MaskSprite::COUNT] = Default::default();
+    offset = 0;
+
+    for (i, (frame_count, width, height)) in MASK_SPRITE_LAYOUT.iter().copied().enumerate() {
+        mask_sprites[i] = Sprite::read_planar_mapped(
+            frame_count,
+            width,
+            height,
+            1,
+            &sections[1].data,
+            &mut offset,
+            (width * height) as usize / 8,
+            TransparencyEncoding::Black,
+            |c| if c == 0 { COLOR_WHITE } else { COLOR_BLACK },
+        )?;
     }
 
     let skill_panel =
@@ -184,14 +220,12 @@ pub fn read_main(path: &Path) -> Result<Content> {
     }
 
     Ok(Content {
-        lemming_sprites: lemming_sprites
-            .try_into()
-            .map_err(|_| ())
-            .expect("internal error"),
+        lemming_sprites,
         skill_panel,
         font_skill_panel_skills,
         font_skill_panel,
         font_countdown,
+        mask_sprites,
     })
 }
 

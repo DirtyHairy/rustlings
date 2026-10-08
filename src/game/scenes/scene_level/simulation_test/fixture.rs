@@ -1,3 +1,5 @@
+use strum::EnumCount;
+
 use crate::{scenes::scene_level::simulation::*, state::Direction};
 
 pub struct TerrainFixtureBuilder {
@@ -64,6 +66,7 @@ impl TerrainFixtureBuilder {
             Box::leak(bitmap),
             self.map.leak(),
             Box::leak(Box::default()),
+            Box::leak(Box::new(vec![Sprite::default(); MaskSprite::COUNT])),
         )
     }
 }

@@ -96,6 +96,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             lemming_sprites: main.lemming_sprites,
             cursors: Cursors::new(),
             font_countdown: main.font_countdown,
+            mask_sprites: main.mask_sprites,
         })
     })
 }

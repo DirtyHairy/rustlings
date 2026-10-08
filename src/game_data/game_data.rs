@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow, bail};
+use strum::EnumCount;
 
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
@@ -6,7 +7,7 @@ pub use crate::game_data::file::ground::{
 pub use crate::game_data::file::level::{
     Level, LevelParameters, LevelStructure, Object, TerrainTile,
 };
-pub use crate::game_data::file::main::NUM_LEMMING_SPRITES;
+use crate::game_data::file::main::{LemmingSprite, MaskSprite};
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
@@ -46,10 +47,11 @@ pub struct GameData {
     pub tilesets: Vec<TileSet>,
     pub special_backgrounds: Vec<Image>,
     pub skill_panel: SkillPanel,
-    pub lemming_sprites: [Sprite; NUM_LEMMING_SPRITES],
+    pub lemming_sprites: [Sprite; LemmingSprite::COUNT],
     pub static_palette: [PaletteEntry; PALETTE_SIZE],
     pub cursors: Cursors,
     pub font_countdown: Sprite,
+    pub mask_sprites: [Sprite; MaskSprite::COUNT],
 }
 
 impl GameData {
