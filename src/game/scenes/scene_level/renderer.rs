@@ -174,8 +174,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let mut texture_probe =
             texture_creator.create_texture(PixelFormat::RGBA8888, TextureAccess::Static, 1, 1)?;
 
-        let render_mode = if apply_blend_mode(&mut texture_probe, blend_mode_merge)
+        let render_strategy = if apply_blend_mode(&mut texture_probe, blend_mode_merge)
             && apply_blend_mode(&mut texture_probe, blend_mode_background)
+            && apply_blend_mode(&mut texture_probe, blend_mode_apply_mask)
         {
             RenderStrategy::Blend
         } else {
@@ -237,7 +238,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let sprite_index_countdown = atlas_builder.add_sprite(&game_data.font_countdown);
 
         let (sprite_index_mask, mask_points): (usize, Vec<FPoint>) =
-            if matches!(render_mode, RenderStrategy::Blend) {
+            if matches!(render_strategy, RenderStrategy::Blend) {
                 let mut first_index: Option<usize> = None;
 
                 for sprite in &game_data.mask_sprites {
@@ -297,7 +298,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
             skill_panel_renderer,
 
-            render_strategy: render_mode,
+            render_strategy,
 
             minimap_points,
             minimap_points_lookup,
