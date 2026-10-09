@@ -408,8 +408,14 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 }
             }
 
-            for texture in [&mut self.texture_terrain, stencil_terrain] {
-                with_texture_canvas(canvas, texture, |canvas| -> Result<()> {
+            let textures: &mut [&mut Texture<'texture_creator>] = if self.objects_merge.is_empty() {
+                &mut [&mut self.texture_terrain]
+            } else {
+                &mut [&mut self.texture_terrain, stencil_terrain]
+            };
+
+            for texture in textures.iter_mut() {
+                with_texture_canvas(canvas, *texture, |canvas| -> Result<()> {
                     match entry.kind {
                         TerrainDiffKind::Dig => {
                             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
