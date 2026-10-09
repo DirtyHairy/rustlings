@@ -415,7 +415,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             };
 
             for texture in textures.iter_mut() {
-                with_texture_canvas(canvas, *texture, |canvas| -> Result<()> {
+                with_texture_canvas(canvas, texture, |canvas| -> Result<()> {
                     match entry.kind {
                         TerrainDiffKind::Dig => {
                             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
