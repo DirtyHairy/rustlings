@@ -159,12 +159,8 @@ impl Simulation {
             self.tick_spawn(state);
         }
 
-        if matches!(state.level_state, LevelState::Spawn | LevelState::Late) {
-            self.tick_armageddon(state);
-        }
-
+        self.tick_armageddon(state);
         self.tick_lemmings(state);
-
         self.tick_objects(state);
     }
 
