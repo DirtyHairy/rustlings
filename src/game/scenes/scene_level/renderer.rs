@@ -882,6 +882,10 @@ fn draw_lemmings<T: RenderTarget>(
         canvas.set_blend_mode(BlendMode::None);
 
         for (color, particles) in particle_buffer.iter().enumerate() {
+            if particles.is_empty() {
+                continue;
+            }
+
             let (r, g, b) = palette[color];
             canvas.set_draw_color(Color::RGBA(r, g, b, 0xff));
 
