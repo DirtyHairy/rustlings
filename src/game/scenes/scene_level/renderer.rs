@@ -38,7 +38,7 @@ use crate::{
         skill_panel_renderer::SkillPanelRenderer,
         terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind, VisibilityTarget},
     },
-    state::{Direction, LemmingAnimation, SceneStateLevel},
+    state::{Activity, Direction, LemmingAnimation, SceneStateLevel},
 };
 
 bitflags! {
@@ -865,7 +865,9 @@ fn draw_lemmings<T: RenderTarget>(
             false,
         )?;
 
-        if let Some(countdown) = lemming.countdown {
+        if let Some(countdown) = lemming.countdown
+            && !matches!(lemming.activity, Activity::Frying | Activity::Splatting)
+        {
             atlas.blit(
                 canvas,
                 sprint_index_countdown,

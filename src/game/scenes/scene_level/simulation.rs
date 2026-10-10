@@ -81,7 +81,7 @@ const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
 
-const BOMBER_COUNTDOWN_TICKS: u32 = 79;
+pub const EXPLODE_COUNTDOWN_TICKS: u32 = 79;
 
 impl Simulation {
     pub fn new(game_data: Rc<GameData>, level: &Level) -> Result<Self> {
@@ -155,8 +155,12 @@ impl Simulation {
             _ => (),
         }
 
-        if state.level_state == LevelState::Spawn {
+        if state.level_state == LevelState::Spawn && state.armageddon.is_none() {
             self.tick_spawn(state);
+        }
+
+        if matches!(state.level_state, LevelState::Spawn | LevelState::Late) {
+            self.tick_armageddon(state);
         }
 
         self.tick_lemmings(state);
@@ -198,6 +202,29 @@ impl Simulation {
 
             object_state.triggered = true;
             object_state.frame = object.animation_start;
+        }
+    }
+
+    fn tick_armageddon(&mut self, state: &mut SceneStateLevel) {
+        let Some(armageddon) = &mut state.armageddon else {
+            return;
+        };
+
+        if !armageddon.nuking {
+            return;
+        }
+
+        let Some(victim) = state.lemmings.iter_mut().find(|l| !l.armageddon) else {
+            armageddon.nuking = true;
+            return;
+        };
+
+        victim.armageddon = true;
+
+        if victim.countdown.is_none()
+            && !matches!(victim.activity, Activity::Splatting | Activity::Frying)
+        {
+            victim.countdown = Some(EXPLODE_COUNTDOWN_TICKS);
         }
     }
 
@@ -686,7 +713,7 @@ impl LemmingState {
                 self.transition_to(Activity::Blocking);
                 terrain.create_block_field(self.x, self.y);
             }
-            Skill::Bomber => self.countdown = Some(BOMBER_COUNTDOWN_TICKS),
+            Skill::Bomber => self.countdown = Some(EXPLODE_COUNTDOWN_TICKS),
             Skill::Builder => self.transition_to(Activity::Building),
             Skill::Digger => self.transition_to(Activity::Digging(Default::default())),
             Skill::Miner => self.transition_to(Activity::Mining),

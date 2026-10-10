@@ -107,6 +107,8 @@ pub struct LemmingState {
     pub health: LemmingHealth,
     pub floater: bool,
     pub climber: bool,
+
+    pub armageddon: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]
@@ -157,6 +159,11 @@ pub struct TerrainProps {
 }
 
 #[derive(Clone, Default)]
+pub struct ArmageddonState {
+    pub nuking: bool,
+}
+
+#[derive(Clone, Default)]
 pub struct SceneStateLevel {
     pub level_state: LevelState,
 
@@ -184,4 +191,6 @@ pub struct SceneStateLevel {
     pub lemmings: VecDeque<LemmingState>,
 
     pub spawn_countdown: u32,
+
+    pub armageddon: Option<ArmageddonState>,
 }

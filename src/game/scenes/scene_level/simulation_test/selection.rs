@@ -2,7 +2,7 @@ use rustlings::game_data::{SKILLS, Skill};
 
 use crate::{
     scenes::scene_level::simulation::{
-        BOMBER_COUNTDOWN_TICKS, SelectionResult, test::fixture::TerrainFixtureBuilder,
+        EXPLODE_COUNTDOWN_TICKS, SelectionResult, test::fixture::TerrainFixtureBuilder,
     },
     state::{Activity, Direction, LemmingAnimation, LemmingHealth, LemmingState, TerrainProps},
 };
@@ -423,7 +423,7 @@ fn assign_bomber_sets_countdown_only() {
     assert_eq!(
         lemming,
         LemmingState {
-            countdown: Some(BOMBER_COUNTDOWN_TICKS),
+            countdown: Some(EXPLODE_COUNTDOWN_TICKS),
             ..fixture
         }
     );

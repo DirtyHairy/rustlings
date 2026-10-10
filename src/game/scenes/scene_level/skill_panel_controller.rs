@@ -6,7 +6,7 @@ use sdl3::keyboard::Keycode;
 
 use crate::{
     scene::{MouseButton, MouseCoordinates, SceneEvent},
-    state::SceneStateLevel,
+    state::{ArmageddonState, LevelState, SceneStateLevel},
 };
 
 bitflags! {
@@ -143,7 +143,12 @@ impl SkillPanelController {
                 true
             }
             11 => {
-                println!("armageddon");
+                if state.armageddon.is_none()
+                    && !matches!(state.level_state, LevelState::Intro | LevelState::Open)
+                {
+                    state.armageddon = Some(ArmageddonState { nuking: true })
+                }
+
                 false
             }
             _ => false,
