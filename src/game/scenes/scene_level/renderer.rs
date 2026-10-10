@@ -54,7 +54,7 @@ const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
-const MAX_PARTICLES_PER_COLOR: usize = 99 * 2;
+const MAX_PARTICLES_PER_COLOR: usize = 99 * 80 / 8;
 
 const MINIMAP_LEMMING_COLOR: Color = Color::RGBA(255, 255, 255, 200);
 
