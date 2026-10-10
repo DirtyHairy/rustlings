@@ -870,7 +870,7 @@ fn draw_lemmings<T: RenderTarget>(
                 canvas,
                 sprint_index_countdown,
                 lemming.x - 1,
-                lemming.y - foot_y as i32 - 8,
+                lemming.y - foot_y as i32 - 9,
                 (countdown / 16) as usize + 1,
                 false,
                 false,

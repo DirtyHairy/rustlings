@@ -655,7 +655,7 @@ impl LemmingState {
     }
 
     fn tick_exploding(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        if self.frame == 0 {
+        if self.frame == 0 && !terrain.is_steel(self.x, self.y) {
             terrain.explode(self.x, self.y);
         }
 
