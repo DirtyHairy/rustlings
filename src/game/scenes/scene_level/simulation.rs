@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, GameData, LEVEL_HEIGHT, Level, Skill, Sprite,
+    Bitmap, GameData, LEVEL_HEIGHT, Level, NUM_PARTICLE_SETS, Skill, Sprite,
     file::{ground::InteractionType, main::MaskSprite},
 };
 
@@ -655,11 +655,24 @@ impl LemmingState {
     }
 
     fn tick_exploding(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        if self.frame == self.animation.unwrap().frame_count() - 1 {
+        if self.frame == 0 {
             terrain.explode(self.x, self.y);
-            LemmingVerdict::Death
+        }
+
+        self.frame = 1;
+        self.animation = None;
+
+        if let Some(mut particle_frame) = self.particle_frame {
+            particle_frame += 1;
+
+            if particle_frame == NUM_PARTICLE_SETS {
+                LemmingVerdict::Death
+            } else {
+                self.particle_frame = Some(particle_frame);
+                LemmingVerdict::Continue
+            }
         } else {
-            self.frame += 1;
+            self.particle_frame = Some(0);
             LemmingVerdict::Continue
         }
     }

@@ -100,6 +100,7 @@ pub struct LemmingState {
     pub activity: Activity,
     pub direction: Direction,
     pub animation: Option<LemmingAnimation>,
+    pub particle_frame: Option<usize>,
     pub frame: usize,
 
     pub countdown: Option<u32>,

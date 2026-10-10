@@ -6,8 +6,8 @@ use rustlings::{
     game_data::{
         GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, MINIMAP_AREA_Y, MINIMAP_FRAME_HEIGHT,
         MINIMAP_FRAME_WIDTH, MINIMAP_VIEW_HEIGHT, MINIMAP_VIEW_WIDTH, MINIMAP_VIEW_X,
-        MINIMAP_VIEW_Y, OBJECTS_PER_TILESET, SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT,
-        file::level,
+        MINIMAP_VIEW_Y, OBJECTS_PER_TILESET, PALETTE_SIZE, PaletteEntry, ParticleSets,
+        SCREEN_HEIGHT, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, file::level,
     },
     sdl::{
         SdlAtlas, SdlAtlasBuilder, apply_blend_mode, texture_from_bitmap,
@@ -54,6 +54,7 @@ const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 const TEXTURE_ID_MAIN_SCREEN: usize = 0;
 const TEXTURE_ID_MINIMAP: usize = 1;
+const MAX_PARTICLES_PER_COLOR: usize = 99 * 2;
 
 const MINIMAP_LEMMING_COLOR: Color = Color::RGBA(255, 255, 255, 200);
 
@@ -104,6 +105,9 @@ pub struct Renderer<'texture_creator> {
 
     minimap_points: Vec<FPoint>,
     minimap_points_lookup: Vec<u32>,
+
+    palette: [PaletteEntry; PALETTE_SIZE],
+    particle_buffer: [Vec<FPoint>; PALETTE_SIZE],
 
     game_data: Rc<GameData>,
 }
@@ -303,6 +307,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
             minimap_points,
             minimap_points_lookup,
 
+            palette,
+            particle_buffer: std::array::from_fn(|_| Vec::with_capacity(MAX_PARTICLES_PER_COLOR)),
+
             game_data: Rc::clone(&game_data),
         })
     }
@@ -430,8 +437,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                             canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
                             canvas.set_blend_mode(BlendMode::None);
 
-                            let points: &[FPoint] = &self.mask_points;
-                            canvas.draw_points(points)?;
+                            canvas.draw_points(&self.mask_points as &[FPoint])?;
                         }
                     }
 
@@ -563,7 +569,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 &mut self.atlas,
             )?;
 
-            draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
+            draw_lemmings(
+                canvas,
+                state,
+                &mut self.atlas,
+                self.sprite_index_countdown,
+                &mut self.particle_buffer,
+                &self.game_data.particle_sets,
+                &self.palette,
+            )?;
 
             Ok(())
         })?;
@@ -597,7 +611,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
+                draw_lemmings(
+                    canvas,
+                    state,
+                    &mut self.atlas,
+                    self.sprite_index_countdown,
+                    &mut self.particle_buffer,
+                    &self.game_data.particle_sets,
+                    &self.palette,
+                )?;
 
                 Ok(())
             })
@@ -656,7 +678,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     &mut self.atlas,
                 )?;
 
-                draw_lemmings(canvas, state, &mut self.atlas, self.sprite_index_countdown)?;
+                draw_lemmings(
+                    canvas,
+                    state,
+                    &mut self.atlas,
+                    self.sprite_index_countdown,
+                    &mut self.particle_buffer,
+                    &self.game_data.particle_sets,
+                    &self.palette,
+                )?;
 
                 Ok(())
             })
@@ -785,12 +815,35 @@ fn draw_lemmings<T: RenderTarget>(
     state: &SceneStateLevel,
     atlas: &mut SdlAtlas,
     sprint_index_countdown: usize,
+    particle_buffer: &mut [Vec<FPoint>; PALETTE_SIZE],
+    particle_sets: &ParticleSets,
+    palette: &[PaletteEntry; PALETTE_SIZE],
 ) -> Result<()> {
     if !atlas.apply_blend_mode(SDL_BLENDMODE_BLEND) {
         bail!("failed to apply blend mode");
     }
 
+    let mut has_particles = false;
+
     for lemming in &state.lemmings {
+        if let Some(iset) = lemming.particle_frame {
+            if !has_particles {
+                has_particles = true;
+                particle_buffer.iter_mut().for_each(|b| b.clear());
+            }
+
+            let set = &particle_sets.particle_sets[iset];
+
+            for i in 0..set.count {
+                let particle = &particle_sets.particles[set.offset + i];
+
+                particle_buffer[particle.color as usize].push(FPoint::new(
+                    (lemming.x + particle.x as i32) as f32,
+                    (lemming.y + particle.y as i32) as f32,
+                ));
+            }
+        }
+
         let Some(animation) = lemming.animation else {
             continue;
         };
@@ -822,6 +875,17 @@ fn draw_lemmings<T: RenderTarget>(
                 false,
                 false,
             )?;
+        }
+    }
+
+    if has_particles {
+        canvas.set_blend_mode(BlendMode::None);
+
+        for (color, particles) in particle_buffer.iter().enumerate() {
+            let (r, g, b) = palette[color];
+            canvas.set_draw_color(Color::RGBA(r, g, b, 0xff));
+
+            canvas.draw_points(particles as &[FPoint])?;
         }
     }
 

@@ -3,7 +3,6 @@ use std::thread::{self, ScopedJoinHandle};
 
 use anyhow::Result;
 
-use crate::game_data::SkillPanel;
 use crate::game_data::file::ground::read_ground;
 use crate::game_data::file::level::{Level, read_level_file, read_oddtable};
 use crate::game_data::file::main::read_main;
@@ -11,6 +10,7 @@ use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, Palette
 use crate::game_data::file::vgagr::read_vgagr;
 use crate::game_data::file::vgaspec::read_vgaspec;
 use crate::game_data::{Cursors, GameData, Image, TileSet};
+use crate::game_data::{SkillPanel, load_particle_sets};
 
 const NUM_LEVELS_FILES: usize = 10;
 const LEVELS_PER_FILE: usize = 8;
@@ -97,6 +97,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             cursors: Cursors::new(),
             font_countdown: main.font_countdown,
             mask_sprites: main.mask_sprites,
+            particle_sets: load_particle_sets(),
         })
     })
 }

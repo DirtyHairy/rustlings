@@ -11,7 +11,9 @@ use crate::game_data::file::main::{LemmingSprite, MaskSprite};
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
-use crate::game_data::{Cursors, LEVEL_HEIGHT, LEVEL_WIDTH, SkillPanel, VGASPEC_POSITION};
+use crate::game_data::{
+    Cursors, LEVEL_HEIGHT, LEVEL_WIDTH, ParticleSets, SkillPanel, VGASPEC_POSITION,
+};
 
 const LEVEL_TABLE: [u8; 120] = [
     0x93, 0x9b, 0x9d, 0x95, 0x97, 0x99, 0x9f, 0x0e, 0x16, 0x36, 0x46, 0x10, 0x1d, 0x20, 0x26, 0x2a,
@@ -52,6 +54,7 @@ pub struct GameData {
     pub cursors: Cursors,
     pub font_countdown: Sprite,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
+    pub particle_sets: ParticleSets,
 }
 
 impl GameData {
