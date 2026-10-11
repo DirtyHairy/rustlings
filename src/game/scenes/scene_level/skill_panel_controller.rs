@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use bitflags::bitflags;
 use rustlings::game_data::{
     Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS, Skill,
@@ -26,8 +28,11 @@ pub struct SkillPanelController {
     decremented: u32,
 
     release_rate_min: u32,
+
+    last_armageddon_trigger_at: Option<Instant>,
 }
 
+const ARGMAGEDDOM_TIMEOUT_MSEC: u128 = 250;
 const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 impl SkillPanelController {
@@ -89,6 +94,10 @@ impl SkillPanelController {
                     state.paused = !state.paused;
                     true
                 }
+                Keycode::A => {
+                    self.trigger_armageddon(state);
+                    false
+                }
                 _ => false,
             },
             SceneEvent::KeyUp { keycode, .. } => match keycode {
@@ -143,12 +152,7 @@ impl SkillPanelController {
                 true
             }
             11 => {
-                if state.armageddon.is_none()
-                    && !matches!(state.level_state, LevelState::Intro | LevelState::Open)
-                {
-                    state.armageddon = Some(ArmageddonState { nuking: true })
-                }
-
+                self.trigger_armageddon(state);
                 false
             }
             _ => false,
@@ -162,6 +166,24 @@ impl SkillPanelController {
         redraw |= self.stop_increment(state, InteractionSource::MOUSE);
 
         redraw
+    }
+
+    fn trigger_armageddon(&mut self, state: &mut SceneStateLevel) {
+        if state.armageddon.is_some()
+            || matches!(state.level_state, LevelState::Intro | LevelState::Open)
+        {
+            return;
+        }
+
+        let now = Instant::now();
+
+        if let Some(last_trigger) = self.last_armageddon_trigger_at
+            && now.duration_since(last_trigger).as_millis() <= ARGMAGEDDOM_TIMEOUT_MSEC
+        {
+            state.armageddon = Some(ArmageddonState { nuking: true })
+        } else {
+            self.last_armageddon_trigger_at = Some(now);
+        }
     }
 
     fn start_increment(&mut self, source: InteractionSource) {
