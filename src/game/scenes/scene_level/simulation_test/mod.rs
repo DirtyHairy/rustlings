@@ -1,4 +1,5 @@
 mod blocker;
+mod bomber;
 mod digger;
 mod drowning;
 mod environment;

@@ -26,7 +26,7 @@ impl TerrainDiff {
     pub fn visibility_target(self) -> VisibilityTarget {
         match self.kind {
             TerrainDiffKind::Dig => VisibilityTarget::Late,
-            TerrainDiffKind::Mask(_, _) => VisibilityTarget::Early,
+            TerrainDiffKind::Mask(_, _) => VisibilityTarget::Late,
         }
     }
 }

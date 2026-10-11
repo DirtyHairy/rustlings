@@ -51,17 +51,18 @@ pub fn load_particle_sets() -> ParticleSets {
 
     cursor = 0;
     for iparticle in 0..80 * NUM_PARTICLE_SETS {
-        let x = PARTCLE_DATA[cursor] as i8;
+        let x = particle_tables[cursor] as i8;
         cursor += 1;
 
-        let y = PARTCLE_DATA[cursor] as i8;
+        let y = particle_tables[cursor] as i8;
         cursor += 1;
 
         if x == -128 {
             continue;
         }
 
-        let color = color_table[(iparticle % 80) & 0x0f];
+        let color = color_table[(80 - (iparticle % 80)) & 0x0f];
+
         particles.push(Particle { x, y, color });
     }
 

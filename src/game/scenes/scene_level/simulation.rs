@@ -296,23 +296,27 @@ impl Simulation {
 
 impl LemmingState {
     fn tick(&mut self, terrain: &mut Terrain, objects: &mut [ObjectState]) -> LemmingVerdict {
-        self.tick_countdown();
+        let countdown_tripped = self.tick_countdown();
 
-        let mut verdict = match self.health {
-            LemmingHealth::Healthy => match &self.activity {
-                Activity::Falling(_) => self.tick_faller(terrain),
-                Activity::Walking => self.tick_walker(terrain),
-                Activity::Digging(_) => self.tick_digger(terrain),
-                Activity::Blocking => self.tick_blocker(terrain),
-                Activity::Splatting | Activity::Frying => self.tick_death(),
-                Activity::Jumping => self.tick_jumper(terrain),
-                Activity::Drowning => self.tick_drowner(terrain),
-                Activity::Floating(_) => self.tick_floater(terrain),
-                Activity::Exiting => self.tick_exiting(),
-                _ => LemmingVerdict::Continue,
-            },
-            LemmingHealth::OhNo => self.tick_ohno(terrain),
-            LemmingHealth::Exploding => self.tick_exploding(terrain),
+        let mut verdict = if !countdown_tripped {
+            match self.health {
+                LemmingHealth::Healthy => match &self.activity {
+                    Activity::Falling(_) => self.tick_faller(terrain),
+                    Activity::Walking => self.tick_walker(terrain),
+                    Activity::Digging(_) => self.tick_digger(terrain),
+                    Activity::Blocking => self.tick_blocker(terrain),
+                    Activity::Splatting | Activity::Frying => self.tick_death(),
+                    Activity::Jumping => self.tick_jumper(terrain),
+                    Activity::Drowning => self.tick_drowner(terrain),
+                    Activity::Floating(_) => self.tick_floater(terrain),
+                    Activity::Exiting => self.tick_exiting(),
+                    _ => LemmingVerdict::Continue,
+                },
+                LemmingHealth::OhNo => self.tick_ohno(terrain),
+                LemmingHealth::Exploding => self.tick_exploding(terrain),
+            }
+        } else {
+            LemmingVerdict::Continue
         };
 
         self.turn_if_blocked(terrain);
@@ -331,13 +335,14 @@ impl LemmingState {
         verdict
     }
 
-    fn tick_countdown(&mut self) {
+    fn tick_countdown(&mut self) -> bool {
         let Some(countdown) = &mut self.countdown else {
-            return;
+            return false;
         };
 
         if *countdown > 0 {
             *countdown -= 1;
+            false
         } else {
             self.countdown = None;
 
@@ -348,6 +353,8 @@ impl LemmingState {
                 | Activity::Frying => LemmingHealth::Exploding,
                 _ => LemmingHealth::OhNo,
             });
+
+            true
         }
     }
 
