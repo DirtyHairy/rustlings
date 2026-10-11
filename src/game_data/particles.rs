@@ -36,7 +36,7 @@ pub fn load_particle_sets() -> ParticleSets {
             let x = particle_tables[cursor] as i8;
             cursor += 2;
 
-            if x != -1 {
+            if x != -128 {
                 iparticle += 1;
             }
         }
@@ -57,7 +57,7 @@ pub fn load_particle_sets() -> ParticleSets {
         let y = PARTCLE_DATA[cursor] as i8;
         cursor += 1;
 
-        if x == -1 {
+        if x == -128 {
             continue;
         }
 
