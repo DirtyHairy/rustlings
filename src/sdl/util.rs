@@ -48,7 +48,7 @@ pub fn copy_bitmap_to_texture_data_at(
 
     let delta = (pitch >> 2)
         .checked_sub(bitmap.width as usize)
-        .ok_or(anyhow!("invalid pitch for bitmap width"))?;
+        .ok_or_else(|| anyhow!("invalid pitch for bitmap width"))?;
 
     let mut i_data = y as usize * (pitch >> 2) + x as usize;
     let mut i_bitmap = 0;

@@ -169,7 +169,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             sections[2]
                 .data
                 .get(0x1908 + i * 0x10..)
-                .ok_or(anyhow!("skill font data out of bounds"))?,
+                .ok_or_else(|| anyhow!("skill font data out of bounds"))?,
             TransparencyEncoding::Opaque,
             |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
         )?
@@ -188,7 +188,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             sections[2]
                 .data
                 .get((0x19a0 + i * 0x30)..)
-                .ok_or(anyhow!("skill panel font data out of bounds"))?,
+                .ok_or_else(|| anyhow!("skill panel font data out of bounds"))?,
             TransparencyEncoding::Opaque,
             |x| match x {
                 0x05 => COLOR_LIGHT_GREEN,
@@ -211,7 +211,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             sections[1]
                 .data
                 .get(0x134 + (FONT_COUNTDOWN_SIZE - 1 - i) * 8..)
-                .ok_or(anyhow!("countdown font data out of bounds"))?,
+                .ok_or_else(|| anyhow!("countdown font data out of bounds"))?,
             TransparencyEncoding::Black,
             |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
         )?;

@@ -73,11 +73,11 @@ pub fn read_vgagr(
             4,
             tileset_data
                 .get(info.image_offset..)
-                .ok_or(anyhow!("tile data out of bounds"))?,
+                .ok_or_else(|| anyhow!("tile data out of bounds"))?,
             TransparencyEncoding::PlanarAt(
                 tileset_data
                     .get(info.mask_offset..)
-                    .ok_or(anyhow!("tile data out of bounds"))?,
+                    .ok_or_else(|| anyhow!("tile data out of bounds"))?,
             ),
         )?);
     }

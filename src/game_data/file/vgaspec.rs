@@ -45,10 +45,10 @@ fn read_bitmap_section(src: &[u8], index: usize, dest: &mut [u8]) -> Result<usiz
             let len = block_tag as usize + 1;
 
             dest.get_mut(i_dest..i_dest + len)
-                .ok_or(anyhow!("read vgaspec section: section overflow"))?
+                .ok_or_else(|| anyhow!("read vgaspec section: section overflow"))?
                 .copy_from_slice(
                     src.get(i_source..i_source + len)
-                        .ok_or(anyhow!("read vgaspec section: source overflow"))?,
+                        .ok_or_else(|| anyhow!("read vgaspec section: source overflow"))?,
                 );
 
             i_source += len;
@@ -61,7 +61,7 @@ fn read_bitmap_section(src: &[u8], index: usize, dest: &mut [u8]) -> Result<usiz
             i_source += 1;
 
             dest.get_mut(i_dest..i_dest + len)
-                .ok_or(anyhow!("read vgaspec section: section overflow"))?
+                .ok_or_else(|| anyhow!("read vgaspec section: section overflow"))?
                 .fill(byte);
 
             i_dest += len;

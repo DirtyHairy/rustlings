@@ -37,7 +37,7 @@ pub fn parse(data: &[u8]) -> Result<Content> {
         decompress_section(
             &mut bitstream::Bitstream::create(
                 data.get(o..o + header.compressed_data_size - 10)
-                    .ok_or(anyhow!("out of bounds decompressing section"))?,
+                    .ok_or_else(|| anyhow!("out of bounds decompressing section"))?,
                 header.num_bits_in_first_byte,
             ),
             &mut section_data,
@@ -107,7 +107,7 @@ fn read_header(buffer: &[u8], offset: usize) -> Result<(Header, usize)> {
 fn calculate_checksum(header: &Header, buffer: &[u8], offset: usize) -> Result<u8> {
     buffer
         .get(offset..header.compressed_data_size - 10 + offset)
-        .ok_or(anyhow!("not enough data in buffer"))
+        .ok_or_else(|| anyhow!("not enough data in buffer"))
         .map(|slice| slice.iter().fold(0u8, |acc, x| acc ^ x))
 }
 
@@ -138,7 +138,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                     target.push(
                         *target
                             .get(target.len() - 1 - offset as usize)
-                            .ok_or(anyhow!("opcode 1: reference out of bounds"))?,
+                            .ok_or_else(|| anyhow!("opcode 1: reference out of bounds"))?,
                     )
                 }
             }
@@ -150,7 +150,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                     target.push(
                         *target
                             .get(target.len() - 1 - offset)
-                            .ok_or(anyhow!("opcode 4: reference out of bounds"))?,
+                            .ok_or_else(|| anyhow!("opcode 4: reference out of bounds"))?,
                     )
                 }
             }
@@ -162,7 +162,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                     target.push(
                         *target
                             .get(target.len() - 1 - offset)
-                            .ok_or(anyhow!("opcode 5: reference out of bounds"))?,
+                            .ok_or_else(|| anyhow!("opcode 5: reference out of bounds"))?,
                     )
                 }
             }
@@ -175,7 +175,7 @@ fn decompress_section(bitstream: &mut bitstream::Bitstream, target: &mut Vec<u8>
                     target.push(
                         *target
                             .get(target.len() - 1 - offset)
-                            .ok_or(anyhow!("opcode 6: reference out of bounds"))?,
+                            .ok_or_else(|| anyhow!("opcode 6: reference out of bounds"))?,
                     )
                 }
             }
@@ -199,7 +199,7 @@ fn read_byte(buffer: &[u8], offset: usize) -> Result<(u8, usize)> {
     Ok((
         *buffer
             .get(offset)
-            .ok_or(anyhow!("offset {} out of bounds", offset))?,
+            .ok_or_else(|| anyhow!("offset {} out of bounds", offset))?,
         offset + 1,
     ))
 }

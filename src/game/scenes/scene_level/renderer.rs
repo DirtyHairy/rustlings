@@ -233,7 +233,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
         let object_atlas_index: Vec<Option<usize>> = game_data
             .tilesets
             .get(level.graphics_set as usize)
-            .ok_or(anyhow!("invalid tileset {}", level.graphics_set))?
+            .ok_or_else(|| anyhow!("invalid tileset {}", level.graphics_set))?
             .object_sprites
             .iter()
             .map(|sprite| sprite.as_ref().map(|s| atlas_builder.add_sprite(s)))
@@ -762,7 +762,7 @@ fn create_objects<P: Fn(&&level::Object) -> bool>(
             Ok(Object {
                 index,
                 atlas_index: atlas_index[o.id as usize]
-                    .ok_or(anyhow!("no sprite in atlas for object {}", o.id))?,
+                    .ok_or_else(|| anyhow!("no sprite in atlas for object {}", o.id))?,
                 x: o.x as u32,
                 y: o.y as u32,
                 flip: o.flip_y,

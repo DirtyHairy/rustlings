@@ -128,13 +128,15 @@ impl Bitmap {
             let mut i: usize = 0;
             for y in 0..height {
                 for x in 0..width {
-                    let byte = *data.get(base + i / 8).ok_or(anyhow!(
-                        "read_planar: out of bounds {} {} {} {}",
-                        x,
-                        y,
-                        i,
-                        data.len()
-                    ))?;
+                    let byte = *data.get(base + i / 8).ok_or_else(|| {
+                        anyhow!(
+                            "read_planar: out of bounds {} {} {} {}",
+                            x,
+                            y,
+                            i,
+                            data.len()
+                        )
+                    })?;
 
                     bitmap.data[i] |= ((byte >> (7 - (i % 8))) & 0x01) << iplane;
 
@@ -156,7 +158,8 @@ impl Bitmap {
 
         let effective_transparency_encoding = match transparency_encoding {
             TransparencyEncoding::PlanarOffset(offset) => TransparencyEncoding::PlanarAt(
-                data.get(offset..).ok_or(anyhow!("unable to obtain mask"))?,
+                data.get(offset..)
+                    .ok_or_else(|| anyhow!("unable to obtain mask"))?,
             ),
             _ => transparency_encoding,
         };
@@ -177,7 +180,7 @@ impl Bitmap {
                     for _ in 0..width {
                         let byte = *transparency_data
                             .get(i / 8)
-                            .ok_or(anyhow!("read_planar: transparency: out of bounds"))?;
+                            .ok_or_else(|| anyhow!("read_planar: transparency: out of bounds"))?;
 
                         bitmap.transparency[i] = ((byte >> (7 - (i % 8))) & 0x01) == 0x00;
                         i += 1;
@@ -301,7 +304,7 @@ impl Sprite {
                     height,
                     bpp,
                     data.get(base..base + frame_size)
-                        .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
+                        .ok_or_else(|| anyhow!("Sprite::read_planar: out of bounds"))?,
                     transparency_encoding,
                     mapping_fun,
                 )?
@@ -311,7 +314,7 @@ impl Sprite {
                     height,
                     bpp,
                     data.get(base..base + frame_size)
-                        .ok_or(anyhow!("Sprite::read_planar: out of bounds"))?,
+                        .ok_or_else(|| anyhow!("Sprite::read_planar: out of bounds"))?,
                     transparency_encoding,
                 )?
             });

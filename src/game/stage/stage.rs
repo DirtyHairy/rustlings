@@ -350,13 +350,13 @@ impl<'sdl> Stage<'sdl> {
             let layer = render_state
                 .layers
                 .get_mut(i)
-                .ok_or(anyhow!("invalid layer {}", i))?;
+                .ok_or_else(|| anyhow!("invalid layer {}", i))?;
 
             let dest = render_state
                 .layout
                 .layers
                 .get(i)
-                .ok_or(anyhow!("no layout for layer {}", i))?;
+                .ok_or_else(|| anyhow!("no layout for layer {}", i))?;
 
             let texture = self.prescale_layer(scene, layer, needs_redraw)?;
             texture.set_blend_mode(sdl3::render::BlendMode::Blend);

@@ -5,7 +5,7 @@ pub fn read_byte<T: From<u8>>(buffer: &[u8], offset: usize) -> Result<(T, usize)
         T::from(
             *buffer
                 .get(offset)
-                .ok_or(anyhow!("offset {} out of bounds", offset))?,
+                .ok_or_else(|| anyhow!("offset {} out of bounds", offset))?,
         ),
         offset + 1,
     ))

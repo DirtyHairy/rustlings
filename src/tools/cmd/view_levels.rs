@@ -55,7 +55,7 @@ fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_
     if level.extended_graphics_set > 0 {
         data.special_backgrounds
             .get(level.extended_graphics_set as usize - 1)
-            .ok_or(anyhow!(
+            .ok_or_else(|| anyhow!(
                 "invalid extended graphics set {}",
                 level.extended_graphics_set
             ))
@@ -63,7 +63,7 @@ fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_
     } else {
         data.tilesets
             .get(level.graphics_set as usize)
-            .ok_or(anyhow!("invalid graphics set {}", level.graphics_set))
+            .ok_or_else(|| anyhow!("invalid graphics set {}", level.graphics_set))
             .map(|x| x.palettes.custom)
     }
 }
@@ -132,7 +132,7 @@ fn compose_level(
         let special_background = data
             .special_backgrounds
             .get(level.extended_graphics_set as usize - 1)
-            .ok_or(anyhow!("bad extended graphics set"))?;
+            .ok_or_else(|| anyhow!("bad extended graphics set"))?;
 
         for y in 0..special_background.bitmap.height {
             for x in 0..special_background.bitmap.width {
@@ -152,7 +152,7 @@ fn compose_level(
         if let Some(bitmap) = data
             .tilesets
             .get(level.graphics_set as usize)
-            .ok_or(anyhow!("bad graphics set"))?
+            .ok_or_else(|| anyhow!("bad graphics set"))?
             .tiles
             .get(tile.id as usize)
             .and_then(|x| x.as_ref())
