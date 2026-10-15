@@ -2,7 +2,7 @@ use std::{
     cmp::{max, min},
     path::Path,
     thread::sleep,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Result, anyhow};
@@ -22,12 +22,12 @@ use sdl3::{
     render::{BlendMode, Canvas, RenderTarget, Texture, TextureCreator},
 };
 
-use crate::cmd::util::{create_window, timestamp};
+use crate::cmd::util::create_window;
 
 const LEVELS_TOTAL: usize = 120;
 const LEVEL_WIDTH: u32 = 1600;
 const LEVEL_HEIGHT: u32 = 160;
-const TICK_TIME_MSEC: u32 = 1000 / 15;
+const TICK_TIME_MSEC: u128 = 1000 / 15;
 const VGASPEC_POSITION: usize = 304;
 
 type ObjectSprites<'a> = Vec<Vec<Option<SDLSprite<'a>>>>;
@@ -415,8 +415,8 @@ fn display_levels(data: &GameData, start_level: usize) -> Result<()> {
 
     let mut running = true;
     let mut frame: u64 = 0;
-    let now = timestamp();
-    let mut game_time = 0;
+    let ts_start = Instant::now();
+    let mut game_time: u128 = 0;
     let mut level_index = start_level;
     let mut zoom = 4;
     let mut level = data.resolve_level(level_index).unwrap();
@@ -503,7 +503,7 @@ fn display_levels(data: &GameData, start_level: usize) -> Result<()> {
             screen_dirty = true;
         }
 
-        let time = timestamp() - now;
+        let time = Instant::now().duration_since(ts_start).as_millis();
         let ticks = (time - game_time) / TICK_TIME_MSEC;
         if ticks > 0 {
             game_time += ticks * TICK_TIME_MSEC;

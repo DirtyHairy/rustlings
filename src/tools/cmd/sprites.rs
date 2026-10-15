@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::{path::Path, thread::sleep, time::Duration};
 
 use anyhow::{Result, anyhow};
@@ -34,14 +35,14 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
 
     let mut running = true;
     let mut iframe = 0;
-    let mut last_draw: u32 = 0;
+    let mut last_draw = Instant::now();
 
     while running {
-        let now = util::timestamp();
+        let now = Instant::now();
 
         canvas.clear();
 
-        if now - last_draw > 1000 / 15 {
+        if now.duration_since(last_draw).as_millis() > 1000 / 15 {
             for (isprite, sprite) in sdl_sprites.iter_mut().enumerate() {
                 sprite.blit(
                     &mut canvas,

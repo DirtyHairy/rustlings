@@ -1,4 +1,4 @@
-const PARTCLE_DATA: &[u8] = include_bytes!("./assets/particle_tables.bin");
+const PARTICLE_DATA: &[u8] = include_bytes!("./assets/particle_tables.bin");
 
 pub const NUM_PARTICLE_SETS: usize = 51;
 
@@ -22,8 +22,8 @@ pub struct ParticleSets {
 }
 
 pub fn load_particle_sets() -> ParticleSets {
-    let color_table: &[u8] = PARTCLE_DATA;
-    let particle_tables: &[u8] = &PARTCLE_DATA[16..];
+    let color_table: &[u8] = PARTICLE_DATA;
+    let particle_tables: &[u8] = &PARTICLE_DATA[16..];
 
     let mut iparticle: usize = 0;
     let mut cursor: usize = 0;

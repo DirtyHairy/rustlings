@@ -32,7 +32,7 @@ pub struct SkillPanelController {
     last_armageddon_trigger_at: Option<Instant>,
 }
 
-const ARGMAGEDDOM_TIMEOUT_MSEC: u128 = 250;
+const ARGMAGEDDON_TIMEOUT_MSEC: u128 = 250;
 const SKILL_PANEL_Y: u32 = SCREEN_HEIGHT - SKILL_PANEL_HEIGHT;
 
 impl SkillPanelController {
@@ -178,7 +178,7 @@ impl SkillPanelController {
         let now = Instant::now();
 
         if let Some(last_trigger) = self.last_armageddon_trigger_at
-            && now.duration_since(last_trigger).as_millis() <= ARGMAGEDDOM_TIMEOUT_MSEC
+            && now.duration_since(last_trigger).as_millis() <= ARGMAGEDDON_TIMEOUT_MSEC
         {
             state.armageddon = Some(ArmageddonState { nuking: true })
         } else {
@@ -207,7 +207,7 @@ impl SkillPanelController {
     }
 
     fn start_decrement(&mut self, source: InteractionSource) {
-        if !self.decrementing.is_empty() {
+        if self.decrementing.is_empty() {
             self.decremented = 0;
         }
 

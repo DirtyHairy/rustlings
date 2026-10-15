@@ -6,8 +6,8 @@ use rustlings::game_data::file::encoding::datfile;
 pub fn main(path_name: &str) -> Result<()> {
     let path = Path::new(path_name);
 
-    let compressed_data = fs::read(path.as_os_str())
-        .with_context(|| format!("failed to load read '{}'", path_name))?;
+    let compressed_data =
+        fs::read(path.as_os_str()).with_context(|| format!("failed to read '{}'", path_name))?;
 
     let datfile = datfile::parse(&compressed_data)?;
 

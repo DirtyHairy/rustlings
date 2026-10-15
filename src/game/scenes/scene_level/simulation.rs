@@ -211,7 +211,7 @@ impl Simulation {
         }
 
         let Some(victim) = state.lemmings.iter_mut().find(|l| !l.armageddon) else {
-            armageddon.nuking = true;
+            armageddon.nuking = false;
             return;
         };
 
@@ -756,7 +756,7 @@ struct Terrain<'a> {
     bitmap: &'a mut Bitmap,
     map: &'a mut [TerrainProps],
     diff: &'a mut Vec<TerrainDiff>,
-    masks_sprites: &'a [Sprite],
+    mask_sprites: &'a [Sprite],
 }
 
 impl<'a> Terrain<'a> {
@@ -764,7 +764,7 @@ impl<'a> Terrain<'a> {
         bitmap: &'a mut Bitmap,
         map: &'a mut [TerrainProps],
         diff: &'a mut Vec<TerrainDiff>,
-        masks_sprites: &'a [Sprite],
+        mask_sprites: &'a [Sprite],
     ) -> Self {
         assert!((bitmap.width * bitmap.height) as usize == map.len());
 
@@ -772,7 +772,7 @@ impl<'a> Terrain<'a> {
             bitmap,
             map,
             diff,
-            masks_sprites,
+            mask_sprites,
         }
     }
 
@@ -862,7 +862,6 @@ impl<'a> Terrain<'a> {
             .iter_mut()
             .for_each(|terrain_prop| terrain_prop.set_solid(false));
 
-        self.map[extend_start..extend_end].fill(TerrainProps::new());
         self.bitmap.data[extend_start..extend_end].fill(0);
         self.bitmap.transparency[extend_start..extend_end].fill(false);
 
@@ -977,7 +976,7 @@ impl<'a> Terrain<'a> {
     }
 
     fn apply_mask(&mut self, x: i32, y: i32, sprite: MaskSprite, frame: usize) {
-        let sprite = &self.masks_sprites[sprite as usize];
+        let sprite = &self.mask_sprites[sprite as usize];
 
         let terrain_width = self.width();
         let terrain_height = self.height();

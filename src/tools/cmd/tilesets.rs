@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
 use anyhow::{Result, anyhow};
@@ -5,7 +6,7 @@ use rustlings::game_data::{GameData, read_game_data};
 use rustlings::sdl::SDLSprite;
 use sdl3::{event::Event, keyboard::Keycode};
 
-use crate::cmd::util::{create_window, timestamp};
+use crate::cmd::util::create_window;
 
 fn display_tileset(game_data: &GameData) -> Result<()> {
     let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
@@ -51,13 +52,13 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
 
     let mut running = true;
     let mut iframe = 0;
-    let mut last_draw: u32 = 0;
+    let mut last_draw = Instant::now();
     let mut ispriteset: usize = 0;
 
     while running {
-        let now = timestamp();
+        let now = Instant::now();
 
-        if now - last_draw > 1000 / 15 {
+        if now.duration_since(last_draw).as_millis() > 1000 / 15 {
             let mut x: i32 = 0;
             let mut y: i32 = 1;
             let mut height: i32 = 0;

@@ -194,11 +194,17 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
             repeat: false,
             ..
         } => match (keycode, keymod) {
-            (Keycode::R, Mod::LCTRLMOD | Mod::RCTRLMOD) => Some(GameEvent::RenderReset),
-            (Keycode::Q, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
+            (Keycode::R, m) if m.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD) => {
+                Some(GameEvent::RenderReset)
+            }
+            (Keycode::Q, m)
+                if m.intersects(Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) =>
+            {
                 Some(GameEvent::Quit)
             }
-            (Keycode::Return, Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) => {
+            (Keycode::Return, m)
+                if m.intersects(Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) =>
+            {
                 Some(GameEvent::ToggleFullscreen)
             }
             _ => Some(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {

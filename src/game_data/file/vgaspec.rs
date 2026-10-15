@@ -78,7 +78,7 @@ fn read_bitmap_section(src: &[u8], index: usize, dest: &mut [u8]) -> Result<usiz
 fn read_compressed_data(compressed_data: &[u8]) -> Result<Content> {
     let decompressed_sections = encoding::datfile::parse(compressed_data)?;
     if decompressed_sections.sections.len() != 1 {
-        bail!("vgaspec: too man sections");
+        bail!("vgaspec: too many sections");
     }
 
     let data = &decompressed_sections.sections[0].data;

@@ -3,7 +3,7 @@ use sdl3::pixels::{Color, PixelFormat};
 
 use crate::game_data::{Bitmap, PALETTE_SIZE, PaletteEntry};
 
-pub fn recast_buffer<T>(data: &mut [u8]) -> Result<&mut [T]> {
+fn recast_buffer<T>(data: &mut [u8]) -> Result<&mut [T]> {
     unsafe {
         let (prefix, res, _) = data.align_to_mut::<T>();
 

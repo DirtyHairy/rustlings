@@ -55,7 +55,7 @@ impl SkillPanel {
 }
 
 fn create_frame(width: u32, height: u32) -> Bitmap {
-    let size = (width * height) as usize + 1;
+    let size = (width * height) as usize;
     let mut data: Vec<u8> = vec![0; size];
     let mut transparency: Vec<bool> = vec![true; size];
 
