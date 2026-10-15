@@ -1,10 +1,10 @@
 mod atlas;
-mod aux;
+mod misc_wrappers;
 mod sprite;
 mod texture;
 mod util;
 
 pub use atlas::*;
-pub use aux::*;
+pub use misc_wrappers::*;
 pub use sprite::*;
 pub use texture::*;
