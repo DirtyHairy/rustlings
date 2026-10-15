@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::{cmp::max, path::Path, thread::sleep, time::Duration};
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use rustlings::game_data::{GameData, read_game_data};
 use rustlings::sdl::SDLSprite;
 use sdl3::{event::Event, keyboard::Keycode};
@@ -9,12 +9,12 @@ use sdl3::{event::Event, keyboard::Keycode};
 use crate::cmd::util::create_window;
 
 fn display_tileset(game_data: &GameData) -> Result<()> {
-    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init()?;
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
 
-    let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
-    let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
+    let sdl_video = sdl_context.video()?;
+    let mut event_pump = sdl_context.event_pump()?;
 
     let window = create_window(&sdl_video, false)?;
 

@@ -358,9 +358,8 @@ fn transform_x_for_zoom(x: u32, old_zoom: u32, zoom: u32) -> u32 {
 }
 
 fn create_canvas_texture<'a, T>(texture_creator: &'a TextureCreator<T>) -> Result<Texture<'a>> {
-    let mut texture = texture_creator
-        .create_texture_target(PixelFormat::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)
-        .map_err(|e| anyhow!(e))?;
+    let mut texture =
+        texture_creator.create_texture_target(PixelFormat::RGBA8888, LEVEL_WIDTH, LEVEL_HEIGHT)?;
 
     texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
 
@@ -388,12 +387,12 @@ fn switch_level<'a, T>(
 }
 
 fn display_levels(data: &GameData, start_level: usize) -> Result<()> {
-    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init()?;
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
 
-    let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
-    let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
+    let sdl_video = sdl_context.video()?;
+    let mut event_pump = sdl_context.event_pump()?;
     let window = create_window(&sdl_video, true)?;
 
     let mut canvas = window.into_canvas();

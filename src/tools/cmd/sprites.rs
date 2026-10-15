@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::{path::Path, thread::sleep, time::Duration};
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use rustlings::game_data::{GameData, read_game_data};
 use rustlings::sdl::SDLSprite;
 use sdl3::{event::Event, keyboard::Keycode};
@@ -9,12 +9,12 @@ use sdl3::{event::Event, keyboard::Keycode};
 use crate::cmd::util;
 
 fn display_sprites(game_data: &GameData) -> Result<()> {
-    let sdl_context = sdl3::init().map_err(|s| anyhow!(s))?;
+    let sdl_context = sdl3::init()?;
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
 
-    let sdl_video = sdl_context.video().map_err(|s| anyhow!(s))?;
-    let mut event_pump = sdl_context.event_pump().map_err(|s| anyhow!(s))?;
+    let sdl_video = sdl_context.video()?;
+    let mut event_pump = sdl_context.event_pump()?;
 
     let window = util::create_window(&sdl_video, false)?;
 
@@ -30,8 +30,7 @@ fn display_sprites(game_data: &GameData) -> Result<()> {
         .lemming_sprites
         .iter()
         .map(|s| SDLSprite::from_sprite(s, &palette, &texture_creator))
-        .filter_map(|x| x.ok())
-        .collect();
+        .collect::<Result<_>>()?;
 
     let mut running = true;
     let mut iframe = 0;

@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use anyhow::{Context, Ok, Result};
+use anyhow::{Context, Result};
 use rustlings::game_data::file::encoding::datfile;
 
 pub fn main(path_name: &str) -> Result<()> {

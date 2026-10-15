@@ -27,11 +27,5 @@ fn main() -> Result<()> {
         data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().clone(),
     };
 
-    let run_result = game::run(&config);
-
-    if let Err(err) = &run_result {
-        println!("ERROR: {}", err);
-    }
-
-    run_result
+    game::run(&config)
 }
