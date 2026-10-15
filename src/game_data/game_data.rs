@@ -4,9 +4,7 @@ use strum::EnumCount;
 pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
-pub use crate::game_data::file::level::{
-    Level, LevelParameters, LevelStructure, Object, TerrainTile,
-};
+pub use crate::game_data::file::level::{Level, LevelParameters, Object, TerrainTile};
 use crate::game_data::file::main::{LemmingSprite, MaskSprite};
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
@@ -162,19 +160,15 @@ impl GameData {
         }
 
         for tile in &level.terrain_tiles {
-            let bitmap_optional = self
+            if let Some(bitmap) = self
                 .tilesets
                 .get(level.graphics_set as usize)
                 .ok_or(anyhow!("bad graphics set {}", level.graphics_set))?
                 .tiles
                 .get(tile.id as usize)
-                .and_then(|x| x.as_ref());
-
-            match bitmap_optional {
-                None => continue,
-                Some(bitmap) => {
-                    compose_tile_onto_background(tile, bitmap, &mut data, &mut transparency);
-                }
+                .and_then(|x| x.as_ref())
+            {
+                compose_tile_onto_background(tile, bitmap, &mut data, &mut transparency);
             }
         }
 

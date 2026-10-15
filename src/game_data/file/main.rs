@@ -175,10 +175,10 @@ pub fn read_main(path: &Path) -> Result<Content> {
         )?
         .sub(0, 0, 4, 8)?;
 
-        font_skill_panel_skills.add_frame(&char_bitmap)?;
+        font_skill_panel_skills.add_frame(char_bitmap)?;
     }
 
-    font_skill_panel_skills.add_frame(&Bitmap::filled(4, 8, COLOR_WHITE, false))?;
+    font_skill_panel_skills.add_frame(Bitmap::filled(4, 8, COLOR_WHITE, false))?;
 
     for i in 0..FONT_SKILL_PANEL_SIZE - 1 {
         let char_bitmap = Bitmap::read_planar_mapped(
@@ -198,10 +198,10 @@ pub fn read_main(path: &Path) -> Result<Content> {
             },
         )?;
 
-        font_skill_panel.add_frame(&char_bitmap)?;
+        font_skill_panel.add_frame(char_bitmap)?;
     }
 
-    font_skill_panel.add_frame(&Bitmap::filled(8, 16, COLOR_BLACK, false))?;
+    font_skill_panel.add_frame(Bitmap::filled(8, 16, COLOR_BLACK, false))?;
 
     for i in 0..FONT_COUNTDOWN_SIZE {
         let char_bitmap = Bitmap::read_planar_mapped(
@@ -216,7 +216,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             |x| if x == 0 { COLOR_BLACK } else { COLOR_WHITE },
         )?;
 
-        font_countdown.add_frame(&char_bitmap)?;
+        font_countdown.add_frame(char_bitmap)?;
     }
 
     Ok(Content {

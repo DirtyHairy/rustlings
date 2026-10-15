@@ -259,8 +259,8 @@ fn calculate_prescaling_mode(width: u32, height: u32, dest: &geometry::Rect) -> 
 
     // We are integer scaling along at least one axis, so make sure we keep
     // the other finite.
-    integer_scale_x = std::cmp::max(1, integer_scale_x);
-    integer_scale_y = std::cmp::max(1, integer_scale_y);
+    integer_scale_x = integer_scale_x.max(1);
+    integer_scale_y = integer_scale_y.max(1);
 
     let integer_scaled_width = width * integer_scale_x;
     let integer_scaled_height = height * integer_scale_y;

@@ -93,7 +93,7 @@ impl EventCollector {
 
             let aggregation_time_remaining = aggregate_at_least_until
                 .checked_duration_since(now)
-                .unwrap_or(Duration::from_millis(0))
+                .unwrap_or(Duration::ZERO)
                 .as_millis() as u64;
 
             if !first_iteration

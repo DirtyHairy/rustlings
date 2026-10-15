@@ -330,12 +330,12 @@ impl Sprite {
         }
     }
 
-    pub fn add_frame(&mut self, frame: &Bitmap) -> Result<()> {
+    pub fn add_frame(&mut self, frame: Bitmap) -> Result<()> {
         if self.width != frame.width || self.height != frame.height {
             bail!("invalid dimensions");
         }
 
-        self.frames.push(frame.clone());
+        self.frames.push(frame);
         Ok(())
     }
 }

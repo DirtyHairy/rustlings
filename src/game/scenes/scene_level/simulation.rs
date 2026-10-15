@@ -794,14 +794,12 @@ impl<'a> Terrain<'a> {
 
     fn is_solid(&self, x: i32, y: i32) -> bool {
         self.terrain_at(x, y)
-            .map(|terrain_info| terrain_info.solid())
-            .unwrap_or(false)
+            .is_some_and(|terrain_info| terrain_info.solid())
     }
 
     fn is_steel(&self, x: i32, y: i32) -> bool {
         self.terrain_at(x, y)
-            .map(|terrain_info| terrain_info.steel())
-            .unwrap_or(false)
+            .is_some_and(|terrain_info| terrain_info.steel())
     }
 
     fn delta_y_ascend(&self, x: i32, y: i32, limit: u32) -> u32 {

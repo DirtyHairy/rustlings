@@ -590,42 +590,42 @@ impl<'texture_creator> Renderer<'texture_creator> {
         state: &SceneStateLevel,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
-        if let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy {
-            with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
-                canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
-                canvas.clear();
-
-                blit_objects(
-                    canvas,
-                    state,
-                    &mut self.objects_background,
-                    SDL_BLENDMODE_BLEND,
-                    &mut self.atlas,
-                )?;
-                copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_BLEND)?;
-                blit_objects(
-                    canvas,
-                    state,
-                    &mut self.objects_foreground,
-                    SDL_BLENDMODE_BLEND,
-                    &mut self.atlas,
-                )?;
-
-                draw_lemmings(
-                    canvas,
-                    state,
-                    &mut self.atlas,
-                    self.sprite_index_countdown,
-                    &mut self.particle_buffer,
-                    &self.game_data.particle_sets,
-                    &self.palette,
-                )?;
-
-                Ok(())
-            })
-        } else {
+        let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy else {
             unreachable!()
-        }
+        };
+
+        with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+            canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+            canvas.clear();
+
+            blit_objects(
+                canvas,
+                state,
+                &mut self.objects_background,
+                SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
+            )?;
+            copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_BLEND)?;
+            blit_objects(
+                canvas,
+                state,
+                &mut self.objects_foreground,
+                SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
+            )?;
+
+            draw_lemmings(
+                canvas,
+                state,
+                &mut self.atlas,
+                self.sprite_index_countdown,
+                &mut self.particle_buffer,
+                &self.game_data.particle_sets,
+                &self.palette,
+            )?;
+
+            Ok(())
+        })
     }
 
     fn draw_level_strategy_stencil(
@@ -633,66 +633,66 @@ impl<'texture_creator> Renderer<'texture_creator> {
         state: &SceneStateLevel,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
-        if let RenderStrategy::Stencil(StencilTextures {
+        let RenderStrategy::Stencil(StencilTextures {
             stencil_terrain,
             intermediate_terrain,
         }) = &mut self.render_strategy
-        {
-            with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
-                copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_NONE)?;
-                blit_objects(
-                    canvas,
-                    state,
-                    &mut self.objects_merge,
-                    SDL_BLENDMODE_BLEND,
-                    &mut self.atlas,
-                )?;
-
-                Ok(())
-            })?;
-
-            with_texture_canvas(canvas, intermediate_terrain, |canvas| -> Result<()> {
-                copy_texture(canvas, stencil_terrain, SDL_BLENDMODE_NONE)?;
-                copy_texture(canvas, &mut self.texture_level, SDL_BLENDMODE_MOD)?;
-
-                Ok(())
-            })?;
-
-            with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
-                canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
-                canvas.clear();
-
-                blit_objects(
-                    canvas,
-                    state,
-                    &mut self.objects_background,
-                    SDL_BLENDMODE_BLEND,
-                    &mut self.atlas,
-                )?;
-                copy_texture(canvas, intermediate_terrain, SDL_BLENDMODE_BLEND)?;
-                blit_objects(
-                    canvas,
-                    state,
-                    &mut self.objects_foreground,
-                    SDL_BLENDMODE_BLEND,
-                    &mut self.atlas,
-                )?;
-
-                draw_lemmings(
-                    canvas,
-                    state,
-                    &mut self.atlas,
-                    self.sprite_index_countdown,
-                    &mut self.particle_buffer,
-                    &self.game_data.particle_sets,
-                    &self.palette,
-                )?;
-
-                Ok(())
-            })
-        } else {
+        else {
             unreachable!()
-        }
+        };
+
+        with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+            copy_texture(canvas, &mut self.texture_terrain, SDL_BLENDMODE_NONE)?;
+            blit_objects(
+                canvas,
+                state,
+                &mut self.objects_merge,
+                SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
+            )?;
+
+            Ok(())
+        })?;
+
+        with_texture_canvas(canvas, intermediate_terrain, |canvas| -> Result<()> {
+            copy_texture(canvas, stencil_terrain, SDL_BLENDMODE_NONE)?;
+            copy_texture(canvas, &mut self.texture_level, SDL_BLENDMODE_MOD)?;
+
+            Ok(())
+        })?;
+
+        with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
+            canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
+            canvas.clear();
+
+            blit_objects(
+                canvas,
+                state,
+                &mut self.objects_background,
+                SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
+            )?;
+            copy_texture(canvas, intermediate_terrain, SDL_BLENDMODE_BLEND)?;
+            blit_objects(
+                canvas,
+                state,
+                &mut self.objects_foreground,
+                SDL_BLENDMODE_BLEND,
+                &mut self.atlas,
+            )?;
+
+            draw_lemmings(
+                canvas,
+                state,
+                &mut self.atlas,
+                self.sprite_index_countdown,
+                &mut self.particle_buffer,
+                &self.game_data.particle_sets,
+                &self.palette,
+            )?;
+
+            Ok(())
+        })
     }
 
     fn draw_screen(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<()> {

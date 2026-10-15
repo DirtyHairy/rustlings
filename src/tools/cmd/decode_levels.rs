@@ -1,23 +1,7 @@
-use std::{cmp::Ordering, fs, io::Write, path::Path};
+use std::{fs, io::Write, path::Path};
 
 use anyhow::Result;
-use rustlings::game_data::{LevelStructure, read_game_data};
-
-fn comparator<T: LevelStructure>(o1: &T, o2: &T) -> Ordering {
-    if o1.get_id() == o2.get_id() {
-        if o1.get_x() > o2.get_x() {
-            Ordering::Greater
-        } else if o1.get_x() < o2.get_x() {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
-    } else if o1.get_id() > o2.get_id() {
-        Ordering::Greater
-    } else {
-        Ordering::Less
-    }
-}
+use rustlings::game_data::read_game_data;
 
 pub fn main(path: &Path, destination: &str) -> Result<()> {
     let game_data = read_game_data(path)?;
@@ -35,7 +19,7 @@ pub fn main(path: &Path, destination: &str) -> Result<()> {
         writeln!(&mut file)?;
 
         let mut objects = level.objects.clone();
-        objects.sort_by(comparator);
+        objects.sort_by_key(|o| (o.id, o.x));
 
         for object in &objects {
             writeln!(&mut file, "{}", object)?;
@@ -47,7 +31,7 @@ pub fn main(path: &Path, destination: &str) -> Result<()> {
         writeln!(&mut file)?;
 
         let mut terrain_tiles = level.terrain_tiles.clone();
-        terrain_tiles.sort_by(comparator);
+        terrain_tiles.sort_by_key(|t| (t.id, t.x));
 
         for tile in &terrain_tiles {
             writeln!(&mut file, "{}", tile)?;

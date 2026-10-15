@@ -60,13 +60,6 @@ pub struct Level {
     pub objects: Vec<Object>,
 }
 
-#[allow(dead_code)]
-pub trait LevelStructure {
-    fn get_id(&self) -> u32;
-    fn get_x(&self) -> i32;
-    fn get_y(&self) -> i32;
-}
-
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
     println!("reading {}", filename);
@@ -248,34 +241,6 @@ fn read_steel_area(data: &[u8], index: usize) -> Result<Option<SteelArea>> {
         width: 4 * ((area >> 4) + 1) as u32,
         height: 4 * ((area & 0x0f) + 1) as u32,
     }))
-}
-
-impl LevelStructure for Object {
-    fn get_id(&self) -> u32 {
-        self.id
-    }
-
-    fn get_x(&self) -> i32 {
-        self.x
-    }
-
-    fn get_y(&self) -> i32 {
-        self.y
-    }
-}
-
-impl LevelStructure for TerrainTile {
-    fn get_id(&self) -> u32 {
-        self.id
-    }
-
-    fn get_x(&self) -> i32 {
-        self.x
-    }
-
-    fn get_y(&self) -> i32 {
-        self.y
-    }
 }
 
 impl fmt::Display for Level {

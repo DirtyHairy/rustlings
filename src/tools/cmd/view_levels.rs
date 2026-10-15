@@ -149,19 +149,15 @@ fn compose_level(
     }
 
     for tile in &level.terrain_tiles {
-        let bitmap_optional = data
+        if let Some(bitmap) = data
             .tilesets
             .get(level.graphics_set as usize)
             .ok_or(anyhow!("bad graphics set"))?
             .tiles
             .get(tile.id as usize)
-            .and_then(|x| x.as_ref());
-
-        match bitmap_optional {
-            None => continue,
-            Some(bitmap) => {
-                compose_tile_onto_background(tile, bitmap, &mut background_data);
-            }
+            .and_then(|x| x.as_ref())
+        {
+            compose_tile_onto_background(tile, bitmap, &mut background_data);
         }
     }
 
