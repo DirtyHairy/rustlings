@@ -109,6 +109,7 @@ pub struct LemmingState {
     pub climber: bool,
 
     pub armageddon: bool,
+    pub ignore_blocker: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Default)]

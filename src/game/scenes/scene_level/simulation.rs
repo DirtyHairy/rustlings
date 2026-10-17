@@ -9,9 +9,9 @@ use rustlings::game_data::{
 use crate::{
     scenes::scene_level::terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
     state::{
-        Activity, ActivityStateDigging, ActivityStateFalling, BlockField, Direction,
-        LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel,
-        TerrainProps,
+        Activity::{self, Falling},
+        ActivityStateDigging, ActivityStateFalling, BlockField, Direction, LemmingAnimation,
+        LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel, TerrainProps,
     },
 };
 
@@ -75,6 +75,9 @@ const MAX_STEP_DOWN: u32 = 3;
 const JUMP_DISTANCE: u32 = 2;
 
 const DIG_X_OFFSET: i32 = -4;
+
+const MAX_BASH_DOWN: u32 = 2;
+const BASH_CHECK_DISTANCE: u32 = 4;
 
 const MIN_FOOT_Y: i32 = 5;
 const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
@@ -296,6 +299,8 @@ impl Simulation {
 
 impl LemmingState {
     fn tick(&mut self, terrain: &mut Terrain, objects: &mut [ObjectState]) -> LemmingVerdict {
+        self.ignore_blocker = false;
+
         let countdown_tripped = self.tick_countdown();
 
         let mut verdict = if !countdown_tripped {
@@ -304,6 +309,7 @@ impl LemmingState {
                     Activity::Falling(_) => self.tick_faller(terrain),
                     Activity::Walking => self.tick_walker(terrain),
                     Activity::Digging(_) => self.tick_digger(terrain),
+                    Activity::Bashing => self.tick_basher(terrain),
                     Activity::Blocking => self.tick_blocker(terrain),
                     Activity::Splatting | Activity::Frying => self.tick_death(),
                     Activity::Jumping => self.tick_jumper(terrain),
@@ -319,7 +325,9 @@ impl LemmingState {
             LemmingVerdict::Continue
         };
 
-        self.turn_if_blocked(terrain);
+        if !self.ignore_blocker {
+            self.turn_if_blocked(terrain);
+        }
 
         if verdict != LemmingVerdict::Death
             && (self.y >= (LEVEL_HEIGHT + self.animation.map_or_default(|a| a.foot().1)) as i32
@@ -552,7 +560,7 @@ impl LemmingState {
 
         self.x += self.direction.delta(1);
 
-        if self.x == 0 || self.x == terrain.width() as i32 - 1 {
+        if !terrain.is_inside_x(self.x) {
             self.direction = !self.direction;
         } else if terrain.is_solid(self.x, self.y) {
             let dy = terrain.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
@@ -607,6 +615,63 @@ impl LemmingState {
 
         if matches!(self.activity, Activity::Digging(_)) {
             self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        }
+
+        LemmingVerdict::Continue
+    }
+
+    fn tick_basher(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        let index = self.frame % 16;
+
+        if (2..=5).contains(&index) {
+            terrain.bash(self.x, self.y, index - 2, self.direction);
+            self.ignore_blocker = true;
+
+            if self.frame == 5 {
+                let dx = terrain.delta_x(
+                    self.direction,
+                    self.x + self.direction.delta(8),
+                    self.y - 6,
+                    BASH_CHECK_DISTANCE,
+                );
+
+                if dx == BASH_CHECK_DISTANCE {
+                    self.transition_to(Activity::Walking);
+                }
+            }
+        }
+
+        if (11..=15).contains(&index) {
+            self.x += self.direction.delta(1);
+
+            if !terrain.is_inside_x(self.x) {
+                self.direction = !self.direction;
+                self.transition_to(Activity::Walking);
+            }
+
+            if matches!(self.activity, Activity::Bashing) {
+                let dy = terrain.delta_y_descend(self.x, self.y, MAX_BASH_DOWN + 1);
+                self.y += dy.min(MAX_BASH_DOWN) as i32;
+
+                if dy > MAX_BASH_DOWN {
+                    self.transition_to(Falling(Default::default()));
+                }
+            }
+
+            if matches!(self.activity, Activity::Bashing) {
+                let probe = terrain
+                    .terrain_at(self.x + self.direction.delta(8), self.y - 8)
+                    .unwrap_or_default();
+
+                if probe.steel() || probe.one_way_left() || probe.one_way_right() {
+                    self.direction = !self.direction;
+                    self.transition_to(Activity::Walking);
+                }
+            }
+        }
+
+        if matches!(self.activity, Activity::Bashing) {
+            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count()
         }
 
         LemmingVerdict::Continue
@@ -832,6 +897,25 @@ impl<'a> Terrain<'a> {
         dy
     }
 
+    fn delta_x(&self, direction: Direction, x: i32, y: i32, limit: u32) -> u32 {
+        let mut dx: u32 = 0;
+
+        for i in 0..=limit {
+            dx = i;
+            let xpos = x + direction.delta(dx);
+
+            if self.is_solid(xpos, y) {
+                break;
+            }
+        }
+
+        dx
+    }
+
+    fn is_inside_x(&self, x: i32) -> bool {
+        x >= 0 || x < self.width() as i32
+    }
+
     fn dig(&mut self, x: i32, y: i32) -> bool {
         let terrain_width = self.width();
         let terrain_height = self.height();
@@ -873,12 +957,34 @@ impl<'a> Terrain<'a> {
     }
 
     fn explode(&mut self, x: i32, y: i32) {
-        self.apply_mask(x - 8, y - 14, MaskSprite::Explosion, 0);
+        let left = x - 8;
+        let top = y - 14;
+
+        self.apply_mask(left, top, MaskSprite::Explosion, 0);
         self.diff.push(TerrainDiff {
-            x: x - 8,
-            y: y - 14,
+            x: left,
+            y: top,
             kind: TerrainDiffKind::Mask(MaskSprite::Explosion, 0),
         });
+    }
+
+    fn bash(&mut self, x: i32, y: i32, frame: usize, direction: Direction) {
+        let (foot_x, foot_y) = LemmingAnimation::Bashing.foot();
+
+        let left = x - foot_x as i32;
+        let top = y - foot_y as i32;
+
+        let mask_sprite = match direction {
+            Direction::Left => MaskSprite::BashL,
+            Direction::Right => MaskSprite::BashR,
+        };
+
+        self.apply_mask(left, top, mask_sprite, frame);
+        self.diff.push(TerrainDiff {
+            x: left,
+            y: top,
+            kind: TerrainDiffKind::Mask(mask_sprite, frame),
+        })
     }
 
     fn block_field_overlaps(&self, x: i32, y: i32) -> bool {
