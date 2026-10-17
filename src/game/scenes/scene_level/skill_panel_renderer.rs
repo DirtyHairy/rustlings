@@ -4,8 +4,8 @@ use std::rc::Rc;
 use anyhow::Result;
 use rustlings::{
     game_data::{
-        GameData, Level, NUM_SKILLS, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_HEIGHT,
-        SKILL_TILE_LABEL_X, SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, Skill,
+        GameData, Level, SCREEN_WIDTH, SKILL_PANEL_HEIGHT, SKILL_TILE_HEIGHT, SKILL_TILE_LABEL_X,
+        SKILL_TILE_LABEL_Y, SKILL_TILE_WIDTH, SKILL_TILE_Y, Skill,
         file::main::{FONT_SKILL_PANEL_SIZE, FONT_SKILL_PANEL_SKILLS_SIZE},
         resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
     },
@@ -18,6 +18,7 @@ use sdl3::{
     sys::blendmode::SDL_BLENDMODE_NONE,
     video::Window,
 };
+use strum::EnumCount;
 
 use crate::{
     scenes::scene_level::{cache::Cache, selection_controller::SelectionMode},
@@ -109,7 +110,7 @@ struct SkillPanelStatsModel {
 
 #[derive(PartialEq, Default)]
 struct SkillPanelTextModel {
-    remaining_skills: [u32; NUM_SKILLS],
+    remaining_skills: [u32; Skill::COUNT],
     release_rate: u32,
 
     stats: SkillPanelStatsModel,
@@ -276,7 +277,7 @@ impl<'texture_creator> SkillPanelRenderer<'texture_creator> {
                 draw_tile_label(canvas, &self.atlas, 1, text_model.release_rate)?;
             }
 
-            for i in 0..NUM_SKILLS {
+            for i in 0..Skill::COUNT {
                 if text_model.remaining_skills[i] == self.text_model.remaining_skills[i]
                     && !self.full_redraw
                 {

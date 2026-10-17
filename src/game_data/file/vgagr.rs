@@ -1,3 +1,4 @@
+use std::array;
 use std::{fs, path::Path};
 
 use anyhow::{Result, anyhow, bail};
@@ -31,9 +32,7 @@ pub fn read_vgagr(
 
     let object_data = &sections[1].data;
 
-    const SPRITE_NONE: Option<Sprite> = None;
-    let mut object_sprites: [Option<Sprite>; OBJECTS_PER_TILESET] =
-        [SPRITE_NONE; OBJECTS_PER_TILESET];
+    let mut object_sprites: [Option<Sprite>; OBJECTS_PER_TILESET] = array::from_fn(|_| None);
 
     for i in 0..OBJECTS_PER_TILESET {
         let info = &object_info[i];

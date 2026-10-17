@@ -1,10 +1,9 @@
 use std::time::Instant;
 
 use bitflags::bitflags;
-use rustlings::game_data::{
-    Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, SKILLS, Skill,
-};
+use rustlings::game_data::{Level, SCREEN_HEIGHT, SKILL_PANEL_HEIGHT, SKILL_TILE_WIDTH, Skill};
 use sdl3::keyboard::Keycode;
+use strum::EnumCount;
 
 use crate::{
     scene::{MouseButton, MouseCoordinates, SceneEvent},
@@ -128,6 +127,17 @@ impl SkillPanelController {
     }
 
     fn handle_mouse_down(&mut self, state: &mut SceneStateLevel, x: u32, y: u32) -> bool {
+        const ORDERED_SKILLS: [Skill; Skill::COUNT] = [
+            Skill::Climber,
+            Skill::Floater,
+            Skill::Bomber,
+            Skill::Blocker,
+            Skill::Builder,
+            Skill::Basher,
+            Skill::Miner,
+            Skill::Digger,
+        ];
+
         if y < SKILL_PANEL_Y + 16 {
             return false;
         }
@@ -144,7 +154,7 @@ impl SkillPanelController {
                 false
             }
             2..10 => {
-                state.selected_skill = SKILLS[(tile_index - 2) as usize];
+                state.selected_skill = ORDERED_SKILLS[(tile_index - 2) as usize];
                 true
             }
             10 => {

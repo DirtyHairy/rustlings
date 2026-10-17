@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{array, rc::Rc};
 
 use anyhow::{Error, Result, anyhow, bail};
 use bitflags::bitflags;
@@ -308,7 +308,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
             minimap_points_lookup,
 
             palette,
-            particle_buffer: std::array::from_fn(|_| Vec::with_capacity(MAX_PARTICLES_PER_COLOR)),
+            particle_buffer: array::from_fn(|_| Vec::with_capacity(MAX_PARTICLES_PER_COLOR)),
 
             game_data: Rc::clone(&game_data),
         })

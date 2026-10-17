@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, ops::Not};
 
 use bitfield_struct::bitfield;
-use rustlings::game_data::{Bitmap, NUM_SKILLS, Skill};
-use strum::FromRepr;
+use rustlings::game_data::{Bitmap, Skill};
+use strum::{EnumCount, FromRepr};
 
 use crate::state::LemmingAnimation;
 
@@ -178,7 +178,7 @@ pub struct SceneStateLevel {
     pub tick: u64,
 
     pub selected_skill: Skill,
-    pub remaining_skills: [u32; NUM_SKILLS],
+    pub remaining_skills: [u32; Skill::COUNT],
 
     pub lemmings_out: u32,
     pub lemmings_in: u32,

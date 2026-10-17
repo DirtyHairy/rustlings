@@ -1,27 +1,14 @@
-use std::fmt::Display;
+use strum::Display;
 
 pub const NUM_LEVELS: usize = 120;
 pub const LEVELS_PER_DIFFICULTY: usize = 30;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Display)]
 pub enum DifficultyRating {
     Fun,
     Tricky,
     Taxing,
     Mayhem,
-}
-
-impl Display for DifficultyRating {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            Self::Fun => "Fun",
-            Self::Tricky => "Tricky",
-            Self::Taxing => "Taxing",
-            Self::Mayhem => "Mayhem",
-        };
-
-        write!(f, "{}", name)
-    }
 }
 
 impl From<usize> for DifficultyRating {

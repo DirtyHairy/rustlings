@@ -1,4 +1,5 @@
-use rustlings::game_data::{SKILLS, Skill};
+use rustlings::game_data::Skill;
+use strum::VariantArray;
 
 use crate::{
     scenes::scene_level::simulation::{
@@ -70,7 +71,7 @@ fn tier2_fail_non_terrain_skills_return_abort() {
 
 #[test]
 fn walking_accepts_all_skills() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         assert_eq!(
             assign_on(Activity::Walking, skill),
             SelectionResult::Success,
@@ -82,7 +83,7 @@ fn walking_accepts_all_skills() {
 
 #[test]
 fn splatting_rejects_all_skills() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         assert_eq!(
             assign_on(Activity::Splatting, skill),
             expected_rejection(skill),
@@ -94,7 +95,7 @@ fn splatting_rejects_all_skills() {
 
 #[test]
 fn blocking_accepts_only_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if skill == Skill::Bomber {
             SelectionResult::Success
         } else {
@@ -111,7 +112,7 @@ fn blocking_accepts_only_bomber() {
 
 #[test]
 fn climbing_accepts_only_floater_and_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -128,7 +129,7 @@ fn climbing_accepts_only_floater_and_bomber() {
 
 #[test]
 fn floating_accepts_only_climber_and_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -145,7 +146,7 @@ fn floating_accepts_only_climber_and_bomber() {
 
 #[test]
 fn drowning_accepts_climber_floater_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -162,7 +163,7 @@ fn drowning_accepts_climber_floater_bomber() {
 
 #[test]
 fn exiting_accepts_climber_floater_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -179,7 +180,7 @@ fn exiting_accepts_climber_floater_bomber() {
 
 #[test]
 fn frying_accepts_climber_and_floater_not_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater) {
             SelectionResult::Success
         } else {
@@ -196,7 +197,7 @@ fn frying_accepts_climber_and_floater_not_bomber() {
 
 #[test]
 fn falling_accepts_climber_floater_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -213,7 +214,7 @@ fn falling_accepts_climber_floater_bomber() {
 
 #[test]
 fn jumping_accepts_climber_floater_bomber() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Floater | Skill::Bomber) {
             SelectionResult::Success
         } else {
@@ -238,7 +239,7 @@ fn terrain_activity_rejects_own_skill() {
     ];
 
     for (activity, own_skill) in pairs {
-        for skill in SKILLS {
+        for &skill in Skill::VARIANTS {
             let expected = if skill == own_skill {
                 SelectionResult::Fallback
             } else {
@@ -257,7 +258,7 @@ fn terrain_activity_rejects_own_skill() {
 
 #[test]
 fn healthy_walker_transitions() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         assert_eq!(
             assign_with_health(Activity::Walking, LemmingHealth::Healthy, skill),
             SelectionResult::Success,
@@ -269,7 +270,7 @@ fn healthy_walker_transitions() {
 
 #[test]
 fn ohno_accepts_climber_and_floater_only() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let expected = match skill {
             Skill::Climber | Skill::Floater => SelectionResult::Success,
             _ => expected_rejection(skill),
@@ -285,7 +286,7 @@ fn ohno_accepts_climber_and_floater_only() {
 
 #[test]
 fn exploding_rejects_all_skills() {
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         assert_eq!(
             assign_with_health(Activity::Walking, LemmingHealth::Exploding, skill),
             expected_rejection(skill),
@@ -335,7 +336,7 @@ fn countdown_rejects_bomber_skill() {
 fn athlete_walking_rejects_climber_and_floater_but_admits_terrain() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
 
-    for skill in SKILLS {
+    for &skill in Skill::VARIANTS {
         let mut lemming = fixture_in(Activity::Walking);
         lemming.climber = true;
         lemming.floater = true;

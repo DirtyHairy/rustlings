@@ -1,3 +1,4 @@
+use std::array;
 use std::{fmt, fs, path::Path};
 
 use anyhow::{Result, bail};
@@ -111,7 +112,7 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
 
     let mut offset = 0;
     let mut object_info: [ObjectInfo; OBJECTS_PER_TILESET] =
-        [(); OBJECTS_PER_TILESET].map(|_| ObjectInfo::default());
+        array::from_fn(|_| ObjectInfo::default());
 
     for object_info in object_info.iter_mut() {
         let (value, new_offset) = read_object_info(&data, offset)?;
