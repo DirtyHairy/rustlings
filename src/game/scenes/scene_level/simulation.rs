@@ -403,7 +403,7 @@ impl LemmingState {
             return skill_fallback_mode(skill);
         }
 
-        if !self.supports_skill_tier3(skill) {
+        if !self.supports_skill_tier3(skill, terrain) {
             return SelectionResult::Abort;
         }
 
@@ -657,15 +657,9 @@ impl LemmingState {
                 }
             }
 
-            if matches!(self.activity, Activity::Bashing) {
-                let probe = terrain
-                    .terrain_at(self.x + self.direction.delta(8), self.y - 8)
-                    .unwrap_or_default();
-
-                if probe.steel() || probe.one_way_left() || probe.one_way_right() {
-                    self.direction = !self.direction;
-                    self.transition_to(Activity::Walking);
-                }
+            if matches!(self.activity, Activity::Bashing) && !self.can_bash(terrain) {
+                self.direction = !self.direction;
+                self.transition_to(Activity::Walking);
             }
         }
 
@@ -767,6 +761,16 @@ impl LemmingState {
         }
     }
 
+    fn can_bash(&self, terrain: &Terrain) -> bool {
+        let probe = terrain
+            .terrain_at(self.x + self.direction.delta(8), self.y - 8)
+            .unwrap_or_default();
+
+        !(probe.steel()
+            || (probe.one_way_left() && self.direction == Direction::Right)
+            || (probe.one_way_right() && self.direction == Direction::Left))
+    }
+
     fn assign_skill_unchecked(&mut self, terrain: &mut Terrain, skill: Skill) {
         match skill {
             Skill::Floater => self.floater = true,
@@ -806,9 +810,11 @@ impl LemmingState {
         }
     }
 
-    fn supports_skill_tier3(&self, _skill: Skill) -> bool {
-        // handle steel / terrain rejection for bashers and miners
-        true
+    fn supports_skill_tier3(&self, skill: Skill, terrain: &Terrain) -> bool {
+        match skill {
+            Skill::Basher => self.can_bash(terrain),
+            _ => true,
+        }
     }
 }
 
