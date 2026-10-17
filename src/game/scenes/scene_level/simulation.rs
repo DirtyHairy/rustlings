@@ -560,7 +560,7 @@ impl LemmingState {
 
         self.x += self.direction.delta(1);
 
-        if !terrain.is_inside_x(self.x) {
+        if terrain.is_on_bounds(self.x) {
             self.direction = !self.direction;
         } else if terrain.is_solid(self.x, self.y) {
             let dy = terrain.delta_y_ascend(self.x, self.y - 1, MAX_JUMP + 1);
@@ -644,7 +644,7 @@ impl LemmingState {
         if (11..=15).contains(&index) {
             self.x += self.direction.delta(1);
 
-            if !terrain.is_inside_x(self.x) {
+            if terrain.is_on_bounds(self.x) {
                 self.direction = !self.direction;
                 self.transition_to(Activity::Walking);
             }
@@ -912,8 +912,8 @@ impl<'a> Terrain<'a> {
         dx
     }
 
-    fn is_inside_x(&self, x: i32) -> bool {
-        x >= 0 || x < self.width() as i32
+    fn is_on_bounds(&self, x: i32) -> bool {
+        x <= 0 || x >= self.width() as i32 - 1
     }
 
     fn dig(&mut self, x: i32, y: i32) -> bool {
