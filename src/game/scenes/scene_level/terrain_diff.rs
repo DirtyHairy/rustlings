@@ -1,6 +1,6 @@
 use rustlings::game_data::file::main::MaskSprite;
 
-pub const DIG_LINE_WIDTH: u32 = 8;
+pub const DIG_LINE_WIDTH: u32 = 9;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TerrainDiffKind {

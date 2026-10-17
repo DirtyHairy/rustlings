@@ -353,7 +353,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                         canvas.draw_line(
                             Point::new(entry.x, entry.y),
-                            Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
+                            Point::new(entry.x + DIG_LINE_WIDTH as i32 - 1, entry.y),
                         )?;
                     }
                     TerrainDiffKind::Mask(sprite, frame) => {
@@ -430,7 +430,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
                             canvas.draw_line(
                                 Point::new(entry.x, entry.y),
-                                Point::new(entry.x + DIG_LINE_WIDTH as i32, entry.y),
+                                Point::new(entry.x + DIG_LINE_WIDTH as i32 - 1, entry.y),
                             )?;
                         }
                         TerrainDiffKind::Mask(_, _) => {
