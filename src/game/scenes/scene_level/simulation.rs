@@ -458,6 +458,8 @@ impl LemmingState {
     }
 
     fn tick_faller(&mut self, terrain: &Terrain) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+
         let mut transition_to: Option<Activity> = None;
 
         let Activity::Falling(state) = &mut self.activity else {
@@ -477,8 +479,6 @@ impl LemmingState {
         } else if self.floater && state.delta_y >= FALL_DISTANCE_FLOAT {
             self.transition_to(Activity::Floating(Default::default()));
         } else {
-            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
-
             self.y += FALL_DISTANCE_PER_FRAME as i32;
             state.delta_y += FALL_DISTANCE_PER_FRAME;
         }
@@ -594,6 +594,8 @@ impl LemmingState {
             unreachable!();
         };
 
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+
         let newborn = state.newborn;
         state.newborn = false;
 
@@ -602,7 +604,7 @@ impl LemmingState {
             terrain.dig(self.x + DIG_X_OFFSET, self.y - 1);
         }
 
-        if self.frame == 15 || self.frame == 7 {
+        if self.frame == 0 || self.frame == 8 {
             let y = self.y;
             self.y += 1;
 
@@ -613,18 +615,15 @@ impl LemmingState {
             }
         }
 
-        if matches!(self.activity, Activity::Digging(_)) {
-            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
-        }
-
         LemmingVerdict::Continue
     }
 
     fn tick_basher(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        let index = self.frame % 16;
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        let cycle = self.frame % 16;
 
-        if (2..=5).contains(&index) {
-            terrain.bash(self.x, self.y, index - 2, self.direction);
+        if (2..=5).contains(&cycle) {
+            terrain.bash(self.x, self.y, cycle - 2, self.direction);
             self.ignore_blocker = true;
 
             if self.frame == 5 {
@@ -641,7 +640,7 @@ impl LemmingState {
             }
         }
 
-        if (11..=15).contains(&index) {
+        if (11..=15).contains(&cycle) {
             self.x += self.direction.delta(1);
 
             if terrain.is_on_bounds(self.x) {
@@ -668,10 +667,6 @@ impl LemmingState {
                     self.transition_to(Activity::Walking);
                 }
             }
-        }
-
-        if matches!(self.activity, Activity::Bashing) {
-            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count()
         }
 
         LemmingVerdict::Continue
