@@ -1,7 +1,10 @@
-use rustlings::game_data::NUM_PARTICLE_SETS;
+use rustlings::game_data::{NUM_PARTICLE_SETS, file::main::MaskSprite};
 
 use crate::{
-    scenes::scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
+    scenes::scene_level::{
+        simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
+        terrain_diff::{TerrainDiff, TerrainDiffKind},
+    },
     state::{
         Activity, ActivityStateFalling, ActivityStateFloating, Direction, LemmingAnimation,
         LemmingHealth::{self, Exploding},
@@ -190,6 +193,35 @@ fn exploding_starts_particle_shower_after_first_framse() {
             particle_frame: Some(0),
             ..lemming_fixture
         }
+    );
+}
+
+#[test]
+fn exploding_schedules_terrain_explosion_after_first_framse() {
+    let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20)
+        .with_row(0, 10, 20, TerrainProps::new())
+        .build();
+
+    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+
+    let lemming_fixture = LemmingState {
+        health: Exploding,
+        frame: 0,
+        animation: Some(LemmingAnimation::Explosion),
+        ..LemmingState::fixture(5, 10, Direction::Right, Activity::Walking)
+    };
+
+    let mut lemming = lemming_fixture.clone();
+
+    lemming.tick(&mut terrain_fixture, &mut objects_fixture);
+
+    assert_eq!(
+        terrain_fixture.sorted_diff(),
+        &[TerrainDiff {
+            kind: TerrainDiffKind::Mask(MaskSprite::Explosion, 0),
+            x: -3,
+            y: -4
+        }]
     );
 }
 
