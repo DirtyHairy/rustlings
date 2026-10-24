@@ -9,9 +9,9 @@ use rustlings::game_data::{
 use crate::{
     scenes::scene_level::terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
     state::{
-        Activity::{self, Falling},
-        ActivityStateDigging, ActivityStateFalling, BlockField, Direction, LemmingAnimation,
-        LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel, TerrainProps,
+        Activity, ActivityStateDigging, ActivityStateFalling, BlockField, Direction,
+        LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel,
+        TerrainProps,
     },
 };
 
@@ -650,10 +650,10 @@ impl LemmingState {
 
             if matches!(self.activity, Activity::Bashing) {
                 let dy = terrain.delta_y_descend(self.x, self.y, MAX_BASH_DOWN + 1);
-                self.y += dy.min(MAX_BASH_DOWN) as i32;
+                self.y += dy.min(MAX_BASH_DOWN + 1) as i32;
 
                 if dy > MAX_BASH_DOWN {
-                    self.transition_to(Falling(Default::default()));
+                    self.transition_to(Activity::Falling(Default::default()));
                 }
             }
 

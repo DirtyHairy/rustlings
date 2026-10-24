@@ -1,3 +1,4 @@
+mod basher;
 mod blocker;
 mod bomber;
 mod digger;

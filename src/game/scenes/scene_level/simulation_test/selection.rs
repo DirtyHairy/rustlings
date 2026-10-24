@@ -510,6 +510,119 @@ fn assign_basher_transitions_to_bashing() {
 }
 
 #[test]
+fn assign_basher_does_not_transition_to_bashing_in_front_of_steel() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_steel(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_basher_right_does_not_transition_to_bashing_in_front_of_one_way_left() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_one_way_left(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_basher_right_does_transition_to_bashing_in_front_of_one_way_right() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_one_way_right(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
+
+    assert_eq!(result, SelectionResult::Success);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            activity: Activity::Bashing,
+            animation: Some(LemmingAnimation::Bashing),
+            frame: 0,
+            ..fixture
+        }
+    );
+}
+
+#[test]
+fn assign_basher_left_does_not_transition_to_bashing_in_front_of_one_way_right() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(2, 2, TerrainProps::new().with_one_way_right(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 10,
+        y: 10,
+        direction: Direction::Left,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_basher_left_does_transition_to_bashing_in_front_of_one_way_left() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(2, 2, TerrainProps::new().with_one_way_left(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 10,
+        y: 10,
+        direction: Direction::Left,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Basher);
+
+    assert_eq!(result, SelectionResult::Success);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            activity: Activity::Bashing,
+            animation: Some(LemmingAnimation::Bashing),
+            frame: 0,
+            ..fixture
+        }
+    );
+}
+
+#[test]
 fn assign_miner_transitions_to_mining() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
