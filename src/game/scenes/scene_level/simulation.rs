@@ -310,6 +310,7 @@ impl LemmingState {
                     Activity::Walking => self.tick_walker(terrain),
                     Activity::Digging(_) => self.tick_digger(terrain),
                     Activity::Bashing => self.tick_basher(terrain),
+                    Activity::Mining => self.tick_miner(terrain),
                     Activity::Blocking => self.tick_blocker(terrain),
                     Activity::Splatting | Activity::Frying => self.tick_death(),
                     Activity::Jumping => self.tick_jumper(terrain),
@@ -450,6 +451,10 @@ impl LemmingState {
 
         self.frame = match activity {
             Activity::Digging(_) => activity.default_animation().frame_count() - 1,
+            Activity::Mining => {
+                self.y += 1;
+                0
+            }
             _ => 0,
         };
 
@@ -644,8 +649,7 @@ impl LemmingState {
             self.x += self.direction.delta(1);
 
             if terrain.is_on_bounds(self.x) {
-                self.direction = !self.direction;
-                self.transition_to(Activity::Walking);
+                self.turn_and_walk();
             }
 
             if matches!(self.activity, Activity::Bashing) {
@@ -658,9 +662,59 @@ impl LemmingState {
             }
 
             if matches!(self.activity, Activity::Bashing) && !self.can_bash(terrain) {
-                self.direction = !self.direction;
-                self.transition_to(Activity::Walking);
+                self.turn_and_walk();
             }
+        }
+
+        LemmingVerdict::Continue
+    }
+
+    fn tick_miner(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+
+        match self.frame {
+            0 => self.y += 1,
+            1 => {
+                terrain.mine(self.x, self.y, 0, self.direction);
+                self.ignore_blocker = true;
+            }
+            2 => {
+                terrain.mine(self.x, self.y, 1, self.direction);
+                self.ignore_blocker = true;
+            }
+            3 | 15 => {
+                self.x += self.direction.delta(1);
+
+                if terrain.is_on_bounds(self.x) {
+                    self.turn_and_walk();
+                    return LemmingVerdict::Continue;
+                }
+
+                self.x += self.direction.delta(1);
+
+                if terrain.is_on_bounds(self.x) {
+                    self.turn_and_walk();
+                    return LemmingVerdict::Continue;
+                }
+
+                if self.frame == 3 {
+                    self.y += 1;
+                }
+
+                if !terrain.is_solid(self.x, self.y) {
+                    self.transition_to(Activity::Falling(Default::default()));
+                    return LemmingVerdict::Continue;
+                }
+
+                if let Some(below) = terrain.terrain_at(self.x, self.y)
+                    && (below.steel()
+                        || below.one_way_right()
+                        || (below.one_way_left() && self.direction == Direction::Right))
+                {
+                    self.turn_and_walk();
+                }
+            }
+            _ => (),
         }
 
         LemmingVerdict::Continue
@@ -675,6 +729,11 @@ impl LemmingState {
         }
 
         LemmingVerdict::Continue
+    }
+
+    fn turn_and_walk(&mut self) {
+        self.direction = !self.direction;
+        self.transition_to(Activity::Walking);
     }
 
     fn turn_if_ceiling(&mut self) {
@@ -813,6 +872,18 @@ impl LemmingState {
     fn supports_skill_tier3(&self, skill: Skill, terrain: &Terrain) -> bool {
         match skill {
             Skill::Basher => self.can_bash(terrain),
+            Skill::Miner => {
+                let front = terrain
+                    .terrain_at(self.x + self.direction.delta(8), self.y - 8)
+                    .unwrap_or_default();
+
+                let below = terrain.terrain_at(self.x, self.y).unwrap_or_default();
+
+                !below.steel()
+                    && !front.steel()
+                    && !(self.direction == Direction::Left && front.one_way_right())
+                    && !(self.direction == Direction::Right && front.one_way_left())
+            }
             _ => true,
         }
     }
@@ -985,7 +1056,26 @@ impl<'a> Terrain<'a> {
             x: left,
             y: top,
             kind: TerrainDiffKind::Mask(mask_sprite, frame),
-        })
+        });
+    }
+
+    fn mine(&mut self, x: i32, y: i32, frame: usize, direction: Direction) {
+        let (foot_x, foot_y) = LemmingAnimation::Mining.foot();
+
+        let left = x - foot_x as i32 + direction.delta(frame as u32);
+        let top = y - foot_y as i32 + frame as i32;
+
+        let mask_sprite = match direction {
+            Direction::Left => MaskSprite::MineL,
+            Direction::Right => MaskSprite::MineR,
+        };
+
+        self.apply_mask(left, top, mask_sprite, frame);
+        self.diff.push(TerrainDiff {
+            x: left,
+            y: top,
+            kind: TerrainDiffKind::Mask(mask_sprite, frame),
+        });
     }
 
     fn block_field_overlaps(&self, x: i32, y: i32) -> bool {
