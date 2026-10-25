@@ -636,6 +636,7 @@ fn assign_miner_transitions_to_mining() {
         LemmingState {
             activity: Activity::Mining,
             animation: Some(LemmingAnimation::Mining),
+            y: 1,
             frame: 0,
             ..fixture
         }
