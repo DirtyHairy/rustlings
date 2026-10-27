@@ -31,6 +31,7 @@ pub struct ActivityStateDigging {
 pub enum Activity {
     #[default]
     Climbing,
+    Hoisting,
     Floating(ActivityStateFloating),
     Blocking,
     Building,

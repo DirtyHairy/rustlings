@@ -128,6 +128,23 @@ fn climbing_accepts_only_floater_and_bomber() {
 }
 
 #[test]
+fn hoisting_accepts_only_floater_and_bomber() {
+    for &skill in Skill::VARIANTS {
+        let expected = if matches!(skill, Skill::Floater | Skill::Bomber) {
+            SelectionResult::Success
+        } else {
+            expected_rejection(skill)
+        };
+        assert_eq!(
+            assign_on(Activity::Hoisting, skill),
+            expected,
+            "skill={}",
+            skill
+        );
+    }
+}
+
+#[test]
 fn floating_accepts_only_climber_and_bomber() {
     for &skill in Skill::VARIANTS {
         let expected = if matches!(skill, Skill::Climber | Skill::Bomber) {
@@ -358,6 +375,17 @@ fn athlete_walking_rejects_climber_and_floater_but_admits_terrain() {
 fn climbing_with_floater_false_accepts_floater() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let mut lemming = fixture_in(Activity::Climbing);
+
+    assert_eq!(
+        lemming.assign_skill(&mut terrain, Skill::Floater),
+        SelectionResult::Success
+    );
+}
+
+#[test]
+fn hoisting_with_floater_false_accepts_floater() {
+    let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
+    let mut lemming = fixture_in(Activity::Hoisting);
 
     assert_eq!(
         lemming.assign_skill(&mut terrain, Skill::Floater),

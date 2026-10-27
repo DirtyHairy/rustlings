@@ -211,6 +211,7 @@ fn update_classifies_prio_activities_as_primary() {
 fn update_classifies_non_prio_activities_as_secondary() {
     let non_prio_activities = [
         Activity::Climbing,
+        Activity::Hoisting,
         Activity::Floating(ActivityStateFloating::default()),
         Activity::Falling(ActivityStateFalling::default()),
         Activity::Walking,

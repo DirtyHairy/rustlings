@@ -1,9 +1,10 @@
 use crate::{
-    scenes::scene_level::simulation::{
-        CEILING_HIT_Y_RESET, JUMP_DISTANCE, MIN_FOOT_Y, test::fixture::TerrainFixtureBuilder,
-    },
+    scenes::scene_level::simulation::{JUMP_DISTANCE, test::fixture::TerrainFixtureBuilder},
     state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
 };
+
+const MIN_FOOT_Y: i32 = 5;
+const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 #[test]
 fn jumper_continues() {

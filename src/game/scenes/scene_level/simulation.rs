@@ -79,8 +79,8 @@ const DIG_X_OFFSET: i32 = -4;
 const MAX_BASH_DOWN: u32 = 2;
 const BASH_CHECK_DISTANCE: u32 = 4;
 
-const MIN_FOOT_Y: i32 = 5;
-const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
+const MIN_HEAD_Y: i32 = -5;
+const CEILING_HIT_HEAD_RESET: i32 = MIN_HEAD_Y - 2;
 
 const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
 
@@ -308,6 +308,8 @@ impl LemmingState {
                 LemmingHealth::Healthy => match &self.activity {
                     Activity::Falling(_) => self.tick_faller(terrain),
                     Activity::Walking => self.tick_walker(terrain),
+                    Activity::Climbing => self.tick_climber(terrain),
+                    Activity::Hoisting => self.tick_hoister(),
                     Activity::Digging(_) => self.tick_digger(terrain),
                     Activity::Bashing => self.tick_basher(terrain),
                     Activity::Mining => self.tick_miner(terrain),
@@ -575,6 +577,8 @@ impl LemmingState {
             } else if dy <= MAX_JUMP {
                 self.transition_to(Activity::Jumping);
                 self.y -= JUMP_DISTANCE as i32;
+            } else if self.climber {
+                self.transition_to(Activity::Climbing);
             } else {
                 self.direction = !self.direction;
             }
@@ -731,15 +735,57 @@ impl LemmingState {
         LemmingVerdict::Continue
     }
 
+    fn tick_climber(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+
+        if self.frame <= 3 {
+            if !terrain.is_solid(self.x, self.y - 7 - self.frame as i32) {
+                self.y = self.y - self.frame as i32 + 2;
+                self.transition_to(Activity::Hoisting);
+
+                self.turn_if_ceiling();
+            }
+        } else {
+            self.y -= 1;
+
+            let (_, foot_y) = self.animation.unwrap().foot();
+            if self.y - (foot_y as i32) < MIN_HEAD_Y
+                || terrain.is_solid(self.x - self.direction.delta(1), self.y - 8)
+            {
+                self.direction = !self.direction;
+                self.transition_to(Activity::Falling(Default::default()));
+                self.x += self.direction.delta(2);
+            }
+        }
+
+        LemmingVerdict::Continue
+    }
+
+    fn tick_hoister(&mut self) -> LemmingVerdict {
+        self.frame += 1;
+
+        if self.frame <= 4 {
+            self.y -= 2;
+            self.turn_if_ceiling();
+        } else if self.frame == self.animation.unwrap().frame_count() - 1 {
+            self.transition_to(Activity::Walking);
+            self.turn_if_ceiling();
+        }
+
+        LemmingVerdict::Continue
+    }
+
     fn turn_and_walk(&mut self) {
         self.direction = !self.direction;
         self.transition_to(Activity::Walking);
     }
 
     fn turn_if_ceiling(&mut self) {
-        if self.y < MIN_FOOT_Y {
+        let (_, foot_y) = self.animation.unwrap().foot();
+
+        if self.y - (foot_y as i32) < MIN_HEAD_Y {
             self.direction = !self.direction;
-            self.y = CEILING_HIT_Y_RESET;
+            self.y = CEILING_HIT_HEAD_RESET + foot_y as i32;
 
             if let Activity::Jumping = self.activity {
                 self.transition_to(Activity::Walking);
@@ -1222,6 +1268,7 @@ impl Activity {
             Activity::Splatting => LemmingAnimation::Splatting,
             Activity::Walking => LemmingAnimation::Walking,
             Activity::Jumping => LemmingAnimation::Jumping,
+            Activity::Hoisting => LemmingAnimation::Hoisting,
         }
     }
 
@@ -1231,8 +1278,9 @@ impl Activity {
             Activity::Blocking => skill == Skill::Bomber,
             // caveat: a shrugger can be assigned everything -> needs modelling
             Activity::Building => skill != Skill::Builder,
-            // caveat: a hoister can be assigned everything -> needs modelling
-            Activity::Climbing => matches!(skill, Skill::Bomber | Skill::Floater),
+            Activity::Climbing | Activity::Hoisting => {
+                matches!(skill, Skill::Bomber | Skill::Floater)
+            }
             Activity::Falling(_) => {
                 matches!(skill, Skill::Bomber | Skill::Floater | Skill::Climber)
             }

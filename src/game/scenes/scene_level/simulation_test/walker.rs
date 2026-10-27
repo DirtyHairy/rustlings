@@ -1,10 +1,12 @@
 use crate::{
     scenes::scene_level::simulation::{
-        CEILING_HIT_Y_RESET, MAX_JUMP, MAX_STEP_DOWN, MAX_STEP_UP, MIN_FOOT_Y,
-        test::fixture::TerrainFixtureBuilder,
+        MAX_JUMP, MAX_STEP_DOWN, MAX_STEP_UP, test::fixture::TerrainFixtureBuilder,
     },
     state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
 };
+
+const MIN_FOOT_Y: i32 = 5;
+const CEILING_HIT_Y_RESET: i32 = MIN_FOOT_Y - 2;
 
 #[test]
 fn walker_steps_up_right() {

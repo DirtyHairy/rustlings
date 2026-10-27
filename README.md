@@ -9,8 +9,8 @@ The game loads all original levels in the correct order, the interface is fully
 working, and I am currently in progress of implementing the skills. As skills
 get implemented, more and more levels become completable. Still missing are
 
-- Builders and Climber
-- Level finish conditions --- nothing happens if all lemmings are gone or the
+- Builders
+- Level finish conditions --- nothing happens if all lemmings are gone or
   time runs out
 - Menu and level screens
 - Audio

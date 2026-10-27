@@ -79,7 +79,7 @@ impl From<&LemmingState> for LemmingDescription {
             LemmingDescription::Floater
         } else {
             match lemming.activity {
-                Activity::Climbing => LemmingDescription::Climber,
+                Activity::Climbing | Activity::Hoisting => LemmingDescription::Climber,
                 Activity::Floating(_) => LemmingDescription::Floater,
                 Activity::Blocking => LemmingDescription::Blocker,
                 Activity::Building => LemmingDescription::Builder,
