@@ -9,6 +9,7 @@ mod fixture;
 mod floater;
 mod frying;
 mod jumper;
+mod miner;
 mod selection;
 mod splatter;
 mod walker;

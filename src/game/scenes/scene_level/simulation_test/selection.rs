@@ -644,6 +644,138 @@ fn assign_miner_transitions_to_mining() {
 }
 
 #[test]
+fn assign_miner_does_not_transition_to_mining_in_front_of_steel() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_steel(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_miner_does_not_transition_to_mining_abofe_steel() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(5, 10, TerrainProps::new().with_steel(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_miner_right_does_not_transition_to_mining_in_front_of_one_way_left() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_one_way_left(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_miner_right_transitions_to_mining_in_front_of_one_way_right() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(13, 2, TerrainProps::new().with_one_way_right(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 5,
+        y: 10,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Success);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            activity: Activity::Mining,
+            animation: Some(LemmingAnimation::Mining),
+            y: 11,
+            ..fixture
+        }
+    );
+}
+
+#[test]
+fn assign_miner_left_does_not_transition_to_mining_in_front_of_one_way_right() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(2, 2, TerrainProps::new().with_one_way_right(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 10,
+        y: 10,
+        direction: Direction::Left,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Abort);
+    assert_eq!(lemming, fixture);
+}
+
+#[test]
+fn assign_miner_left_transitions_to_mining_in_front_of_one_way_left() {
+    let mut terrain = TerrainFixtureBuilder::new(20, 20)
+        .with(2, 2, TerrainProps::new().with_one_way_left(true))
+        .build();
+
+    let fixture = LemmingState {
+        x: 10,
+        y: 10,
+        direction: Direction::Left,
+        ..fixture_in(Activity::Walking)
+    };
+    let mut lemming = fixture.clone();
+
+    let result = lemming.assign_skill(&mut terrain, Skill::Miner);
+
+    assert_eq!(result, SelectionResult::Success);
+    assert_eq!(
+        lemming,
+        LemmingState {
+            activity: Activity::Mining,
+            animation: Some(LemmingAnimation::Mining),
+            y: 11,
+            ..fixture
+        }
+    );
+}
+
+#[test]
 fn assign_digger_transitions_to_digging() {
     let mut terrain = TerrainFixtureBuilder::new(0, 0).build();
     let fixture = fixture_in(Activity::Walking);
