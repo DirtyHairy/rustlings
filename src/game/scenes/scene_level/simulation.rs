@@ -762,12 +762,12 @@ impl LemmingState {
     }
 
     fn tick_hoister(&mut self) -> LemmingVerdict {
-        self.frame += 1;
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
-        if self.frame <= 4 {
+        if 0 < self.frame && self.frame <= 4 {
             self.y -= 2;
             self.turn_if_ceiling();
-        } else if self.frame == self.animation.unwrap().frame_count() - 1 {
+        } else if self.frame == 0 {
             self.transition_to(Activity::Walking);
             self.turn_if_ceiling();
         }
