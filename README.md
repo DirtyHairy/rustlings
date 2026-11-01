@@ -5,11 +5,8 @@ to act as a drop-in replacement for the original DOS executable with pixel-exact
 physics and high-quality upscaled graphics rendered at the native screen refresh
 rate.
 
-The game loads all original levels in the correct order, the interface is fully
-working, and I am currently in progress of implementing the skills. As skills
-get implemented, more and more levels become completable. Still missing are
+All levels load in the correct order and are fully playable. Still missing are:
 
-- Builders
 - Level finish conditions --- nothing happens if all lemmings are gone or
   time runs out
 - Menu and level screens

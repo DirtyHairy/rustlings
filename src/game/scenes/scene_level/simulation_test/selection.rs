@@ -250,7 +250,7 @@ fn jumping_accepts_climber_floater_bomber() {
 fn terrain_activity_rejects_own_skill() {
     let pairs = [
         (Activity::Bashing, Skill::Basher),
-        (Activity::Building, Skill::Builder),
+        (Activity::Building(Default::default()), Skill::Builder),
         (Activity::Mining, Skill::Miner),
         (Activity::Digging(Default::default()), Skill::Digger),
     ];
@@ -509,7 +509,7 @@ fn assign_builder_transitions_to_building() {
     assert_eq!(
         lemming,
         LemmingState {
-            activity: Activity::Building,
+            activity: Activity::Building(Default::default()),
             animation: Some(LemmingAnimation::Building),
             frame: 0,
             ..fixture

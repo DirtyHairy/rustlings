@@ -183,7 +183,8 @@ fn update_classifies_prio_activities_as_primary() {
         Activity::Bashing,
         Activity::Digging(Default::default()),
         Activity::Mining,
-        Activity::Building,
+        Activity::Building(Default::default()),
+        Activity::Shrugging,
     ];
 
     for activity in prio_activities {

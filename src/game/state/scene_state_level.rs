@@ -27,6 +27,11 @@ pub struct ActivityStateDigging {
     pub newborn: bool,
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct ActivityStateBuilding {
+    pub bricks: u32,
+}
+
 #[derive(Clone, Default, PartialEq, Debug)]
 pub enum Activity {
     #[default]
@@ -34,7 +39,8 @@ pub enum Activity {
     Hoisting,
     Floating(ActivityStateFloating),
     Blocking,
-    Building,
+    Building(ActivityStateBuilding),
+    Shrugging,
     Bashing,
     Mining,
     Digging(ActivityStateDigging),

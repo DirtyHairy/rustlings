@@ -36,7 +36,10 @@ use crate::{
         cache::Cache,
         selection_controller::SelectionMode,
         skill_panel_renderer::SkillPanelRenderer,
-        terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind, VisibilityTarget},
+        terrain_diff::{
+            BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind,
+            VisibilityTarget,
+        },
     },
     state::{Activity, Direction, LemmingAnimation, SceneStateLevel},
 };
@@ -195,7 +198,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
                     if a == 0 {
                         Color::RGBA(0, 0, 0, 0)
                     } else {
-                        Color::RGBA(255, 255, 255, 255)
+                        Color::RGBA(0xff, 0xff, 0xff, 0xff)
                     }
                 },
             )?;
@@ -369,6 +372,17 @@ impl<'texture_creator> Renderer<'texture_creator> {
                             false,
                         )?;
                     }
+                    TerrainDiffKind::Brick => {
+                        let (r, g, b) = self.palette[BRICK_COLOR];
+
+                        canvas.set_draw_color(Color::RGBA(r, g, b, 0xff));
+                        canvas.set_blend_mode(BlendMode::None);
+
+                        canvas.draw_line(
+                            Point::new(entry.x, entry.y),
+                            Point::new(entry.x + BRICK_LINE_WIDTH as i32 - 1, entry.y),
+                        )?;
+                    }
                 }
             }
 
@@ -415,13 +429,26 @@ impl<'texture_creator> Renderer<'texture_creator> {
                 }
             }
 
-            let textures: &mut [&mut Texture<'texture_creator>] = if self.objects_merge.is_empty() {
-                &mut [&mut self.texture_terrain]
-            } else {
-                &mut [&mut self.texture_terrain, stencil_terrain]
+            let (brick_color_terrain, brick_color_stencil) = {
+                let (r, g, b) = self.palette[BRICK_COLOR];
+
+                (
+                    Color::RGBA(r, g, b, 0xff),
+                    Color::RGBA(0xff, 0xff, 0xff, 0xff),
+                )
             };
 
-            for texture in textures.iter_mut() {
+            let targets: &mut [(&mut Texture<'texture_creator>, Color)] =
+                if self.objects_merge.is_empty() {
+                    &mut [(&mut self.texture_terrain, brick_color_terrain)]
+                } else {
+                    &mut [
+                        (&mut self.texture_terrain, brick_color_terrain),
+                        (stencil_terrain, brick_color_stencil),
+                    ]
+                };
+
+            for (texture, brick_color) in targets.iter_mut() {
                 with_texture_canvas(canvas, texture, |canvas| -> Result<()> {
                     match entry.kind {
                         TerrainDiffKind::Dig => {
@@ -438,6 +465,15 @@ impl<'texture_creator> Renderer<'texture_creator> {
                             canvas.set_blend_mode(BlendMode::None);
 
                             canvas.draw_points(&self.mask_points as &[FPoint])?;
+                        }
+                        TerrainDiffKind::Brick => {
+                            canvas.set_draw_color(*brick_color);
+                            canvas.set_blend_mode(BlendMode::None);
+
+                            canvas.draw_line(
+                                Point::new(entry.x, entry.y),
+                                Point::new(entry.x + BRICK_LINE_WIDTH as i32 - 1, entry.y),
+                            )?;
                         }
                     }
 

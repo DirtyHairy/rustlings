@@ -157,7 +157,8 @@ impl SelectionController {
                     | Activity::Bashing
                     | Activity::Digging(_)
                     | Activity::Mining
-                    | Activity::Building => {
+                    | Activity::Building(_)
+                    | Activity::Shrugging => {
                         selection.primary_lemming = Some(lemming.id);
                     }
 

@@ -7,11 +7,13 @@ use rustlings::game_data::{
 };
 
 use crate::{
-    scenes::scene_level::terrain_diff::{DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
+    scenes::scene_level::terrain_diff::{
+        BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind,
+    },
     state::{
-        Activity, ActivityStateDigging, ActivityStateFalling, BlockField, Direction,
-        LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState, SceneStateLevel,
-        TerrainProps,
+        Activity, ActivityStateBuilding, ActivityStateDigging, ActivityStateFalling, BlockField,
+        Direction, LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState,
+        SceneStateLevel, TerrainProps,
     },
 };
 
@@ -83,6 +85,8 @@ const MIN_HEAD_Y: i32 = -5;
 const CEILING_HIT_HEAD_RESET: i32 = MIN_HEAD_Y - 2;
 
 const DROWNER_MIN_WALL_DISTANCE: u32 = 8;
+
+const BUILDER_BRICK_COUNT: u32 = 12;
 
 pub const EXPLODE_COUNTDOWN_TICKS: u32 = 79;
 
@@ -314,12 +318,13 @@ impl LemmingState {
                     Activity::Bashing => self.tick_basher(terrain),
                     Activity::Mining => self.tick_miner(terrain),
                     Activity::Blocking => self.tick_blocker(terrain),
+                    Activity::Building(_) => self.tick_builder(terrain),
+                    Activity::Shrugging => self.tick_shrugger(),
                     Activity::Splatting | Activity::Frying => self.tick_death(),
                     Activity::Jumping => self.tick_jumper(terrain),
                     Activity::Drowning => self.tick_drowner(terrain),
                     Activity::Floating(_) => self.tick_floater(terrain),
                     Activity::Exiting => self.tick_exiting(),
-                    _ => LemmingVerdict::Continue,
                 },
                 LemmingHealth::OhNo => self.tick_ohno(terrain),
                 LemmingHealth::Exploding => self.tick_exploding(terrain),
@@ -775,6 +780,74 @@ impl LemmingState {
         LemmingVerdict::Continue
     }
 
+    fn tick_builder(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+
+        let Activity::Building(ActivityStateBuilding { bricks }) = &mut self.activity else {
+            unreachable!()
+        };
+
+        match self.frame {
+            9 => {
+                terrain.lay_brick(self.x, self.y, self.direction);
+                self.ignore_blocker = true;
+            }
+            10 if *bricks == 9 => {
+                terrain.lay_brick(self.x, self.y, self.direction);
+                self.ignore_blocker = true;
+            }
+            0 => {
+                self.x += self.direction.delta(1);
+                self.y -= 1;
+                if terrain.is_on_bounds(self.x) || terrain.is_solid(self.x, self.y - 1) {
+                    self.turn_and_walk();
+                    self.turn_if_ceiling();
+
+                    return LemmingVerdict::Continue;
+                }
+
+                self.x += self.direction.delta(1);
+                if terrain.is_solid(self.x, self.y - 1) {
+                    self.turn_and_walk();
+                    self.turn_if_ceiling();
+
+                    return LemmingVerdict::Continue;
+                }
+
+                *bricks -= 1;
+                if *bricks == 0 {
+                    self.transition_to(Activity::Shrugging);
+                    self.turn_if_ceiling();
+                }
+
+                if terrain.is_on_bounds(self.x)
+                    || terrain.is_solid(self.x + self.direction.delta(2), self.y - 9)
+                {
+                    self.turn_and_walk();
+                    self.turn_if_ceiling();
+                }
+
+                let (_, foot_y) = LemmingAnimation::Building.foot();
+                if self.y - (foot_y as i32) < MIN_HEAD_Y {
+                    self.transition_to(Activity::Walking);
+                    self.turn_if_ceiling();
+                }
+            }
+            _ => (),
+        };
+
+        LemmingVerdict::Continue
+    }
+
+    fn tick_shrugger(&mut self) -> LemmingVerdict {
+        self.frame += 1;
+        if self.frame == LemmingAnimation::Shrugging.frame_count() {
+            self.transition_to(Activity::Walking);
+        }
+
+        LemmingVerdict::Continue
+    }
+
     fn turn_and_walk(&mut self) {
         self.direction = !self.direction;
         self.transition_to(Activity::Walking);
@@ -879,14 +952,20 @@ impl LemmingState {
     fn assign_skill_unchecked(&mut self, terrain: &mut Terrain, skill: Skill) {
         match skill {
             Skill::Floater => self.floater = true,
-            Skill::Climber => self.climber = true,
+            Skill::Climber => {
+                if matches!(self.activity, Activity::Shrugging) {
+                    self.transition_to(Activity::Walking)
+                } else {
+                    self.climber = true
+                }
+            }
             Skill::Basher => self.transition_to(Activity::Bashing),
             Skill::Blocker => {
                 self.transition_to(Activity::Blocking);
                 terrain.create_block_field(self.x, self.y);
             }
             Skill::Bomber => self.countdown = Some(EXPLODE_COUNTDOWN_TICKS),
-            Skill::Builder => self.transition_to(Activity::Building),
+            Skill::Builder => self.transition_to(Activity::Building(Default::default())),
             Skill::Digger => self.transition_to(Activity::Digging(Default::default())),
             Skill::Miner => self.transition_to(Activity::Mining),
         }
@@ -1034,25 +1113,31 @@ impl<'a> Terrain<'a> {
         x <= 0 || x >= self.width() as i32 - 1
     }
 
-    fn dig(&mut self, x: i32, y: i32) -> bool {
+    fn line_extend(&self, x: i32, y: i32, width: u32) -> Option<(usize, usize)> {
         let terrain_width = self.width();
         let terrain_height = self.height();
 
         if y >= terrain_height as i32 || y < 0 {
-            return false;
+            return None;
         }
 
         let x_start = x.max(0);
-        let x_end = x
-            .saturating_add_unsigned(DIG_LINE_WIDTH)
-            .min(terrain_width as i32);
+        let x_end = x.saturating_add_unsigned(width).min(terrain_width as i32);
 
         if x_end < 0 {
-            return false;
+            return None;
         }
 
         let extend_start = (y * terrain_width as i32 + x_start) as usize;
         let extend_end = (y * terrain_width as i32 + x_end) as usize;
+
+        Some((extend_start, extend_end))
+    }
+
+    fn dig(&mut self, x: i32, y: i32) -> bool {
+        let Some((extend_start, extend_end)) = self.line_extend(x, y, DIG_LINE_WIDTH) else {
+            return false;
+        };
 
         if !self.map[extend_start..extend_end].iter().any(|t| t.solid()) {
             return false;
@@ -1063,12 +1148,41 @@ impl<'a> Terrain<'a> {
             .for_each(|terrain_prop| terrain_prop.set_solid(false));
 
         self.bitmap.data[extend_start..extend_end].fill(0);
-        self.bitmap.transparency[extend_start..extend_end].fill(false);
+        self.bitmap.transparency[extend_start..extend_end].fill(true);
 
         self.diff.push(TerrainDiff {
             x,
             y,
             kind: TerrainDiffKind::Dig,
+        });
+
+        true
+    }
+
+    fn lay_brick(&mut self, x: i32, y: i32, direction: Direction) -> bool {
+        let x_start = match direction {
+            Direction::Right => x,
+            Direction::Left => x - 4,
+        };
+
+        let y_start = y - 1;
+
+        let Some((extend_start, extend_end)) = self.line_extend(x_start, y_start, BRICK_LINE_WIDTH)
+        else {
+            return false;
+        };
+
+        self.map[extend_start..extend_end]
+            .iter_mut()
+            .for_each(|terrain_prop| terrain_prop.set_solid(true));
+
+        self.bitmap.data[extend_start..extend_end].fill(BRICK_COLOR as u8);
+        self.bitmap.transparency[extend_start..extend_end].fill(false);
+
+        self.diff.push(TerrainDiff {
+            x: x_start,
+            y: y_start,
+            kind: TerrainDiffKind::Brick,
         });
 
         true
@@ -1256,7 +1370,8 @@ impl Activity {
         match self {
             Activity::Bashing => LemmingAnimation::Bashing,
             Activity::Blocking => LemmingAnimation::Blocking,
-            Activity::Building => LemmingAnimation::Building,
+            Activity::Building(_) => LemmingAnimation::Building,
+            Activity::Shrugging => LemmingAnimation::Shrugging,
             Activity::Climbing => LemmingAnimation::Climbing,
             Activity::Falling(_) => LemmingAnimation::Falling,
             Activity::Digging(_) => LemmingAnimation::Digging,
@@ -1276,8 +1391,8 @@ impl Activity {
         match self {
             Activity::Bashing => skill != Skill::Basher,
             Activity::Blocking => skill == Skill::Bomber,
-            // caveat: a shrugger can be assigned everything -> needs modelling
-            Activity::Building => skill != Skill::Builder,
+            Activity::Shrugging => true,
+            Activity::Building(_) => skill != Skill::Builder,
             Activity::Climbing | Activity::Hoisting => {
                 matches!(skill, Skill::Bomber | Skill::Floater)
             }
@@ -1312,6 +1427,14 @@ impl Default for ActivityStateFalling {
     fn default() -> Self {
         Self {
             delta_y: FALL_DISTANCE_START_OFFSET,
+        }
+    }
+}
+
+impl Default for ActivityStateBuilding {
+    fn default() -> Self {
+        Self {
+            bricks: BUILDER_BRICK_COUNT,
         }
     }
 }
