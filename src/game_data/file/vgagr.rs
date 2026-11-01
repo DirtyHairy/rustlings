@@ -1,7 +1,7 @@
 use std::array;
 use std::{fs, path::Path};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::ground::{
@@ -23,7 +23,8 @@ pub fn read_vgagr(
     let filename = format!("vgagr{}.dat", index);
     println!("reading {}", filename);
 
-    let data = fs::read(path.join(&filename).as_os_str())?;
+    let data = fs::read(path.join(&filename).as_os_str())
+        .with_context(|| format!("failed to read {}", filename))?;
 
     let datfile::Content { sections } = datfile::parse(&data)?;
     if sections.len() != 2 {

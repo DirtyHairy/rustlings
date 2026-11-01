@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use strum::EnumCount;
 
 use crate::game_data::Bitmap;
@@ -113,7 +113,8 @@ pub struct Content {
 
 pub fn read_main(path: &Path) -> Result<Content> {
     println!("reading main.dat");
-    let maindata = fs::read(path.join("main.dat").as_os_str())?;
+    let maindata =
+        fs::read(path.join("main.dat").as_os_str()).context("failed to read main.dat")?;
 
     let datfile::Content { sections } = datfile::parse(&maindata)?;
     if sections.len() < 3 {

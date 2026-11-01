@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 
 use crate::game_data::file::encoding;
 use crate::game_data::file::palette::{
@@ -24,7 +24,8 @@ pub fn read_vgaspec(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("vgaspec{}.dat", index);
     println!("reading {}", filename);
 
-    let data = fs::read(path.join(&filename).as_os_str())?;
+    let data = fs::read(path.join(&filename).as_os_str())
+        .with_context(|| format!("failed to read {}", filename))?;
 
     read_compressed_data(&data)
 }

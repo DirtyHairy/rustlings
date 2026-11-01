@@ -1,7 +1,7 @@
 use std::array;
 use std::{fmt, fs, path::Path};
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 
 use crate::game_data::file::palette::{
     LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry,
@@ -108,7 +108,8 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
     println!("reading {}", filename);
 
-    let data = fs::read(path.join(&filename).as_os_str())?;
+    let data = fs::read(path.join(&filename).as_os_str())
+        .with_context(|| format!("failed to read {}", filename))?;
 
     let mut offset = 0;
     let mut object_info: [ObjectInfo; OBJECTS_PER_TILESET] =

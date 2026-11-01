@@ -65,7 +65,8 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
     println!("reading {}", filename);
 
-    let compressed_level_data = fs::read(path.join(filename).as_os_str())?;
+    let compressed_level_data = fs::read(path.join(&filename).as_os_str())
+        .with_context(|| format!("failed to read {}", filename))?;
 
     let decompressed_level_sections = datfile::parse(&compressed_level_data)?;
     let mut levels: Vec<Level> = Vec::new();
@@ -81,7 +82,8 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
 pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParameters>> {
     println!("reading {}", ODDTABLE_FILENAME);
 
-    let oddtable_data = fs::read(path.join(ODDTABLE_FILENAME).as_os_str())?;
+    let oddtable_data = fs::read(path.join(ODDTABLE_FILENAME).as_os_str())
+        .with_context(|| format!("failed to read {}", ODDTABLE_FILENAME))?;
 
     if oddtable_data.len() != ODDTABLE_ENTRY_SIZE * ODDTABLE_ENTRIES {
         bail!("invalid {}", ODDTABLE_FILENAME);
