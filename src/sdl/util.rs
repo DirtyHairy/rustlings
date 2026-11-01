@@ -3,9 +3,9 @@ use sdl3::pixels::{Color, PixelFormat};
 
 use crate::game_data::{Bitmap, PALETTE_SIZE, PaletteEntry};
 
-fn recast_buffer<T>(data: &mut [u8]) -> Result<&mut [T]> {
+fn recast_buffer_u32(data: &mut [u8]) -> Result<&mut [u32]> {
     unsafe {
-        let (prefix, res, _) = data.align_to_mut::<T>();
+        let (prefix, res, _) = data.align_to_mut::<u32>();
 
         if !prefix.is_empty() {
             Err(anyhow!("misaligned texture data"))
@@ -21,7 +21,7 @@ pub fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
     texture_data: &mut [u8],
     mapping: T,
 ) -> Result<()> {
-    let data32 = recast_buffer::<u32>(texture_data)?;
+    let data32 = recast_buffer_u32(texture_data)?;
     let pixel_count = bitmap.width as usize * bitmap.height as usize;
 
     for i in 0..pixel_count {
@@ -44,7 +44,7 @@ pub fn copy_bitmap_to_texture_data_at(
     texture_data: &mut [u8],
     pitch: usize,
 ) -> Result<()> {
-    let data32 = recast_buffer::<u32>(texture_data)?;
+    let data32 = recast_buffer_u32(texture_data)?;
 
     let delta = (pitch >> 2)
         .checked_sub(bitmap.width as usize)

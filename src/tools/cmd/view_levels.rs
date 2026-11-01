@@ -55,10 +55,12 @@ fn get_palette(data: &GameData, level: &Level) -> Result<[PaletteEntry; PALETTE_
     if level.extended_graphics_set > 0 {
         data.special_backgrounds
             .get(level.extended_graphics_set as usize - 1)
-            .ok_or_else(|| anyhow!(
-                "invalid extended graphics set {}",
-                level.extended_graphics_set
-            ))
+            .ok_or_else(|| {
+                anyhow!(
+                    "invalid extended graphics set {}",
+                    level.extended_graphics_set
+                )
+            })
             .map(|x| x.palette)
     } else {
         data.tilesets
@@ -341,7 +343,7 @@ fn render<'a>(
 
 fn clamp_x(x: i32, zoom: u32) -> u32 {
     max(
-        min(x + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) as i32 - 10,
+        min(x + 10, LEVEL_WIDTH as i32 - 320 * 4 / zoom as i32) - 10,
         0,
     ) as u32
 }
