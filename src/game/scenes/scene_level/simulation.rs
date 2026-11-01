@@ -337,8 +337,9 @@ impl LemmingState {
             self.turn_if_blocked(terrain);
         }
 
-        if verdict != LemmingVerdict::Death
-            && (self.y >= (LEVEL_HEIGHT + self.animation.map_or_default(|a| a.foot().1)) as i32
+        if let Some(animation) = self.animation
+            && verdict != LemmingVerdict::Death
+            && (self.y >= (LEVEL_HEIGHT + animation.foot().1) as i32
                 || !self.process_environment(terrain, objects))
         {
             verdict = LemmingVerdict::Death;
@@ -470,7 +471,7 @@ impl LemmingState {
     }
 
     fn tick_faller(&mut self, terrain: &Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         let mut transition_to: Option<Activity> = None;
 
@@ -568,7 +569,7 @@ impl LemmingState {
 
     fn tick_walker(&mut self, terrain: &Terrain) -> LemmingVerdict {
         let old_y = self.y;
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         self.x += self.direction.delta(1);
 
@@ -604,11 +605,11 @@ impl LemmingState {
     }
 
     fn tick_digger(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
+        self.frame = (self.frame + 1) % self.animation_frame_count();
+
         let Activity::Digging(state) = &mut self.activity else {
             unreachable!();
         };
-
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
 
         let newborn = state.newborn;
         state.newborn = false;
@@ -633,7 +634,7 @@ impl LemmingState {
     }
 
     fn tick_basher(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
         let cycle = self.frame % 16;
 
         if (2..=5).contains(&cycle) {
@@ -679,7 +680,7 @@ impl LemmingState {
     }
 
     fn tick_miner(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         match self.frame {
             0 => self.y += 1,
@@ -731,7 +732,7 @@ impl LemmingState {
 
     fn tick_blocker(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
         if terrain.is_solid(self.x, self.y) {
-            self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+            self.frame = (self.frame + 1) % self.animation_frame_count();
         } else {
             terrain.clear_block_field(self.x, self.y);
             self.transition_to(Activity::Walking);
@@ -741,7 +742,7 @@ impl LemmingState {
     }
 
     fn tick_climber(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         if self.frame <= 3 {
             if !terrain.is_solid(self.x, self.y - 7 - self.frame as i32) {
@@ -767,7 +768,7 @@ impl LemmingState {
     }
 
     fn tick_hoister(&mut self) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         if 0 < self.frame && self.frame <= 4 {
             self.y -= 2;
@@ -781,7 +782,7 @@ impl LemmingState {
     }
 
     fn tick_builder(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         let Activity::Building(ActivityStateBuilding { bricks }) = &mut self.activity else {
             unreachable!()
@@ -867,7 +868,7 @@ impl LemmingState {
     }
 
     fn tick_death(&mut self) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         if self.frame > 0 {
             LemmingVerdict::Continue
@@ -877,7 +878,7 @@ impl LemmingState {
     }
 
     fn tick_drowner(&mut self, terrain: &Terrain) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         if !terrain.is_solid(
             self.x + self.direction.delta(DROWNER_MIN_WALL_DISTANCE),
@@ -894,7 +895,7 @@ impl LemmingState {
     }
 
     fn tick_exiting(&mut self) -> LemmingVerdict {
-        self.frame = (self.frame + 1) % self.animation.unwrap().frame_count();
+        self.frame = (self.frame + 1) % self.animation_frame_count();
 
         if self.frame > 0 {
             LemmingVerdict::Continue
@@ -904,7 +905,7 @@ impl LemmingState {
     }
 
     fn tick_ohno(&mut self, terrain: &Terrain) -> LemmingVerdict {
-        if self.frame == self.animation.unwrap().frame_count() - 1 {
+        if self.frame == self.animation_frame_count() - 1 {
             self.set_health(LemmingHealth::Exploding);
         } else {
             self.frame += 1;
@@ -936,6 +937,14 @@ impl LemmingState {
         } else {
             self.particle_frame = Some(0);
             LemmingVerdict::Continue
+        }
+    }
+
+    fn animation_frame_count(&self) -> usize {
+        if let Some(animation) = self.animation {
+            animation.frame_count()
+        } else {
+            1
         }
     }
 
