@@ -77,6 +77,7 @@ impl LemmingState {
             x,
             y,
             direction,
+            animation: Some(activity.default_animation()),
             ..Default::default()
         };
 
