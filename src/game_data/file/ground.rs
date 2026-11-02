@@ -107,8 +107,6 @@ pub struct Content {
 
 pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
-    println!("reading {}", filename);
-
     let data = read_game_file(path, &filename)?;
 
     let mut offset = 0;

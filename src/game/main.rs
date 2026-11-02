@@ -16,15 +16,16 @@ fn main() -> Result<()> {
         .about("rustlings is a replacement engine for Lemmings / DOS")
         .arg(
             Arg::new("DATA DIRECTORY")
-                .required(true)
+                .required(false)
                 .help("path to data files")
+                .default_value(".")
                 .index(1),
         );
 
     let matches = command.get_matches();
 
     let config = Config {
-        data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().clone(),
+        data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().into(),
     };
 
     game::run(&config)

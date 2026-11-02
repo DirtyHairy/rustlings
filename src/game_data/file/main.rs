@@ -113,7 +113,6 @@ pub struct Content {
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
-    println!("reading main.dat");
     let maindata = read_game_file(path, "main.dat")?;
 
     let datfile::Content { sections } = datfile::parse(&maindata)?;

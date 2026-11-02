@@ -1,6 +1,6 @@
 use std::{path::Path, rc::Rc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rustlings::{
     game_data::{GameData, read_game_data},
     sdl::{current_refresh_rate, get_canvas_vsync},
@@ -65,7 +65,10 @@ fn init_canvas(window: Window) -> Result<(Canvas<Window>, TextureCreator<WindowC
 }
 
 pub fn run(config: &Config) -> Result<()> {
-    let game_data: Rc<GameData> = read_game_data(Path::new(&config.data_dir))?.into();
+    println!("loading game data");
+    let game_data: Rc<GameData> = read_game_data(Path::new(&config.data_dir))
+        .context("failed to load game data; see --help for options")?
+        .into();
 
     let mut game_state = GameState {
         current_level: 0,

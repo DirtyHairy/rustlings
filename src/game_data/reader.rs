@@ -80,8 +80,6 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
 
         let main = main_handle.join().unwrap()?;
 
-        println!();
-
         Ok(GameData {
             levels,
             oddtable,

@@ -63,10 +63,7 @@ pub struct Level {
 }
 
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
-    let filename = format!("level00{}.dat", index);
-    println!("reading {}", filename);
-
-    let compressed_level_data = read_game_file(path, &filename)?;
+    let compressed_level_data = read_game_file(path, &format!("level00{}.dat", index))?;
 
     let decompressed_level_sections = datfile::parse(&compressed_level_data)?;
     let mut levels: Vec<Level> = Vec::new();
@@ -80,8 +77,6 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
 }
 
 pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParameters>> {
-    println!("reading {}", ODDTABLE_FILENAME);
-
     let oddtable_data = read_game_file(path, ODDTABLE_FILENAME)?;
 
     if oddtable_data.len() != ODDTABLE_ENTRY_SIZE * ODDTABLE_ENTRIES {

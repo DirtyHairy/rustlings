@@ -22,10 +22,7 @@ pub struct Content {
 }
 
 pub fn read_vgaspec(path: &Path, index: usize) -> Result<Content> {
-    let filename = format!("vgaspec{}.dat", index);
-    println!("reading {}", filename);
-
-    let data = read_game_file(path, &filename)?;
+    let data = read_game_file(path, &format!("vgaspec{}.dat", index))?;
 
     read_compressed_data(&data)
 }

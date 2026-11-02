@@ -22,7 +22,6 @@ pub fn read_vgagr(
     terrain_info: &[TerrainInfo],
 ) -> Result<Content> {
     let filename = format!("vgagr{}.dat", index);
-    println!("reading {}", filename);
 
     let data = read_game_file(path, &filename)?;
 
