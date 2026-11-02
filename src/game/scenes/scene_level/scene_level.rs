@@ -262,7 +262,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         match event {
             SceneEvent::KeyDown {
                 keycode: Keycode::PageDown,
-                keymod: Mod::NOMOD,
                 ..
             } => {
                 if self.status == Status::Running {
@@ -271,7 +270,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::PageUp,
-                keymod: Mod::NOMOD,
                 ..
             } => {
                 if self.status == Status::Running {
@@ -281,18 +279,18 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
             SceneEvent::KeyDown {
                 keycode: Keycode::Space,
-                keymod: Mod::LSHIFTMOD | Mod::RSHIFTMOD,
+                keymod,
                 ..
-            } => {
+            } if keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD) => {
                 if self.state.paused {
                     self.pause_tick_scheduled = true;
                 }
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::Space,
-                keymod: Mod::LCTRLMOD,
+                keymod,
                 ..
-            } => self.fast = true,
+            } if keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD) => self.fast = true,
             SceneEvent::KeyUp {
                 keycode: Keycode::Space,
                 ..
@@ -300,9 +298,11 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
             SceneEvent::KeyDown {
                 keycode: Keycode::LShift | Keycode::RShift,
-                keymod: Mod::LSHIFTMOD | Mod::RSHIFTMOD | Mod::NOMOD,
+                keymod,
                 ..
-            } => self.shift_down = true,
+            } if keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD | Mod::NOMOD) => {
+                self.shift_down = true
+            }
             SceneEvent::KeyUp {
                 keycode: Keycode::LShift | Keycode::RShift,
                 ..
@@ -314,7 +314,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             SceneEvent::MouseDown(MouseButton::Left, _) => self.assign_skill(),
             SceneEvent::KeyDown {
                 keycode: Keycode::Return,
-                keymod: Mod::NOMOD,
                 ..
             } => self.assign_skill(),
 
