@@ -1,12 +1,13 @@
 use std::array;
-use std::{fmt, fs, path::Path};
+use std::{fmt, path::Path};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 
 use crate::game_data::file::palette::{
     LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry, read_palette_entry,
 };
 use crate::game_data::file::read::{read_byte, read_word_le};
+use crate::game_data::file::util::read_game_file;
 
 pub const OBJECTS_PER_TILESET: usize = 16;
 pub const TILES_PER_TILESET: usize = 64;
@@ -108,8 +109,7 @@ pub fn read_ground(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("ground{}o.dat", index);
     println!("reading {}", filename);
 
-    let data = fs::read(path.join(&filename).as_os_str())
-        .with_context(|| format!("failed to read {}", filename))?;
+    let data = read_game_file(path, &filename)?;
 
     let mut offset = 0;
     let mut object_info: [ObjectInfo; OBJECTS_PER_TILESET] =

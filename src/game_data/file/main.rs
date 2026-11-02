@@ -1,11 +1,12 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail};
 use strum::EnumCount;
 
 use crate::game_data::Bitmap;
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
+use crate::game_data::file::util::read_game_file;
 
 pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
@@ -113,8 +114,7 @@ pub struct Content {
 
 pub fn read_main(path: &Path) -> Result<Content> {
     println!("reading main.dat");
-    let maindata =
-        fs::read(path.join("main.dat").as_os_str()).context("failed to read main.dat")?;
+    let maindata = read_game_file(path, "main.dat")?;
 
     let datfile::Content { sections } = datfile::parse(&maindata)?;
     if sections.len() < 3 {

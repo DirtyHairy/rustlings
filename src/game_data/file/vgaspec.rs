@@ -1,6 +1,6 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail};
 
 use crate::game_data::file::encoding;
 use crate::game_data::file::palette::{
@@ -8,6 +8,7 @@ use crate::game_data::file::palette::{
 };
 use crate::game_data::file::read::read_byte;
 use crate::game_data::file::sprite::{Bitmap, TransparencyEncoding};
+use crate::game_data::file::util::read_game_file;
 
 const SECTION_SIZE: usize = 14400;
 const VGASPEC_BITMAP_WIDTH: u32 = 960;
@@ -24,8 +25,7 @@ pub fn read_vgaspec(path: &Path, index: usize) -> Result<Content> {
     let filename = format!("vgaspec{}.dat", index);
     println!("reading {}", filename);
 
-    let data = fs::read(path.join(&filename).as_os_str())
-        .with_context(|| format!("failed to read {}", filename))?;
+    let data = read_game_file(path, &filename)?;
 
     read_compressed_data(&data)
 }

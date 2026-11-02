@@ -8,3 +8,4 @@ pub mod vgagr;
 pub mod vgaspec;
 
 mod read;
+mod util;

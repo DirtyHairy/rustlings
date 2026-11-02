@@ -1,5 +1,5 @@
 use std::fmt;
-use std::{fs, path::Path};
+use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 use strum::{EnumCount, VariantArray};
@@ -7,6 +7,7 @@ use strum::{EnumCount, VariantArray};
 use crate::game_data::Skill;
 use crate::game_data::file::encoding::datfile;
 use crate::game_data::file::read::{read_byte, read_word_be};
+use crate::game_data::file::util::read_game_file;
 
 const ODDTABLE_ENTRIES: usize = 80;
 const ODDTABLE_ENTRY_SIZE: usize = 0x38;
@@ -65,8 +66,7 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let filename = format!("level00{}.dat", index);
     println!("reading {}", filename);
 
-    let compressed_level_data = fs::read(path.join(&filename).as_os_str())
-        .with_context(|| format!("failed to read {}", filename))?;
+    let compressed_level_data = read_game_file(path, &filename)?;
 
     let decompressed_level_sections = datfile::parse(&compressed_level_data)?;
     let mut levels: Vec<Level> = Vec::new();
@@ -82,8 +82,7 @@ pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
 pub fn read_oddtable(path: &Path) -> Result<Vec<LevelParameters>> {
     println!("reading {}", ODDTABLE_FILENAME);
 
-    let oddtable_data = fs::read(path.join(ODDTABLE_FILENAME).as_os_str())
-        .with_context(|| format!("failed to read {}", ODDTABLE_FILENAME))?;
+    let oddtable_data = read_game_file(path, ODDTABLE_FILENAME)?;
 
     if oddtable_data.len() != ODDTABLE_ENTRY_SIZE * ODDTABLE_ENTRIES {
         bail!("invalid {}", ODDTABLE_FILENAME);
