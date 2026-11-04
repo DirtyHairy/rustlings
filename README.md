@@ -41,7 +41,8 @@ to build and link SDL3 statically on-the-fly.
 
 # Running
 
-Run the game with
+Just drop the binary next to the data files and start it. You can also point the
+game to the data files via
 
 ```
 $ ./target/release/rustlings <path to DOS files>
@@ -52,6 +53,7 @@ Keybindings:
 - **Page up / down**: next / previous level
 - **Left / right**: scroll (hold shift or right mouse button for fast scrolling)
 - **1 -- 8**: switch skill
+- \+ / - : change exit rate
 - **Shift**: hold to emulate right mouse button
 - **p**: pause
 
