@@ -1,6 +1,7 @@
 mod basher;
 mod blocker;
 mod bomber;
+mod builder;
 mod climber;
 mod digger;
 mod drowning;

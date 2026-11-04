@@ -819,6 +819,8 @@ impl LemmingState {
                 if *bricks == 0 {
                     self.transition_to(Activity::Shrugging);
                     self.turn_if_ceiling();
+
+                    return LemmingVerdict::Continue;
                 }
 
                 if terrain.is_on_bounds(self.x)
@@ -826,6 +828,8 @@ impl LemmingState {
                 {
                     self.turn_and_walk();
                     self.turn_if_ceiling();
+
+                    return LemmingVerdict::Continue;
                 }
 
                 let (_, foot_y) = LemmingAnimation::Building.foot();
