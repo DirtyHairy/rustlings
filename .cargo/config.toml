@@ -3,3 +3,4 @@ MACOSX_DEPLOYMENT_TARGET = "11.0"
 
 [alias]
 dist-macos = "build -r --target aarch64-apple-darwin --target x86_64-apple-darwin --features sdl3/build-from-source-static"
+dist-linux = "build -r --features sdl3/build-from-source-static"

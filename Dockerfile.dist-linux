@@ -1,0 +1,31 @@
+FROM ubuntu:22.04 AS build-env
+
+RUN \
+    apt-get update \
+    && \
+    apt-get -y install --no-install-recommends \
+    pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+    libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+    libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+    libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+    libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev libusb-1.0-0-dev \
+    libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+    curl ca-certificates build-essential \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN  curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.99.1 --profile minimal
+
+FROM build-env AS build
+
+RUN mkdir /work
+
+COPY Cargo.lock Cargo.toml build.rs /work/
+COPY src /work/src
+COPY .cargo /work/.cargo
+
+RUN . $HOME/.cargo/env && cd /work && cargo dist-linux
+
+FROM scratch AS artifacts
+
+COPY --from=build /work/target/release/rustlings /
