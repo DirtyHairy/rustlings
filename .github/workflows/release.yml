@@ -15,7 +15,7 @@ env:
 
     # Linux
 
-    Linux binaries should work on any distribution that ships libc 2.34 or newer.
+    Linux binaries should work on any distribution that ships glibc 2.34 or newer.
 
     # Windows
 
