@@ -1,6 +1,14 @@
 [env]
 MACOSX_DEPLOYMENT_TARGET = "11.0"
 
+CMAKE_TOOLCHAIN_FILE_x86_64_pc_windows_msvc  = { value = "msvc-static-crt.cmake", relative = true }
+CMAKE_TOOLCHAIN_FILE_aarch64_pc_windows_msvc = { value = "msvc-static-crt.cmake", relative = true }
+CMAKE_TOOLCHAIN_FILE_i686_pc_windows_msvc = { value = "msvc-static-crt.cmake", relative = true }
+
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
+
 [alias]
 dist-macos = "build -r --target aarch64-apple-darwin --target x86_64-apple-darwin --features sdl3/build-from-source-static"
 dist-linux = "build -r --features sdl3/build-from-source-static"
+dist-windows = "build -r --target i686-pc-windows-msvc --target x86_64-pc-windows-msvc --target aarch64-pc-windows-msvc --features sdl3/build-from-source-static"
