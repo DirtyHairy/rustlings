@@ -56,6 +56,8 @@ Keybindings:
 - \+ / - : change exit rate
 - **Shift**: hold to emulate right mouse button
 - **p**: pause
+- **ctrl/cmd enter**: toggle full screen
+- **ctrl/cmd q**: quit
 
 # References
 
