@@ -8,7 +8,7 @@ use rustlings::{
 use sdl3::{
     Sdl,
     render::{Canvas, TextureCreator},
-    video::{Window, WindowContext},
+    video::{Window, WindowContext, WindowPos},
 };
 
 use crate::{
@@ -21,6 +21,9 @@ pub struct Config {
     pub data_dir: String,
 }
 
+const WINDOW_WIDTH: u32 = 640;
+const WINDOW_HEIGHT: u32 = 480;
+
 fn init_sdl() -> Result<(Sdl, Window)> {
     let sdl_context = sdl3::init()?;
     sdl3::hint::set("SDL_RENDER_VSYNC", "1");
@@ -31,14 +34,30 @@ fn init_sdl() -> Result<(Sdl, Window)> {
     let sdl_video = sdl_context.video()?;
 
     let mut window = sdl_video
-        .window("Rustlings", 640, 480)
-        .position_centered()
-        .set_flags(sdl3::video::WindowFlags::HIGH_PIXEL_DENSITY)
+        .window("Rustlings", WINDOW_WIDTH, WINDOW_HEIGHT)
+        .hidden()
+        .high_pixel_density()
         .resizable()
         .build()?;
 
-    let _ = window.set_minimum_size(640, 480);
-    let _ = window.raise();
+    let display_scale = window.display_scale();
+    let pixel_density = window.pixel_density();
+
+    let content_scale = if display_scale > 0. && pixel_density > 0. {
+        display_scale / pixel_density
+    } else {
+        1.
+    };
+
+    window.set_minimum_size(WINDOW_WIDTH, WINDOW_HEIGHT)?;
+    window.set_size(
+        (content_scale * WINDOW_WIDTH as f32).round() as u32,
+        (content_scale * WINDOW_HEIGHT as f32).round() as u32,
+    )?;
+
+    window.set_position(WindowPos::Centered, WindowPos::Centered);
+    window.show();
+    window.raise();
 
     sdl_context.mouse().show_cursor(false);
 
