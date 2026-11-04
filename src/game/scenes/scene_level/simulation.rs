@@ -1017,10 +1017,10 @@ impl LemmingState {
 
                 let below = terrain.terrain_at(self.x, self.y).unwrap_or_default();
 
-                !below.steel()
-                    && !front.steel()
-                    && !(self.direction == Direction::Left && front.one_way_right())
-                    && !(self.direction == Direction::Right && front.one_way_left())
+                !(below.steel()
+                    || front.steel()
+                    || (self.direction == Direction::Left && front.one_way_right())
+                    || (self.direction == Direction::Right && front.one_way_left()))
             }
             _ => true,
         }
