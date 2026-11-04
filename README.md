@@ -53,7 +53,7 @@ Keybindings:
 - **Page up / down**: next / previous level
 - **Left / right**: scroll (hold shift or right mouse button for fast scrolling)
 - **1 -- 8**: switch skill
-- \+ / - : change exit rate
+- \+ / - : change release rate
 - **Shift**: hold to emulate right mouse button
 - **p**: pause
 - **ctrl/cmd enter**: toggle full screen

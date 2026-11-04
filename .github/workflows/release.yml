@@ -7,14 +7,11 @@ on:
 
 env:
   RELEASE_BODY: |
-    Prebuilt release binaries are provided for MacOS (ARM and x64), Linux (ARM and x64) and
-    Windows (ARM, x64 and x86).
+    Prebuilt release binaries are provided for MacOS (ARM and x64), Linux (ARM and x64) and Windows (ARM, x64 and x86).
 
     # MacOS
 
-    MacOS binaries require at least Big Sur to run. The binaries carry
-    an ad-hoc signature and are not notarized, so you'll have to ignore the scary warning,
-    head over to the security preferences and confirm that you want to run rustlings anyway.
+    MacOS binaries require at least Big Sur to run. The binaries carry an ad-hoc signature and are not notarized, so you'll have to ignore the scary warning, head over to the security preferences and confirm that you want to run rustlings anyway.
 
     # Linux
 
