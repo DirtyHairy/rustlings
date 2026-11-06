@@ -51,6 +51,7 @@ pub struct GameData {
     pub static_palette: [PaletteEntry; PALETTE_SIZE],
     pub cursors: Cursors,
     pub font_countdown: Sprite,
+    pub font_main: Sprite,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
     pub particle_sets: ParticleSets,
 }

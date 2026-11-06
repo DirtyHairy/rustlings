@@ -10,6 +10,7 @@ use crate::game_data::file::util::read_game_file;
 
 pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
+pub const FONT_MAIN_SIZE: usize = 94;
 pub const FONT_COUNTDOWN_SIZE: usize = 10;
 
 const COLOR_WHITE: u8 = 0x03;
@@ -109,6 +110,8 @@ pub struct Content {
     pub font_skill_panel_skills: Sprite,
     pub font_skill_panel: Sprite,
     pub font_countdown: Sprite,
+    pub font_main: Sprite,
+    pub menu_background: Bitmap,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
 }
 
@@ -160,6 +163,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let mut font_skill_panel_skills = Sprite::blank(4, 8, FONT_SKILL_PANEL_SKILLS_SIZE);
     let mut font_skill_panel = Sprite::blank(8, 16, FONT_SKILL_PANEL_SIZE);
     let mut font_countdown = Sprite::blank(8, 8, FONT_COUNTDOWN_SIZE);
+    let mut font_main = Sprite::blank(16, 16, FONT_MAIN_SIZE);
 
     for i in 0..FONT_SKILL_PANEL_SKILLS_SIZE - 1 {
         let char_bitmap = Bitmap::read_planar_mapped(
@@ -219,12 +223,32 @@ pub fn read_main(path: &Path) -> Result<Content> {
         font_countdown.add_frame(char_bitmap)?;
     }
 
+    for i in 0..FONT_MAIN_SIZE {
+        let char_bitmap = Bitmap::read_planar(
+            16,
+            16,
+            3,
+            sections[4]
+                .data
+                .get(0x69b0 + i * 96..)
+                .ok_or_else(|| anyhow!("main font index out of bounds"))?,
+            TransparencyEncoding::Black,
+        )?;
+
+        font_main.add_frame(char_bitmap)?;
+    }
+
+    let menu_background =
+        Bitmap::read_planar(320, 104, 2, &sections[3].data, TransparencyEncoding::Black)?;
+
     Ok(Content {
         lemming_sprites,
         skill_panel,
         font_skill_panel_skills,
         font_skill_panel,
         font_countdown,
+        font_main,
+        menu_background,
         mask_sprites,
     })
 }
@@ -250,5 +274,12 @@ pub fn resolve_skill_panel_font_index(c: char) -> usize {
             (c as usize - 'A' as usize) + 12
         }
         _ => 38,
+    }
+}
+
+pub fn resolve_main_font_index(c: char) -> usize {
+    match c {
+        '!'..='~' => (c as u8 - b'!') as usize,
+        _ => (b'~' - b'!') as usize,
     }
 }

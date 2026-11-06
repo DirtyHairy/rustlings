@@ -2,7 +2,8 @@ use std::path::Path;
 
 use anyhow::{Result, anyhow};
 use rustlings::game_data::{
-    read_game_data, resolve_skill_panel_font_index, resolve_skill_panel_skill_font_index,
+    file::main::resolve_main_font_index, read_game_data, resolve_skill_panel_font_index,
+    resolve_skill_panel_skill_font_index,
 };
 
 const CHARS_SKILL_PANEL: &str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%- ";
@@ -61,6 +62,20 @@ pub fn main(path: &Path) -> Result<()> {
             .ok_or_else(|| anyhow!("invalid countdown font index {}", i))?;
 
         println!("'{}'", i);
+        println!("===");
+        println!("{}", bitmap);
+    }
+
+    for c in '!'..='~' {
+        let index = resolve_main_font_index(c);
+
+        let bitmap = game_data
+            .font_main
+            .frames
+            .get(index)
+            .ok_or_else(|| anyhow!("invalid skill panel font index {}", index))?;
+
+        println!("’{}’", c);
         println!("===");
         println!("{}", bitmap);
     }
