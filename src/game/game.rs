@@ -14,7 +14,7 @@ use sdl3::{
 use crate::{
     scenes::create_scene,
     stage::{Stage, StopReason},
-    state::{GameState, SceneState},
+    state::{self, GameState, GameStateGlobal},
 };
 
 pub struct Config {
@@ -90,11 +90,9 @@ pub fn run(config: &Config) -> Result<()> {
         .into();
 
     let mut game_state = GameState {
-        current_level: 0,
-        ..Default::default()
+        global: GameStateGlobal { current_level: 0 },
+        scene: state::Scene::Level(None),
     };
-
-    let mut scene_state: SceneState = Default::default();
 
     let (sdl_context, window) = init_sdl()?;
 
@@ -113,15 +111,10 @@ pub fn run(config: &Config) -> Result<()> {
                 &texture_creator,
                 Rc::clone(&game_data),
             );
-            let mut scene = create_scene(
-                Rc::clone(&game_data),
-                game_state,
-                scene_state,
-                &texture_creator,
-            )?;
+            let mut scene = create_scene(Rc::clone(&game_data), game_state, &texture_creator)?;
 
             run_result = stage.run(&mut *scene)?;
-            (game_state, scene_state) = scene.finish();
+            game_state = scene.finish();
         }
 
         match run_result {

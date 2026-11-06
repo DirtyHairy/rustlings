@@ -5,10 +5,7 @@ use sdl3::{
     video::Window,
 };
 
-use crate::{
-    geometry::Rect,
-    state::{GameState, SceneState},
-};
+use crate::{geometry::Rect, state::GameState};
 
 #[derive(Clone, Copy)]
 #[allow(unused)]
@@ -75,5 +72,5 @@ pub trait Scene<'texture_creator> {
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool>;
     fn will_redraw(&self) -> bool;
 
-    fn finish(self: Box<Self>) -> (GameState, SceneState);
+    fn finish(self: Box<Self>) -> GameState;
 }

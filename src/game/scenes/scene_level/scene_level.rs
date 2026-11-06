@@ -22,11 +22,11 @@ use crate::{
         skill_panel_controller::SkillPanelController,
         terrain_diff::VisibilityTarget,
     },
-    state::TerrainProps,
+    state::{self, GameStateGlobal, TerrainProps},
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
-    state::{GameState, SceneState, SceneStateLevel},
+    state::{GameState, SceneStateLevel},
 };
 
 const ENGINE_TICK_MSEC: u64 = 1000 / 17; // 17 FPS
@@ -40,7 +40,7 @@ enum Status {
 }
 
 pub struct SceneLevel<'texture_creator> {
-    game_state: GameState,
+    global_state: GameStateGlobal,
     state: Box<SceneStateLevel>,
     status: Status,
 
@@ -67,18 +67,18 @@ pub struct SceneLevel<'texture_creator> {
 impl<'texture_creator> SceneLevel<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
-        game_state: GameState,
-        scene_state: SceneState,
+        global_state: GameStateGlobal,
+        scene_state: Option<Box<SceneStateLevel>>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
-        let level = game_data.resolve_level(game_state.current_level)?;
-        print_level(game_state.current_level, &level);
+        let level = game_data.resolve_level(global_state.current_level)?;
+        print_level(global_state.current_level, &level);
 
         let simulation = Simulation::new(Rc::clone(&game_data), &level)?;
 
         let state = match scene_state {
-            SceneState::Level(state_level) => state_level,
-            _ => {
+            Some(state) => state,
+            None => {
                 let mut state = Box::from(SceneStateLevel {
                     level_x: level.start_x,
                     terrain: game_data.compose_terrain(&level)?,
@@ -105,7 +105,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
         Ok(SceneLevel {
             clock_offset_msec: state.clock_msec,
-            game_state,
+            global_state,
             state,
             status: Status::Running,
             renderer,
@@ -200,18 +200,24 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
-    fn finish(mut self: Box<Self>) -> (GameState, SceneState) {
+    fn finish(self: Box<Self>) -> GameState {
         match self.status {
-            Status::Running => (self.game_state, SceneState::Level(self.state)),
-            Status::DoneNextLevel => {
-                self.game_state.current_level = (self.game_state.current_level + 1) % NUM_LEVELS;
-                (self.game_state, SceneState::None)
-            }
-            Status::DonePreviousLevel => {
-                self.game_state.current_level =
-                    (self.game_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS;
-                (self.game_state, SceneState::None)
-            }
+            Status::Running => GameState {
+                global: self.global_state,
+                scene: state::Scene::Level(Some(self.state)),
+            },
+            Status::DoneNextLevel => GameState {
+                global: GameStateGlobal {
+                    current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
+                },
+                scene: state::Scene::Level(None),
+            },
+            Status::DonePreviousLevel => GameState {
+                global: GameStateGlobal {
+                    current_level: (self.global_state.current_level - 1) % NUM_LEVELS,
+                },
+                scene: state::Scene::Level(None),
+            },
         }
     }
 

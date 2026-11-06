@@ -7,20 +7,19 @@ use sdl3::render::TextureCreator;
 use crate::{
     scene::Scene,
     scenes::SceneLevel,
-    state::{GameState, SceneState, Screen},
+    state::{self, GameState},
 };
 
 pub fn create_scene<'texture_creator, T>(
     game_data: Rc<GameData>,
     game_state: GameState,
-    scene_state: SceneState,
     texture_creator: &'texture_creator TextureCreator<T>,
 ) -> Result<Box<dyn Scene<'texture_creator> + 'texture_creator>> {
-    match game_state.screen {
-        Screen::Level => Ok(Box::from(SceneLevel::new(
+    match game_state.scene {
+        state::Scene::Level(state) => Ok(Box::from(SceneLevel::new(
             game_data,
-            game_state,
-            scene_state,
+            game_state.global,
+            state,
             texture_creator,
         )?)),
     }
