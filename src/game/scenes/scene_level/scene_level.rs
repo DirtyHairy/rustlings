@@ -1,4 +1,4 @@
-use std::{cmp, collections::VecDeque, rc::Rc};
+use std::{collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
@@ -52,9 +52,6 @@ pub struct SceneLevel<'texture_creator> {
 
     level_parameters: LevelParameters,
     clock_offset_msec: u64,
-
-    last_draw_at_clock_msec: u64,
-    fast: bool,
 
     shift_down: bool,
     right_mouse_down: bool,
@@ -114,29 +111,11 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             skill_panel_controller,
             simulation,
             level_parameters: level.parameters,
-            last_draw_at_clock_msec: 0,
-            fast: false,
             shift_down: false,
             right_mouse_down: false,
             pause_tick_scheduled: false,
             cache: Default::default(),
         })
-    }
-
-    fn engine_tick_msec(&self) -> u64 {
-        if self.fast {
-            ENGINE_TICK_MSEC >> 2
-        } else {
-            ENGINE_TICK_MSEC
-        }
-    }
-
-    fn fade_in_msec(&self) -> u64 {
-        if self.fast {
-            FADE_IN_MSEC >> 2
-        } else {
-            FADE_IN_MSEC
-        }
     }
 
     fn selection_mode(&self) -> SelectionMode {
@@ -230,7 +209,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn opacity(&self) -> u8 {
-        ((self.state.clock_msec * 255) / self.fade_in_msec()).min(255) as u8
+        ((self.state.clock_msec * 255) / FADE_IN_MSEC).min(255) as u8
     }
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
@@ -288,16 +267,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                     self.pause_tick_scheduled = true;
                 }
             }
-            SceneEvent::KeyDown {
-                keycode: Keycode::Space,
-                keymod,
-                ..
-            } if keymod.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD) => self.fast = true,
-            SceneEvent::KeyUp {
-                keycode: Keycode::Space,
-                ..
-            } => self.fast = false,
-
             SceneEvent::KeyDown {
                 keycode: Keycode::LShift | Keycode::RShift,
                 keymod,
@@ -358,8 +327,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_old = clock_msec_old / self.engine_tick_msec();
-        let engine_ticks = clock_msec / self.engine_tick_msec();
+        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
+        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
@@ -398,14 +367,17 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn next_tick_at_msec(&self) -> u64 {
-        let next_tick_engine =
-            ((self.state.clock_msec / self.engine_tick_msec()) + 1) * self.engine_tick_msec();
+        let mut next_tick = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
-        match self.scroll_controller.next_tick_at_msec(&self.state) {
-            None => next_tick_engine,
-            Some(next_tick_scroll) => cmp::min(next_tick_engine, next_tick_scroll),
+        if self.opacity() < 255 {
+            next_tick = next_tick.min(((self.opacity() as u64 + 1) * FADE_IN_MSEC) / 255);
         }
-        .saturating_sub(self.clock_offset_msec)
+
+        if let Some(next_tick_scroll) = self.scroll_controller.next_tick_at_msec(&self.state) {
+            next_tick = next_tick.min(next_tick_scroll);
+        }
+
+        next_tick.saturating_sub(self.clock_offset_msec)
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {
@@ -413,17 +385,9 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
-        let last_draw_at_clock_msec = self.last_draw_at_clock_msec;
-        self.last_draw_at_clock_msec = self.state.clock_msec;
-
         let selection_mode = self.selection_mode();
         self.renderer
             .draw(&self.state, &mut self.cache, selection_mode, canvas)
-            .map(|updated| {
-                updated
-                    | (self.state.clock_msec != last_draw_at_clock_msec
-                        && self.state.clock_msec <= self.fade_in_msec())
-            })
     }
 
     fn will_redraw(&self) -> bool {

@@ -38,6 +38,7 @@ pub struct Stage<'sdl> {
     texture_creator: &'sdl TextureCreator<WindowContext>,
     game_data: Rc<GameData>,
 
+    last_opacity: Option<u8>,
     rerender: bool,
     suspended: bool,
     ts_reference: Instant,
@@ -68,6 +69,7 @@ impl<'sdl> Stage<'sdl> {
             canvas,
             texture_creator,
             game_data,
+            last_opacity: None,
             rerender: false,
             suspended: false,
             ts_reference: Instant::now(),
@@ -180,7 +182,7 @@ impl<'sdl> Stage<'sdl> {
     ) -> Result<()> {
         let scene_changed = scene.draw(self.canvas)?;
 
-        if self.rerender || scene_changed {
+        if self.rerender || scene_changed || Some(scene.opacity()) != self.last_opacity {
             self.render(render_state, scene, scene_changed)?;
             self.rerender = false;
         }
@@ -368,6 +370,8 @@ impl<'sdl> Stage<'sdl> {
             render_state.overlay.set_alpha_mod(255 - scene_opacity);
             self.canvas.copy(&render_state.overlay, None, None)?;
         }
+
+        self.last_opacity = Some(scene_opacity);
 
         if render_state.mouse_enabled && scene.cursor_type() != CursorType::None {
             let layout_cursor = render_state.layout.cursor.clone();
