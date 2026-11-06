@@ -1,9 +1,8 @@
 use anyhow::Result;
 use rustlings::{
     game_data::{
-        Bitmap, CURSOR_CENTER_X, CURSOR_CENTER_Y, CURSOR_NATIVE_ASPECT,
-        CURSOR_NATIVE_SCREEN_HEIGHT, CURSOR_NATIVE_SCREEN_WIDTH, CURSOR_SIZE, GameData,
-        PALETTE_SIZE, PaletteEntry,
+        Bitmap, CURSOR_CENTER_X, CURSOR_CENTER_Y, CURSOR_NATIVE_SCREEN_HEIGHT,
+        CURSOR_NATIVE_SCREEN_WIDTH, CURSOR_SIZE, GameData, PALETTE_SIZE, PaletteEntry,
     },
     sdl::texture_from_bitmap,
 };
@@ -118,7 +117,6 @@ pub struct RenderState<'texture_creator> {
 
     pub scene_width: u32,
     pub scene_height: u32,
-    pub scene_aspect: f32,
 
     pub mouse_x: f32,
     pub mouse_y: f32,
@@ -145,7 +143,6 @@ impl<'texture_creator> RenderState<'texture_creator> {
             layout: Default::default(),
             scene_width: scene.width(),
             scene_height: scene.height(),
-            scene_aspect: scene.aspect(),
             mouse_x: 0.,
             mouse_y: 0.,
             mouse_enabled: false,
@@ -184,7 +181,7 @@ impl<'texture_creator> RenderState<'texture_creator> {
         let w = width as f32;
         let h = height as f32;
         let w_scene = self.scene_width as f32;
-        let h_scene = self.scene_height as f32 * self.scene_aspect;
+        let h_scene = (self.scene_width as f32 * 3.) / 4.;
 
         if w_scene * h / h_scene <= w {
             let width = w_scene * h / h_scene;
@@ -225,10 +222,8 @@ impl<'texture_creator> RenderState<'texture_creator> {
 
     fn layout_cursor(&mut self, scale_x: f32, scale_y: f32) {
         let cursor_scale_x = scale_x * self.scene_width as f32 / CURSOR_NATIVE_SCREEN_WIDTH as f32;
-        let cursor_scale_y = scale_y * self.scene_height as f32
-            / CURSOR_NATIVE_SCREEN_HEIGHT as f32
-            * self.scene_aspect
-            / CURSOR_NATIVE_ASPECT;
+        let cursor_scale_y =
+            scale_y * self.scene_height as f32 / CURSOR_NATIVE_SCREEN_HEIGHT as f32;
 
         self.layout.cursor.width = (cursor_scale_x * CURSOR_SIZE as f32).round() as u32;
         self.layout.cursor.height = (cursor_scale_y * CURSOR_SIZE as f32).round() as u32;

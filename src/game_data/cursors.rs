@@ -43,7 +43,6 @@ pub const CURSOR_CENTER_X: f32 = 7.5;
 pub const CURSOR_CENTER_Y: f32 = 7.5;
 pub const CURSOR_NATIVE_SCREEN_WIDTH: u32 = 320;
 pub const CURSOR_NATIVE_SCREEN_HEIGHT: u32 = 200;
-pub const CURSOR_NATIVE_ASPECT: f32 = 1.2;
 
 fn compile_char(c: char) -> Option<u8> {
     match c {

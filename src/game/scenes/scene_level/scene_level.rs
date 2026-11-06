@@ -223,10 +223,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         SCREEN_HEIGHT
     }
 
-    fn aspect(&self) -> f32 {
-        1.2
-    }
-
     fn opacity(&self) -> u8 {
         ((self.state.clock_msec * 255) / self.fade_in_msec()).min(255) as u8
     }

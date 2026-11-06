@@ -56,7 +56,6 @@ pub trait Compositor {
 pub trait Scene<'texture_creator> {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn aspect(&self) -> f32;
     fn opacity(&self) -> u8;
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool);
