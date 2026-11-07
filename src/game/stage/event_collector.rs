@@ -110,7 +110,16 @@ impl EventCollector {
 
                 event_pump.wait_event_timeout(Duration::from_millis(wait_timeout))
             } else {
-                Some(event_pump.wait_event())
+                let mut maybe_evt: Option<Event>;
+
+                loop {
+                    maybe_evt = event_pump.wait_event_timeout(Duration::from_millis(100));
+                    if maybe_evt.is_some() {
+                        break;
+                    }
+                }
+
+                maybe_evt
             };
 
             if let Some(event) = maybe_event
