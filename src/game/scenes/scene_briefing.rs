@@ -2,24 +2,24 @@ use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
 use rustlings::{
-    game_data::{GameData, NUM_LEVELS, file::palette::MENU_SCREEN_PALETTE},
-    sdl::{texture_from_bitmap, with_texture_canvas},
+    game_data::{GameData, NUM_LEVELS, decode_level_index},
+    sdl::with_texture_canvas,
 };
 use sdl3::{
     keyboard::Keycode,
-    pixels::{Color, PixelFormat},
-    rect::Rect,
+    pixels::PixelFormat,
     render::{Texture, TextureCreator},
 };
 
 use crate::{
     scene::{CursorType, MouseButton, Scene, SceneEvent},
+    scenes::common::{TextGrid, draw_background},
     state::{self, GameState, GameStateGlobal},
 };
 
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 350;
-const BACKGROUND_START: u32 = 72;
+const BACKGROUND_START: u32 = 78;
 
 const TEXTURE_ID_SCREEN: usize = 0;
 
@@ -57,6 +57,48 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
             texture_screen,
         })
+    }
+
+    fn write_briefing(&self, grid: &mut TextGrid) -> Result<()> {
+        let level = self
+            .game_data
+            .resolve_level(self.global_state.current_level)?;
+
+        let (difficulty, index) = decode_level_index(self.global_state.current_level);
+        let name_indent = (40_u32.saturating_sub(level.parameters.name.len() as u32) / 2).max(9);
+
+        grid.write(0, 5, &format!("Level {}", index));
+        grid.write(name_indent, 5, &level.parameters.name);
+        grid.write(
+            10,
+            8,
+            &format!("Number of Lemmings {}", level.parameters.released),
+        );
+        grid.write(
+            10,
+            10,
+            &format!(
+                "{:4} To Be Saved",
+                format!(
+                    "{}%",
+                    (level.parameters.required * 100) / level.parameters.released
+                )
+            ),
+        );
+        grid.write(
+            10,
+            12,
+            &format!("Release Rate {}", level.parameters.release_rate),
+        );
+        grid.write(
+            10,
+            14,
+            &format!("Time {} Minutes", level.parameters.time_limit),
+        );
+        grid.write(10, 16, &format!("Rating  {}", difficulty));
+        grid.write(5, 19, "Press mouse button to continue");
+
+        Ok(())
     }
 }
 
@@ -162,36 +204,12 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
 
         let texture_creator = &canvas.texture_creator();
 
-        let texture_background = texture_from_bitmap(
-            &self.game_data.screen_background,
-            &MENU_SCREEN_PALETTE,
-            texture_creator,
-            sdl3::render::TextureAccess::Static,
-        )?;
-
-        let bg_width = self.game_data.screen_background.width;
-        let bh_height = self.game_data.screen_background.height;
+        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
+        self.write_briefing(&mut text_grid)?;
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
-            canvas.set_blend_mode(sdl3::render::BlendMode::None);
-            canvas.clear();
-
-            let mut y = BACKGROUND_START as i32;
-            while y < HEIGHT as i32 {
-                let mut x = 0;
-                while x < WIDTH as i32 {
-                    canvas.copy(
-                        &texture_background,
-                        None,
-                        Rect::new(x, y, bg_width, bh_height),
-                    )?;
-
-                    x += bg_width as i32;
-                }
-
-                y += bh_height as i32;
-            }
+            draw_background(BACKGROUND_START, &self.game_data, texture_creator, canvas)?;
+            text_grid.render(&self.game_data, texture_creator, canvas)?;
 
             Ok(())
         })?;

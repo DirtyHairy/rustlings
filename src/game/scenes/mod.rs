@@ -1,3 +1,4 @@
+mod common;
 mod factory;
 mod scene_briefing;
 mod scene_level;
