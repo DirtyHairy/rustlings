@@ -95,6 +95,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             cursors: Cursors::new(),
             font_countdown: main.font_countdown,
             font_main: main.font_main,
+            screen_background: main.screen_background,
             mask_sprites: main.mask_sprites,
             particle_sets: load_particle_sets(),
         })

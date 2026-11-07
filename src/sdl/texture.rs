@@ -6,13 +6,13 @@ use sdl3::{
 };
 
 use crate::{
-    game_data::{Bitmap, PALETTE_SIZE, PaletteEntry},
+    game_data::{Bitmap, PaletteEntry},
     sdl::util::copy_bitmap_to_texture_data,
 };
 
 pub fn texture_from_bitmap<'a, T>(
     bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     texture_creator: &'a TextureCreator<T>,
     access: TextureAccess,
 ) -> Result<Texture<'a>> {
@@ -21,7 +21,7 @@ pub fn texture_from_bitmap<'a, T>(
 
 pub fn texture_from_bitmap_mapped<'a, T, F: Fn(Color) -> Color>(
     bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     texture_creator: &'a TextureCreator<T>,
     access: TextureAccess,
     mapping: F,

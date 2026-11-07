@@ -17,7 +17,7 @@ fn recast_buffer_u32(data: &mut [u8]) -> Result<&mut [u32]> {
 
 pub fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
     bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     texture_data: &mut [u8],
     mapping: T,
 ) -> Result<()> {

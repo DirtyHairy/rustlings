@@ -111,7 +111,7 @@ pub struct Content {
     pub font_skill_panel: Sprite,
     pub font_countdown: Sprite,
     pub font_main: Sprite,
-    pub menu_background: Bitmap,
+    pub screen_background: Bitmap,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
 }
 
@@ -248,7 +248,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
         font_skill_panel,
         font_countdown,
         font_main,
-        menu_background,
+        screen_background: menu_background,
         mask_sprites,
     })
 }

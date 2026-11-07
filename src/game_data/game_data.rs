@@ -52,6 +52,7 @@ pub struct GameData {
     pub cursors: Cursors,
     pub font_countdown: Sprite,
     pub font_main: Sprite,
+    pub screen_background: Bitmap,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
     pub particle_sets: ParticleSets,
 }
