@@ -19,6 +19,7 @@ pub struct ScrollController {
 
     is_fullscreen: bool,
     mouse_enabled: bool,
+    border_scroll_enabled: bool,
     mouse_x: Option<u32>,
     mouse_down_left: bool,
     mouse_down_right: bool,
@@ -59,7 +60,7 @@ impl ScrollController {
             return ScrollMode::Drag;
         }
 
-        if self.is_fullscreen && self.mouse_enabled {
+        if self.is_fullscreen && self.mouse_enabled && self.border_scroll_enabled {
             match self.mouse_x {
                 Some(0) => return ScrollMode::Left,
                 Some(x) if x == SCREEN_WIDTH - 1 => return ScrollMode::Right,
@@ -100,6 +101,10 @@ impl ScrollController {
             }
             SceneEvent::MouseMove(coordinates) => {
                 self.mouse_x = Some(coordinates.x);
+
+                if coordinates.x >= 1 && coordinates.x < SCREEN_WIDTH - 1 {
+                    self.border_scroll_enabled = true;
+                }
 
                 if self.mouse_down_left {
                     self.update_from_drag(&coordinates, state);
