@@ -2,9 +2,9 @@ use anyhow::Result;
 
 const SECRET: &[u8] = b"AJHLDHBBCJ";
 
-pub fn code_for_level(index: usize, percentage: Option<usize>, salt: Option<u8>) -> Result<String> {
+pub fn code_for_level(index: usize, percentage: Option<u8>, salt: Option<u8>) -> Result<String> {
     let index = (index & 0xff) as u8;
-    let percentage = percentage.unwrap_or(100) as u8;
+    let percentage = percentage.unwrap_or(100);
     let salt = salt.unwrap_or(0);
 
     let mut code = [0u8; 10];
