@@ -18,6 +18,8 @@ use crate::{
     scene::{Compositor, CursorType, Scene},
 };
 
+const ASPECT: f32 = 4. / 3.;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PrescalingMode {
     None(ScaleMode),
@@ -181,7 +183,7 @@ impl<'texture_creator> RenderState<'texture_creator> {
         let w = width as f32;
         let h = height as f32;
         let w_scene = self.scene_width as f32;
-        let h_scene = (self.scene_width as f32 * 3.) / 4.;
+        let h_scene = self.scene_width as f32 / ASPECT;
 
         if w_scene * h / h_scene <= w {
             let width = w_scene * h / h_scene;
