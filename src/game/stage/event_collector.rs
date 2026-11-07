@@ -77,7 +77,7 @@ impl EventCollector {
     pub fn collect_events(
         &mut self,
         aggregate_at_least_until: Instant,
-        timeout_millis: u64,
+        timeout_millis: Option<u64>,
         event_pump: &mut EventPump,
     ) {
         let ts_reference = Instant::now();
@@ -98,17 +98,22 @@ impl EventCollector {
 
             if !first_iteration
                 && aggregation_time_remaining == 0
-                && (!self.decoded_events.is_empty() || elapsed >= timeout_millis)
+                && (!self.decoded_events.is_empty()
+                    || timeout_millis.is_some_and(|timeout| elapsed >= timeout))
             {
                 break;
             }
 
-            let wait_timeout = cmp::max(
-                timeout_millis.saturating_sub(elapsed),
-                aggregation_time_remaining,
-            );
+            let maybe_event = if let Some(timeout) = timeout_millis {
+                let wait_timeout =
+                    cmp::max(timeout.saturating_sub(elapsed), aggregation_time_remaining);
 
-            if let Some(event) = event_pump.wait_event_timeout(Duration::from_millis(wait_timeout))
+                event_pump.wait_event_timeout(Duration::from_millis(wait_timeout))
+            } else {
+                Some(event_pump.wait_event())
+            };
+
+            if let Some(event) = maybe_event
                 && let Some(decoded_event) = decode_sdl_event(&event)
             {
                 self.aggregate_event(&decoded_event);

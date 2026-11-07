@@ -62,7 +62,7 @@ pub trait Scene<'texture_creator> {
 
     fn dispatch_event(&mut self, event: SceneEvent);
     fn tick(&mut self, canvas: &mut Canvas<Window>, clock_msec: u64) -> Result<()>;
-    fn next_tick_at_msec(&self) -> u64;
+    fn next_tick_at_msec(&self) -> Option<u64>;
 
     fn is_complete(&self) -> bool;
 

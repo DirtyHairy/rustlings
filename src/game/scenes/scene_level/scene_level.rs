@@ -189,13 +189,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Level(None),
+                scene: state::Scene::Briefing,
             },
             Status::DonePreviousLevel => GameState {
                 global: GameStateGlobal {
-                    current_level: (self.global_state.current_level - 1) % NUM_LEVELS,
+                    current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Level(None),
+                scene: state::Scene::Briefing,
             },
         }
     }
@@ -366,7 +366,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         Ok(())
     }
 
-    fn next_tick_at_msec(&self) -> u64 {
+    fn next_tick_at_msec(&self) -> Option<u64> {
         let mut next_tick = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
         if self.opacity() < 255 {
@@ -377,7 +377,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             next_tick = next_tick.min(next_tick_scroll);
         }
 
-        next_tick.saturating_sub(self.clock_offset_msec)
+        Some(next_tick.saturating_sub(self.clock_offset_msec))
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {

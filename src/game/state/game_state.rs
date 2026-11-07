@@ -3,6 +3,7 @@ use crate::state::SceneStateLevel;
 #[derive(Clone)]
 pub enum Scene {
     Level(Option<Box<SceneStateLevel>>),
+    Briefing,
 }
 
 #[derive(Clone)]

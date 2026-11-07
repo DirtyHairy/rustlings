@@ -143,9 +143,9 @@ impl<'sdl> Stage<'sdl> {
             }
 
             let aggregate_timeout = if scene.will_redraw() {
-                0
+                Some(0)
             } else {
-                scene.next_tick_at_msec().saturating_sub(time)
+                scene.next_tick_at_msec().map(|x| x.saturating_sub(time))
             };
 
             event_watch.activate();

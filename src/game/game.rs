@@ -91,7 +91,7 @@ pub fn run(config: &Config) -> Result<()> {
 
     let mut game_state = GameState {
         global: GameStateGlobal { current_level: 0 },
-        scene: state::Scene::Level(None),
+        scene: state::Scene::Briefing,
     };
 
     let (sdl_context, window) = init_sdl()?;
