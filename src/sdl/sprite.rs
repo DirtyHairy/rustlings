@@ -6,7 +6,7 @@ use sdl3::{
 };
 
 use crate::{
-    game_data::{Bitmap, PALETTE_SIZE, PaletteEntry, Sprite},
+    game_data::{Bitmap, PaletteEntry, Sprite},
     sdl::{texture_from_bitmap, util::copy_bitmap_to_texture_data},
 };
 
@@ -20,7 +20,7 @@ pub struct SDLSprite<'a> {
 impl<'a> SDLSprite<'a> {
     pub fn from_sprite<T>(
         sprite: &Sprite,
-        palette: &[PaletteEntry; PALETTE_SIZE],
+        palette: &[PaletteEntry],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<Self> {
         let mut texture = texture_creator.create_texture(
@@ -60,7 +60,7 @@ impl<'a> SDLSprite<'a> {
 
     pub fn from_bitmap<T>(
         bitmap: &Bitmap,
-        palette: &[PaletteEntry; PALETTE_SIZE],
+        palette: &[PaletteEntry],
         texture_creator: &'a TextureCreator<T>,
     ) -> Result<Self> {
         let texture = texture_from_bitmap(bitmap, palette, texture_creator, TextureAccess::Static)?;

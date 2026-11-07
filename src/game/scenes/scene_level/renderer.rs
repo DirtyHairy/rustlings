@@ -853,7 +853,7 @@ fn draw_lemmings<T: RenderTarget>(
     sprint_index_countdown: usize,
     particle_buffer: &mut [Vec<FPoint>; PALETTE_SIZE],
     particle_sets: &ParticleSets,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
 ) -> Result<()> {
     if !atlas.apply_blend_mode(SDL_BLENDMODE_BLEND) {
         bail!("failed to apply blend mode");

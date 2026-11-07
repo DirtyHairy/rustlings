@@ -48,7 +48,6 @@ pub struct GameData {
     pub special_backgrounds: Vec<Image>,
     pub skill_panel: SkillPanel,
     pub lemming_sprites: [Sprite; LemmingSprite::COUNT],
-    pub static_palette: [PaletteEntry; PALETTE_SIZE],
     pub cursors: Cursors,
     pub font_countdown: Sprite,
     pub font_main: Sprite,

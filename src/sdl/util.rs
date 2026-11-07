@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use sdl3::pixels::{Color, PixelFormat};
 
-use crate::game_data::{Bitmap, PALETTE_SIZE, PaletteEntry};
+use crate::game_data::{Bitmap, PaletteEntry};
 
 fn recast_buffer_u32(data: &mut [u8]) -> Result<&mut [u32]> {
     unsafe {
@@ -38,7 +38,7 @@ pub fn copy_bitmap_to_texture_data<T: Fn(Color) -> Color>(
 
 pub fn copy_bitmap_to_texture_data_at(
     bitmap: &Bitmap,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     x: u32,
     y: u32,
     texture_data: &mut [u8],

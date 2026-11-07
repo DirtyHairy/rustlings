@@ -6,7 +6,6 @@ use anyhow::Result;
 use crate::game_data::file::ground::read_ground;
 use crate::game_data::file::level::{Level, read_level_file, read_oddtable};
 use crate::game_data::file::main::read_main;
-use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, PALETTE_SIZE, PaletteEntry};
 use crate::game_data::file::vgagr::read_vgagr;
 use crate::game_data::file::vgaspec::read_vgaspec;
 use crate::game_data::{Cursors, GameData, Image, TileSet};
@@ -63,11 +62,6 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
 
         let oddtable = read_oddtable(path)?;
 
-        let mut static_palette: [PaletteEntry; PALETTE_SIZE] = [(0, 0, 0); PALETTE_SIZE];
-        for i in 0..PALETTE_SIZE {
-            static_palette[i] = LOWER_PALETTE_FIXED[i % LOWER_PALETTE_FIXED.len()];
-        }
-
         let tilesets: Vec<TileSet> = tileset_handles
             .into_iter()
             .map(|h| h.join().unwrap())
@@ -85,7 +79,6 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             oddtable,
             tilesets,
             special_backgrounds,
-            static_palette,
             skill_panel: SkillPanel::new(
                 main.skill_panel,
                 main.font_skill_panel,

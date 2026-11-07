@@ -4,7 +4,6 @@ use anyhow::{Result, anyhow};
 use sdl3::sys::blendmode::SDL_BlendMode;
 use sdl3::{pixels::PixelFormat, rect::Rect, render::*};
 
-use crate::game_data::PALETTE_SIZE;
 use crate::sdl::apply_blend_mode;
 use crate::{
     game_data::{PaletteEntry, Sprite},
@@ -112,7 +111,7 @@ impl<'a> SdlAtlasBuilder<'a> {
 
     pub fn build<'texture_creator, T>(
         self,
-        palette: &[PaletteEntry; PALETTE_SIZE],
+        palette: &[PaletteEntry],
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<SdlAtlas<'texture_creator>> {
         let width = self

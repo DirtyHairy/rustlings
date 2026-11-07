@@ -124,7 +124,7 @@ fn update_texture(texture: &mut Texture, data: &[u32], dest: Rect, pitch: usize)
 fn compose_level(
     data: &GameData,
     level: &Level,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     background_texture: &mut Texture,
     mask_texture: &mut Texture,
 ) -> Result<()> {
@@ -204,7 +204,7 @@ fn compose_level(
 
 fn build_object_sprites<'a, T>(
     data: &GameData,
-    palette: &[PaletteEntry; PALETTE_SIZE],
+    palette: &[PaletteEntry],
     texture_creator: &'a TextureCreator<T>,
 ) -> Result<ObjectSprites<'a>> {
     let mut sprites: ObjectSprites = Vec::with_capacity(data.tilesets.len());

@@ -2,7 +2,8 @@ use anyhow::Result;
 use rustlings::{
     game_data::{
         Bitmap, CURSOR_CENTER_X, CURSOR_CENTER_Y, CURSOR_NATIVE_SCREEN_HEIGHT,
-        CURSOR_NATIVE_SCREEN_WIDTH, CURSOR_SIZE, GameData, PALETTE_SIZE, PaletteEntry,
+        CURSOR_NATIVE_SCREEN_WIDTH, CURSOR_SIZE, GameData, PaletteEntry,
+        file::palette::LOWER_PALETTE_FIXED,
     },
     sdl::texture_from_bitmap,
 };
@@ -75,7 +76,7 @@ pub struct StaticTexture<'texture_creator> {
 impl<'texture_creator> StaticTexture<'texture_creator> {
     pub fn new<T>(
         bitmap: &Bitmap,
-        palette: &[PaletteEntry; PALETTE_SIZE],
+        palette: &[PaletteEntry],
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         Ok(StaticTexture {
@@ -99,12 +100,12 @@ impl<'texture_creator> Cursors<'texture_creator> {
         Ok(Cursors {
             crosshair: StaticTexture::new(
                 &game_data.cursors.crosshair,
-                &game_data.static_palette,
+                &LOWER_PALETTE_FIXED,
                 texture_creator,
             )?,
             boxx: StaticTexture::new(
                 &game_data.cursors.boxx,
-                &game_data.static_palette,
+                &LOWER_PALETTE_FIXED,
                 texture_creator,
             )?,
         })
