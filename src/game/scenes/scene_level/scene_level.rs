@@ -20,7 +20,6 @@ use crate::{
         selection_controller::{SelectionController, SelectionMode},
         simulation::{SelectionResult, Simulation},
         skill_panel_controller::SkillPanelController,
-        terrain_diff::VisibilityTarget,
     },
     state::{self, GameStateGlobal, TerrainProps},
 };
@@ -332,21 +331,12 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
-                self.renderer.apply_diff(
-                    canvas,
-                    self.simulation.get_diff(),
-                    VisibilityTarget::Late,
-                )?;
+                self.renderer
+                    .apply_diff(canvas, self.simulation.get_diff())?;
                 self.simulation.clear_diff();
 
                 self.simulation_tick();
                 self.pause_tick_scheduled = false;
-
-                self.renderer.apply_diff(
-                    canvas,
-                    self.simulation.get_diff(),
-                    VisibilityTarget::Early,
-                )?;
             }
 
             if self.skill_panel_controller.tick(&mut self.state) {

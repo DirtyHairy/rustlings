@@ -11,26 +11,10 @@ pub enum TerrainDiffKind {
     Brick,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum VisibilityTarget {
-    Early,
-    Late,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TerrainDiff {
     pub x: i32,
     pub y: i32,
 
     pub kind: TerrainDiffKind,
-}
-
-impl TerrainDiff {
-    pub fn visibility_target(self) -> VisibilityTarget {
-        match self.kind {
-            TerrainDiffKind::Dig => VisibilityTarget::Late,
-            TerrainDiffKind::Mask(_, _) => VisibilityTarget::Late,
-            TerrainDiffKind::Brick => VisibilityTarget::Late,
-        }
-    }
 }

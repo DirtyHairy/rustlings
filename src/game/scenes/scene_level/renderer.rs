@@ -38,7 +38,6 @@ use crate::{
         skill_panel_renderer::SkillPanelRenderer,
         terrain_diff::{
             BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind,
-            VisibilityTarget,
         },
     },
     state::{Activity, Direction, LemmingAnimation, SceneStateLevel},
@@ -317,19 +316,10 @@ impl<'texture_creator> Renderer<'texture_creator> {
         })
     }
 
-    pub fn apply_diff(
-        &mut self,
-        canvas: &mut Canvas<Window>,
-        diff: &[TerrainDiff],
-        target: VisibilityTarget,
-    ) -> Result<()> {
-        if !diff.iter().any(|d| d.visibility_target() == target) {
-            return Ok(());
-        }
-
+    pub fn apply_diff(&mut self, canvas: &mut Canvas<Window>, diff: &[TerrainDiff]) -> Result<()> {
         match self.render_strategy {
-            RenderStrategy::Blend => self.apply_diff_gpu(canvas, diff, target),
-            RenderStrategy::Stencil(_) => self.apply_diff_fallback(canvas, diff, target),
+            RenderStrategy::Blend => self.apply_diff_gpu(canvas, diff),
+            RenderStrategy::Stencil(_) => self.apply_diff_fallback(canvas, diff),
         }?;
 
         self.mark_for_redraw(Redraw::LEVEL);
@@ -337,18 +327,9 @@ impl<'texture_creator> Renderer<'texture_creator> {
         Ok(())
     }
 
-    fn apply_diff_gpu(
-        &mut self,
-        canvas: &mut Canvas<Window>,
-        diff: &[TerrainDiff],
-        target: VisibilityTarget,
-    ) -> Result<()> {
+    fn apply_diff_gpu(&mut self, canvas: &mut Canvas<Window>, diff: &[TerrainDiff]) -> Result<()> {
         with_texture_canvas(canvas, &mut self.texture_terrain, |canvas| -> Result<()> {
             for &entry in diff {
-                if entry.visibility_target() != target {
-                    continue;
-                }
-
                 match entry.kind {
                     TerrainDiffKind::Dig => {
                         canvas.set_draw_color(Color::RGBA(0, 0, 0, 0));
@@ -394,7 +375,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
         &mut self,
         canvas: &mut Canvas<Window>,
         diff: &[TerrainDiff],
-        target: VisibilityTarget,
     ) -> Result<()> {
         let RenderStrategy::Stencil(StencilTextures {
             stencil_terrain, ..
@@ -404,10 +384,6 @@ impl<'texture_creator> Renderer<'texture_creator> {
         };
 
         for entry in diff {
-            if entry.visibility_target() != target {
-                continue;
-            }
-
             if let TerrainDiffKind::Mask(sprite, frame) = entry.kind {
                 let sprite = &self.game_data.mask_sprites[sprite as usize];
                 let frame = &sprite.frames[frame];
