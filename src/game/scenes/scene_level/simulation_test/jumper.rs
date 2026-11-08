@@ -1,6 +1,6 @@
 use crate::{
     scenes::scene_level::simulation::{JUMP_DISTANCE, test::fixture::TerrainFixtureBuilder},
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 const MIN_FOOT_Y: i32 = 5;
@@ -12,7 +12,7 @@ fn jumper_continues() {
         .with_col(10, 15, 4, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
@@ -34,7 +34,7 @@ fn jumper_continues_exact() {
         .with_col(10, 15, 3, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
@@ -56,7 +56,7 @@ fn jumper_clears_obstacle() {
         .with_col(10, 15, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
@@ -81,7 +81,7 @@ fn jumper_clears_obstacle_exact() {
         .with_col(10, 15, 1, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 15, Direction::Right, Activity::Jumping);
     let mut lemming = lemming_fixture.clone();
@@ -105,7 +105,7 @@ fn jumper_hits_ceiling() {
         .with_col(10, MIN_FOOT_Y as u32 + 1, 3, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture =
         LemmingState::fixture(10, MIN_FOOT_Y + 1, Direction::Right, Activity::Jumping);
@@ -132,7 +132,7 @@ fn jumper_touches_ceiling() {
         .with_col(10, MIN_FOOT_Y as u32 + 1, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture =
         LemmingState::fixture(10, MIN_FOOT_Y + 1, Direction::Right, Activity::Jumping);

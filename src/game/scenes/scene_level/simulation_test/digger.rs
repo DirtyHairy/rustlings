@@ -4,7 +4,7 @@ use crate::{
         terrain_diff::{TerrainDiff, TerrainDiffKind},
     },
     state::{
-        Activity, ActivityStateDigging, Direction, LemmingAnimation, LemmingState, ObjectState,
+        Activity, ActivityStateDigging, Direction, LemmingAnimation, LemmingState, ObjectsState,
         TerrainProps,
     },
 };
@@ -15,7 +15,7 @@ fn digger_digs_three_lines_and_moves_down_on_first_frame() {
         .with_block(5, 5, 10, 10, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture =
         LemmingState::fixture(8, 7, Direction::Left, Activity::Digging(Default::default()))
@@ -64,7 +64,7 @@ fn digger_digs_and_moves_down_on_frames_15_and_7() {
             .with_block(5, 5, 10, 10, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(
             8,
@@ -118,7 +118,7 @@ fn digger_digs_and_moves_down_on_frames_15_and_7() {
 fn digger_transitions_to_faller_if_it_cannot_dig() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         8,
@@ -150,7 +150,7 @@ fn digger_transitions_to_walker_if_it_hits_steel() {
         .with(8, 6, TerrainProps::new().with_steel(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         8,
@@ -179,7 +179,7 @@ fn digger_transitions_to_walker_if_it_hits_steel() {
 fn digger_does_not_transition_to_faller_if_it_does_not_attempt_to_dig() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         8,

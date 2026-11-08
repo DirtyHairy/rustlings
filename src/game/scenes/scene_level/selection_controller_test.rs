@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use rustlings::game_data::LEVEL_HEIGHT;
 
 use super::{SelectionController, SelectionMode};
@@ -8,13 +6,13 @@ use crate::{
     scenes::scene_level::cache::Cache,
     state::{
         Activity, ActivityStateFalling, ActivityStateFloating, LemmingAnimation, LemmingHealth,
-        LemmingState, SceneStateLevel, Selection,
+        LemmingState, LemmingsState, SceneStateLevel, Selection,
     },
 };
 
 #[derive(Default)]
 struct FixtureBuilder {
-    lemmings: VecDeque<LemmingState>,
+    lemmings: LemmingsState,
     level_x: u32,
 }
 

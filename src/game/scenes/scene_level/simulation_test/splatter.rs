@@ -1,13 +1,13 @@
 use crate::{
     scenes::scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState},
 };
 
 #[test]
 fn splatting_advances_animation() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Splatting);
     let mut lemming = lemming_fixture.clone();
@@ -28,7 +28,7 @@ fn splatting_advances_animation() {
 fn splatting_removes_lemming() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: LemmingAnimation::Splatting.frame_count() - 1,

@@ -4,7 +4,7 @@ use crate::{
         terrain_diff::{TerrainDiff, TerrainDiffKind},
     },
     state::{
-        Activity, ActivityStateBuilding, Direction, LemmingAnimation, LemmingState, ObjectState,
+        Activity, ActivityStateBuilding, Direction, LemmingAnimation, LemmingState, ObjectsState,
         TerrainProps,
     },
 };
@@ -13,7 +13,7 @@ use crate::{
 fn builder_lays_a_brick_in_frame_8() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 8,
@@ -51,7 +51,7 @@ fn builder_lays_a_brick_in_frame_8() {
 fn builder_left_lays_a_brick_at_shifted_x() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 8,
@@ -89,7 +89,7 @@ fn builder_left_lays_a_brick_at_shifted_x() {
 fn laying_a_brick_creates_terrain() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 8,
@@ -113,7 +113,7 @@ fn laying_a_brick_creates_terrain() {
 fn builder_lays_a_brick_in_frame_9_if_there_are_9_bricks_left() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 9,
@@ -151,7 +151,7 @@ fn builder_lays_a_brick_in_frame_9_if_there_are_9_bricks_left() {
 fn builder_does_not_lay_a_brick_in_frame_9_else() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 9,
@@ -181,7 +181,7 @@ fn builder_does_not_lay_a_brick_in_frame_9_else() {
 fn builder_moves_up_and_consumes_brick_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -214,7 +214,7 @@ fn builder_moves_up_and_consumes_brick_in_frame_15() {
 fn builder_turns_and_walks_if_hitting_the_edge_in_first_step_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -251,7 +251,7 @@ fn builder_turns_and_walks_after_hitting_an_obstacle_in_first_step_in_frame_15()
         .with(11, 8, TerrainProps::new().with_solid(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -286,7 +286,7 @@ fn builder_turns_and_walks_after_hitting_an_obstacle_in_first_step_in_frame_15()
 fn aborting_builder_turns_again_after_hitting_the_ceiling_in_first_step_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -322,7 +322,7 @@ fn builder_turns_and_walks_after_hitting_an_obstacle_in_second_step_in_frame_15(
         .with(12, 8, TerrainProps::new().with_solid(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -359,7 +359,7 @@ fn aborting_builder_turns_again_after_hitting_the_ceiling_in_second_step_in_fram
         .with(12, 3, TerrainProps::new().with_solid(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -393,7 +393,7 @@ fn aborting_builder_turns_again_after_hitting_the_ceiling_in_second_step_in_fram
 fn builder_transforms_to_shrugger_if_bricks_run_out_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -427,7 +427,7 @@ fn builder_transforms_to_shrugger_if_bricks_run_out_in_frame_15() {
 fn builder_transforming_to_shrugger_turns_if_it_hits_the_ceiling_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -462,7 +462,7 @@ fn builder_transforming_to_shrugger_turns_if_it_hits_the_ceiling_in_frame_15() {
 fn builder_turns_and_walks_if_hitting_the_boundary_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -499,7 +499,7 @@ fn builder_turns_and_walks_if_seeing_an_obstacle_ahead_in_frame_15() {
         .with(14, 9, TerrainProps::new().with_solid(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -534,7 +534,7 @@ fn builder_turns_and_walks_if_seeing_an_obstacle_ahead_in_frame_15() {
 fn builder_turned_shrugger_does_not_care_about_the_boundary_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -568,7 +568,7 @@ fn builder_turned_shrugger_does_not_care_about_the_boundary_in_frame_15() {
 fn builder_turns_twice_and_walks_if_hitting_the_boundary_and_the_ceiling_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -602,7 +602,7 @@ fn builder_turns_twice_and_walks_if_hitting_the_boundary_and_the_ceiling_in_fram
 fn builder_walks_without_turning_after_hitting_the_ceiling_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -636,7 +636,7 @@ fn builder_walks_without_turning_after_hitting_the_ceiling_in_frame_15() {
 fn builder_walks_and_turns_after_hitting_the_ceiling_close_in_frame_15() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 15,
@@ -672,7 +672,7 @@ fn builder_does_nothing_on_all_other_frames() {
     for frame in (0..=7).chain(10..=14) {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -704,7 +704,7 @@ fn shrugger_does_nothing_on_frames_0_to_6() {
     for frame in 0..=6 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -730,7 +730,7 @@ fn shrugger_does_nothing_on_frames_0_to_6() {
 fn shrugger_transitions_to_walker_on_frame_7() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 7,

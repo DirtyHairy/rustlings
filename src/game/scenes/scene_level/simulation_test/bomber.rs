@@ -8,7 +8,7 @@ use crate::{
     state::{
         Activity, ActivityStateFalling, ActivityStateFloating, Direction, LemmingAnimation,
         LemmingHealth::{self, Exploding},
-        LemmingState, ObjectState, TerrainProps,
+        LemmingState, ObjectsState, TerrainProps,
     },
 };
 
@@ -18,7 +18,7 @@ fn contdown_decrements_each_tick() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         countdown: Some(10),
@@ -46,7 +46,7 @@ fn walker_transitions_to_ohno_after_countdown() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         countdown: Some(0),
@@ -75,7 +75,7 @@ fn faller_transitions_to_explosion_after_countdown() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         countdown: Some(0),
@@ -109,7 +109,7 @@ fn floater_transitions_to_explosion_after_countdown() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         countdown: Some(0),
@@ -143,7 +143,7 @@ fn fryer_transitions_to_explosion_after_countdown() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         countdown: Some(0),
@@ -172,7 +172,7 @@ fn exploding_starts_particle_shower_after_first_framse() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         health: Exploding,
@@ -202,7 +202,7 @@ fn exploding_schedules_terrain_explosion_after_first_framse() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         health: Exploding,
@@ -231,7 +231,7 @@ fn exploding_lemming_stays_alive_while_particle_shower_continues() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         health: Exploding,
@@ -263,7 +263,7 @@ fn exploding_lemming_dies_when_particle_shower_stop() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         health: Exploding,
@@ -285,7 +285,7 @@ fn exploding_lemming_dies_when_particle_shower_stop() {
 fn ohnoer_falls() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         health: LemmingHealth::OhNo,

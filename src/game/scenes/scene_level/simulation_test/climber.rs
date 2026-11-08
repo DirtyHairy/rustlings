@@ -3,7 +3,7 @@ use crate::{
     state::{
         Activity,
         Direction::{self},
-        LemmingAnimation, LemmingState, ObjectState, TerrainProps,
+        LemmingAnimation, LemmingState, ObjectsState, TerrainProps,
     },
 };
 
@@ -14,7 +14,7 @@ fn walker_starts_climbing_at_boundary() {
         .with_col(1, 10, 10, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,
@@ -44,7 +44,7 @@ fn climber_does_nothing_without_ledge_in_frame_0_to_2() {
             .with_col(1, 19, 20, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -71,7 +71,7 @@ fn test_climber_gropes(frame: usize, delta: u32) {
         .with_col(1, 19, 7 + delta, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,
@@ -100,7 +100,7 @@ fn test_climber_does_not_grope(frame: usize, delta: u32) {
         .with_col(1, 19, 8 + delta, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,
@@ -142,7 +142,7 @@ fn climber_gropes_10_pixels_in_frame_7() {
 fn climber_groping_into_the_top_turns_and_resets() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,
@@ -171,7 +171,7 @@ fn climber_ascends_on_all_other_frames() {
     for frame in 3..=6 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -198,7 +198,7 @@ fn climber_right_ascending_into_the_ceiling_turns_and_falls() {
     for frame in 3..=6 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -229,7 +229,7 @@ fn climber_left_ascending_into_the_ceiling_turns_and_falls() {
     for frame in 3..=6 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -262,7 +262,7 @@ fn climber_right_ascending_into_a_ledge_turns_and_falls() {
             .with(2, 10, TerrainProps::new().with_solid(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -295,7 +295,7 @@ fn climber_left_ascending_into_a_ledge_turns_and_falls() {
             .with(4, 10, TerrainProps::new().with_solid(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -326,7 +326,7 @@ fn hoister_ascends_in_frames_1_to_3() {
     for frame in 1..=3 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -353,7 +353,7 @@ fn hoister_turns_if_it_ascends_into_the_ceiling_in_frames_1_to_3() {
     for frame in 1..=3 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -381,7 +381,7 @@ fn hoister_does_nothing_on_frames_4_to_6() {
     for frame in 4..=6 {
         let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             climber: true,
@@ -406,7 +406,7 @@ fn hoister_does_nothing_on_frames_4_to_6() {
 fn hoister_transitions_to_walking_in_frame_7() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,
@@ -432,7 +432,7 @@ fn hoister_transitions_to_walking_in_frame_7() {
 fn hoister_turns_and_walks_if_it_hits_the_ceiling_in_frame_7() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         climber: true,

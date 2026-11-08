@@ -4,7 +4,7 @@ use crate::{
     scenes::scene_level::simulation::{
         LemmingVerdict, SelectionResult, test::fixture::TerrainFixtureBuilder,
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 #[test]
@@ -40,7 +40,7 @@ fn block_field_left_turns_walker_right() {
         .build();
     terrain.create_block_field(9, 9);
 
-    let mut objects: Vec<ObjectState> = Vec::new();
+    let mut objects: ObjectsState = Vec::new();
 
     let fixture = LemmingState {
         activity: Activity::Walking,
@@ -73,7 +73,7 @@ fn block_field_left_does_not_turn_walker_left() {
         .build();
     terrain.create_block_field(9, 9);
 
-    let mut objects: Vec<ObjectState> = Vec::new();
+    let mut objects: ObjectsState = Vec::new();
 
     let fixture = LemmingState {
         activity: Activity::Walking,
@@ -105,7 +105,7 @@ fn block_field_right_turns_walker_left() {
         .build();
     terrain.create_block_field(9, 9);
 
-    let mut objects: Vec<ObjectState> = Vec::new();
+    let mut objects: ObjectsState = Vec::new();
 
     let fixture = LemmingState {
         activity: Activity::Walking,
@@ -138,7 +138,7 @@ fn block_field_right_does_not_turn_walker_right() {
         .build();
     terrain.create_block_field(9, 9);
 
-    let mut objects: Vec<ObjectState> = Vec::new();
+    let mut objects: ObjectsState = Vec::new();
 
     let fixture = LemmingState {
         activity: Activity::Walking,
@@ -166,7 +166,7 @@ fn block_field_right_does_not_turn_walker_right() {
 #[test]
 fn blocker_without_ground_turns_into_walker() {
     let mut terrain = TerrainFixtureBuilder::new(20, 20).build();
-    let mut objects: Vec<ObjectState> = Vec::new();
+    let mut objects: ObjectsState = Vec::new();
 
     let fixture = LemmingState {
         activity: Activity::Walking,

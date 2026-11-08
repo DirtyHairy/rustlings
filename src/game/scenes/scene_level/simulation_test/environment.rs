@@ -4,7 +4,10 @@ use crate::{
     scenes::scene_level::simulation::{
         FALL_DISTANCE_PER_FRAME, LemmingVerdict, test::fixture::TerrainFixtureBuilder,
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{
+        Activity, Direction, LemmingAnimation, LemmingState, ObjectState, ObjectsState,
+        TerrainProps,
+    },
 };
 
 #[test]
@@ -14,7 +17,7 @@ fn disintegrate_transitions_to_frying() {
         .with(11, 10, TerrainProps::new().with_disintegrate(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -40,7 +43,7 @@ fn drown_transitions_to_drowning() {
         .with(11, 10, TerrainProps::new().with_drown(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -70,7 +73,7 @@ fn trap_triggers_and_removes_lemming() {
         )
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = vec![Default::default()];
+    let mut objects_fixture: ObjectsState = vec![Default::default()];
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -92,7 +95,7 @@ fn trap_does_not_retrigger() {
         )
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = vec![ObjectState {
+    let mut objects_fixture: ObjectsState = vec![ObjectState {
         triggered: true,
         ..Default::default()
     }];
@@ -112,7 +115,7 @@ fn exit_transitions_walker_to_exiting() {
         .with(11, 10, TerrainProps::new().with_exit(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -138,7 +141,7 @@ fn exit_does_not_trigger_during_fall() {
         .with_non_solid(10, 13, TerrainProps::new().with_exit(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,
@@ -160,7 +163,7 @@ fn exit_does_not_trigger_during_fall() {
 fn exiting_advances_animation() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Exiting);
     let mut lemming = lemming_fixture.clone();
@@ -181,7 +184,7 @@ fn exiting_advances_animation() {
 fn exiting_completes_with_exit_verdict() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: LemmingAnimation::Exiting.frame_count() - 1,
@@ -202,7 +205,7 @@ fn lemming_removed_at_bottom() {
     let mut terrain_fixture =
         TerrainFixtureBuilder::new(20, LEVEL_HEIGHT + foot_height + 10).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,

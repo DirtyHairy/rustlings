@@ -2,14 +2,14 @@ use crate::{
     scenes::scene_level::simulation::{
         DROWNER_MIN_WALL_DISTANCE, LemmingVerdict, test::fixture::TerrainFixtureBuilder,
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 #[test]
 fn drowner_moves_in_water_right() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
@@ -31,7 +31,7 @@ fn drowner_moves_in_water_right() {
 fn drowner_moves_in_water_left() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
@@ -55,7 +55,7 @@ fn drowner_stops_at_wall() {
         .with(10 + DROWNER_MIN_WALL_DISTANCE, 10, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
@@ -78,7 +78,7 @@ fn drowner_advances_towards_wall() {
         .with(10 + DROWNER_MIN_WALL_DISTANCE + 1, 10, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Drowning);
     let mut lemming = lemming_fixture.clone();
@@ -100,7 +100,7 @@ fn drowner_advances_towards_wall() {
 fn drowner_removed_after_animation() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: LemmingAnimation::Drowning.frame_count() - 1,

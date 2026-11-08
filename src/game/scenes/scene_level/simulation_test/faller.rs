@@ -5,7 +5,7 @@ use crate::{
     },
     state::{
         Activity, ActivityStateFalling, ActivityStateFloating, Direction, LemmingAnimation,
-        LemmingState, ObjectState, TerrainProps,
+        LemmingState, ObjectsState, TerrainProps,
     },
 };
 
@@ -15,7 +15,7 @@ fn faller_falls() {
         .with(10, 13, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,
@@ -46,7 +46,7 @@ fn faller_lands_safely() {
         .with(10, 12, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,
@@ -78,7 +78,7 @@ fn faller_splats() {
         .with(10, 12, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,
@@ -108,7 +108,7 @@ fn faller_splats() {
 fn faller_with_floater_transitions_to_floating() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         floater: true,
@@ -139,7 +139,7 @@ fn faller_with_floater_transitions_to_floating() {
 fn faller_with_floater_below_threshold_keeps_falling() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         floater: true,
@@ -173,7 +173,7 @@ fn faller_with_floater_below_threshold_keeps_falling() {
 fn faller_without_floater_does_not_float() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(
         10,
@@ -204,7 +204,7 @@ fn faller_without_floater_does_not_float() {
 fn faller_wraps_animation() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: LemmingAnimation::Falling.frame_count() - 1,

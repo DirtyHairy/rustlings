@@ -5,7 +5,7 @@ use crate::{
         simulation::{MAX_BASH_DOWN, test::fixture::TerrainFixtureBuilder},
         terrain_diff::{TerrainDiff, TerrainDiffKind},
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn basher_does_nothing_on_plain_frames() {
             .with_row(0, 10, 20, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -49,7 +49,7 @@ fn basher_bashes_on_bash_frames() {
             .with_block(10, 0, 10, 10, TerrainProps::new().with_solid(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -87,7 +87,7 @@ fn basher_mask_orientation_depends_on_direction() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 1,
@@ -115,7 +115,7 @@ fn basher_converts_to_walker_without_block_on_frame_4() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 4,
@@ -143,7 +143,7 @@ fn basher_does_not_convert_to_walker_without_block_on_frame_20() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 20,
@@ -170,7 +170,7 @@ fn basher_moves_on_move_frames() {
             .with_row(0, 10, 20, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -198,7 +198,7 @@ fn basher_steps_down_up_to_2_pixels() {
             .with_row(0, 10, 20, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame: 10,
@@ -231,7 +231,7 @@ fn basher_falls_after_more_than_2_pixels() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,
@@ -261,7 +261,7 @@ fn basher_turns_around_and_walks_at_steel() {
         .with(14, 2, TerrainProps::new().with_steel(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,
@@ -292,7 +292,7 @@ fn right_facing_basher_turns_around_and_walks_at_one_way_left() {
         .with(14, 2, TerrainProps::new().with_one_way_left(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,
@@ -323,7 +323,7 @@ fn right_facing_basher_does_not_turn_around_and_walk_at_one_way_right() {
         .with(14, 2, TerrainProps::new().with_one_way_right(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,
@@ -351,7 +351,7 @@ fn left_facing_basher_turns_around_and_walks_at_one_way_right() {
         .with(1, 2, TerrainProps::new().with_one_way_right(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,
@@ -382,7 +382,7 @@ fn left_facing_basher_does_not_turn_around_and_walk_at_one_way_left() {
         .with(1, 2, TerrainProps::new().with_one_way_left(true))
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 10,

@@ -1,7 +1,7 @@
 use crate::{
     scenes::scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
     state::{
-        Activity, ActivityStateFloating, Direction, LemmingAnimation, LemmingState, ObjectState,
+        Activity, ActivityStateFloating, Direction, LemmingAnimation, LemmingState, ObjectsState,
         TerrainProps,
     },
 };
@@ -22,7 +22,7 @@ fn floater_at_tick(tick: u32, animation: LemmingAnimation, frame: usize) -> Lemm
 fn floater_pre_umbrella_advances() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(0, LemmingAnimation::PreUmbrella, 0);
     let mut lemming = lemming_fixture.clone();
@@ -45,7 +45,7 @@ fn floater_pre_umbrella_advances() {
 fn floater_opens_umbrella() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(3, LemmingAnimation::PreUmbrella, 3);
     let mut lemming = lemming_fixture.clone();
@@ -69,7 +69,7 @@ fn floater_opens_umbrella() {
 fn floater_bounces_up() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(4, LemmingAnimation::Umbrella, 1);
     let mut lemming = lemming_fixture.clone();
@@ -91,7 +91,7 @@ fn floater_bounces_up() {
 fn floater_hovers() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(5, LemmingAnimation::Umbrella, 1);
     let mut lemming = lemming_fixture.clone();
@@ -112,7 +112,7 @@ fn floater_hovers() {
 fn floater_slow_descent() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(6, LemmingAnimation::Umbrella, 1);
     let mut lemming = lemming_fixture.clone();
@@ -134,7 +134,7 @@ fn floater_slow_descent() {
 fn floater_steady_descent() {
     let mut terrain_fixture = TerrainFixtureBuilder::new(20, 20).build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(8, LemmingAnimation::Umbrella, 0);
     let mut lemming = lemming_fixture.clone();
@@ -159,7 +159,7 @@ fn floater_lands_on_ground() {
         .with(10, 12, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = floater_at_tick(10, LemmingAnimation::Umbrella, 0);
     let mut lemming = lemming_fixture.clone();

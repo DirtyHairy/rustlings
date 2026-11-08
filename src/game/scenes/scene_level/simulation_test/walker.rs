@@ -2,7 +2,7 @@ use crate::{
     scenes::scene_level::simulation::{
         MAX_JUMP, MAX_STEP_DOWN, MAX_STEP_UP, test::fixture::TerrainFixtureBuilder,
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 const MIN_FOOT_Y: i32 = 5;
@@ -16,7 +16,7 @@ fn walker_steps_up_right() {
             .with_col(11, 19, step + 1, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -45,7 +45,7 @@ fn walker_steps_up_left() {
             .with_col(9, 19, step + 1, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -74,7 +74,7 @@ fn walker_jumps_right() {
             .with_col(11, 19, step + 1, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -105,7 +105,7 @@ fn walker_jumps_left() {
             .with_col(9, 19, step + 1, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -135,7 +135,7 @@ fn walker_should_turn_left() {
         .with_col(11, 19, MAX_JUMP + 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 19, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -160,7 +160,7 @@ fn walker_should_turn_right() {
         .with_col(9, 19, MAX_JUMP + 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 19, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -184,7 +184,7 @@ fn walker_wraps_animation() {
         .with_row(10, 19, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: LemmingAnimation::Walking.frame_count() - 1,
@@ -212,7 +212,7 @@ fn walker_steps_down_right() {
             .with(11, 10 + step, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -241,7 +241,7 @@ fn walker_steps_down_left() {
             .with(9, 10 + step, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Walking);
         let mut lemming = lemming_fixture.clone();
@@ -269,7 +269,7 @@ fn walker_starts_falling_right() {
         .with(11, 10 + MAX_STEP_DOWN + 1, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -296,7 +296,7 @@ fn walker_starts_falling_left() {
         .with(9, 10 + MAX_STEP_DOWN + 1, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, 10, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -322,7 +322,7 @@ fn walker_turns_at_left_boundary() {
         .with_row(0, 10, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(1, 10, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -346,7 +346,7 @@ fn walker_turns_at_right_boundary() {
         .with_row(18, 10, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(18, 10, Direction::Right, Activity::Walking);
     let mut lemming = lemming_fixture.clone();
@@ -371,7 +371,7 @@ fn walker_hits_ceiling_right() {
         .with_col(11, MIN_FOOT_Y as u32, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture =
         LemmingState::fixture(10, MIN_FOOT_Y, Direction::Right, Activity::Walking);
@@ -398,7 +398,7 @@ fn walker_hits_ceiling_left() {
         .with_col(9, MIN_FOOT_Y as u32, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState::fixture(10, MIN_FOOT_Y, Direction::Left, Activity::Walking);
     let mut lemming = lemming_fixture.clone();

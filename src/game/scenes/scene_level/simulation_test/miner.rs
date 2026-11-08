@@ -5,7 +5,7 @@ use crate::{
         simulation::test::fixture::TerrainFixtureBuilder,
         terrain_diff::{TerrainDiff, TerrainDiffKind},
     },
-    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectState, TerrainProps},
+    state::{Activity, Direction, LemmingAnimation, LemmingState, ObjectsState, TerrainProps},
 };
 
 #[test]
@@ -15,7 +15,7 @@ fn miner_facing_right_mines_right_at_frames_0_1() {
             .with_block(0, 10, 20, 5, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -55,7 +55,7 @@ fn miner_facing_left_mines_left_at_frames_0_1() {
             .with_block(0, 10, 20, 5, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -96,7 +96,7 @@ fn miner_walks_two_steps_in_frames_2_and_14() {
                 .with_block(0, 10, 20, 5, TerrainProps::new())
                 .build();
 
-            let mut objects_fixture: Vec<ObjectState> = Vec::new();
+            let mut objects_fixture: ObjectsState = Vec::new();
 
             let lemming_fixture = LemmingState {
                 frame,
@@ -125,7 +125,7 @@ fn miner_descends_in_frame_2() {
         .with_block(0, 10, 20, 5, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 2,
@@ -154,7 +154,7 @@ fn miner_turns_and_walks_on_right_boundary_in_frame_2_and_14() {
                 .with_block(0, 10, 20, 5, TerrainProps::new())
                 .build();
 
-            let mut objects_fixture: Vec<ObjectState> = Vec::new();
+            let mut objects_fixture: ObjectsState = Vec::new();
 
             let lemming_fixture = LemmingState {
                 frame,
@@ -188,7 +188,7 @@ fn miner_turns_and_walks_on_left_boundary_in_frame_2_and_14() {
                 .with_block(0, 10, 20, 5, TerrainProps::new())
                 .build();
 
-            let mut objects_fixture: Vec<ObjectState> = Vec::new();
+            let mut objects_fixture: ObjectsState = Vec::new();
 
             let lemming_fixture = LemmingState {
                 frame,
@@ -220,7 +220,7 @@ fn miner_falls_in_frame_2_without_support() {
         .with_block(0, 10, 20, 2, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 2,
@@ -249,7 +249,7 @@ fn miner_falls_in_frame_14_without_support() {
         .with_row(0, 10, 20, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 14,
@@ -282,7 +282,7 @@ fn miner_turns_and_walks_over_steel_in_frame_2_and_14() {
             .with(7, y_target, TerrainProps::new().with_steel(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -317,7 +317,7 @@ fn miner_right_turns_and_walks_over_one_way_right_2_and_14() {
             .with(7, y_target, TerrainProps::new().with_one_way_right(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -352,7 +352,7 @@ fn miner_right_turns_and_walks_over_one_way_left_2_and_14() {
             .with(7, y_target, TerrainProps::new().with_one_way_left(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -387,7 +387,7 @@ fn miner_left_turns_and_walks_over_one_way_right_2_and_14() {
             .with(3, y_target, TerrainProps::new().with_one_way_right(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -422,7 +422,7 @@ fn miner_right_left_does_not_turn_and_walks_over_one_way_left_2_and_14() {
             .with(3, y_target, TerrainProps::new().with_one_way_left(true))
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
@@ -450,7 +450,7 @@ fn miner_descends_at_frame_23() {
         .with_block(0, 10, 20, 5, TerrainProps::new())
         .build();
 
-    let mut objects_fixture: Vec<ObjectState> = Vec::new();
+    let mut objects_fixture: ObjectsState = Vec::new();
 
     let lemming_fixture = LemmingState {
         frame: 23,
@@ -477,7 +477,7 @@ fn nothing_happens_in_all_other_frames() {
             .with_block(0, 10, 20, 5, TerrainProps::new())
             .build();
 
-        let mut objects_fixture: Vec<ObjectState> = Vec::new();
+        let mut objects_fixture: ObjectsState = Vec::new();
 
         let lemming_fixture = LemmingState {
             frame,
