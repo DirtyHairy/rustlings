@@ -325,8 +325,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
 
         let level_width_scaled = (LEVEL_WIDTH * 2) / 5;
         let level_height_scaled = (LEVEL_HEIGHT * 2) / 5;
-        let preview_x = (WIDTH - level_width_scaled) / 2;
-        let preview_y = (BACKGROUND_START - level_height_scaled) / 2;
+        let preview_x = WIDTH.saturating_sub(level_width_scaled) / 2;
+        let preview_y = BACKGROUND_START.saturating_sub(level_height_scaled) / 2;
         compositor.add_layer(
             TEXTURE_ID_LEVEL,
             LEVEL_WIDTH,
