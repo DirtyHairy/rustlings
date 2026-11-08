@@ -2,8 +2,9 @@ use std::{collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters, NUM_LEVELS, SCREEN_HEIGHT,
-    SCREEN_WIDTH, Skill, decode_level_index, file::ground::InteractionType,
+    Bitmap, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters,
+    NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, Skill, decode_level_index,
+    file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -28,7 +29,6 @@ use crate::{
     state::{GameState, SceneStateLevel},
 };
 
-const ENGINE_TICK_MSEC: u64 = 1000 / 17; // 17 FPS
 const FADE_IN_MSEC: u64 = 1000;
 
 #[derive(PartialEq)]
@@ -188,13 +188,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing,
+                scene: state::Scene::Briefing(None),
             },
             Status::DonePreviousLevel => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing,
+                scene: state::Scene::Briefing(None),
             },
         }
     }

@@ -22,9 +22,10 @@ pub fn create_scene<'texture_creator, T>(
             state,
             texture_creator,
         )?)),
-        state::Scene::Briefing => Ok(Box::from(SceneBriefing::new(
+        state::Scene::Briefing(state) => Ok(Box::from(SceneBriefing::new(
             game_data,
             game_state.global,
+            state,
             texture_creator,
         )?)),
     }

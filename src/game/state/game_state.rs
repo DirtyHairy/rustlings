@@ -1,9 +1,9 @@
-use crate::state::SceneStateLevel;
+use crate::state::{SceneStateBriefing, SceneStateLevel};
 
 #[derive(Clone)]
 pub enum Scene {
     Level(Option<Box<SceneStateLevel>>),
-    Briefing,
+    Briefing(Option<SceneStateBriefing>),
 }
 
 #[derive(Clone)]

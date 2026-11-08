@@ -2,19 +2,25 @@ use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
 use rustlings::{
-    game_data::{GameData, NUM_LEVELS, decode_level_index},
+    game_data,
+    game_data::{
+        ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, NUM_LEVELS,
+        decode_level_index, file::ground::InteractionType,
+    },
     sdl::with_texture_canvas,
 };
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    render::{Texture, TextureCreator},
+    render::{Canvas, Texture, TextureCreator},
+    video::Window,
 };
 
 use crate::{
+    geometry,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::common::{TextGrid, draw_background},
-    state::{self, GameState, GameStateGlobal},
+    scenes::common::{LevelRenderer, TextGrid, draw_background},
+    state::{self, GameState, GameStateGlobal, ObjectState, SceneStateBriefing},
 };
 
 const WIDTH: u32 = 640;
@@ -22,6 +28,7 @@ const HEIGHT: u32 = 350;
 const BACKGROUND_START: u32 = 78;
 
 const TEXTURE_ID_SCREEN: usize = 0;
+const TEXTURE_ID_LEVEL: usize = 1;
 
 #[derive(PartialEq)]
 enum Status {
@@ -31,6 +38,41 @@ enum Status {
     DoneNextLevel,
 }
 
+struct Object {
+    animate: bool,
+    first_frame: usize,
+    animation_frames: usize,
+}
+
+impl Object {
+    fn new(object: &game_data::Object, level: &Level, game_data: &GameData) -> Result<Self> {
+        let info = game_data.resolve_object(object.id as usize, level.graphics_set as usize)?;
+
+        let animate = info.animation_loops && info.interaction_type != InteractionType::Entrance;
+
+        let first_frame = if info.interaction_type == InteractionType::Entrance {
+            info.animation_start
+        } else {
+            0
+        };
+
+        Ok(Object {
+            animate,
+            first_frame,
+            animation_frames: info.animation_end,
+        })
+    }
+}
+
+impl ObjectState {
+    fn new(object: &Object) -> Self {
+        ObjectState {
+            triggered: false,
+            frame: object.first_frame,
+        }
+    }
+}
+
 pub struct SceneBriefing<'texture_creator> {
     game_data: Rc<GameData>,
     global_state: GameStateGlobal,
@@ -38,31 +80,101 @@ pub struct SceneBriefing<'texture_creator> {
 
     texture_screen: Texture<'texture_creator>,
     static_draw_complete: bool,
+    needs_level_draw: bool,
+
+    state: SceneStateBriefing,
+    level: Level,
+    objects: Vec<Object>,
+    clock_offset_msec: u64,
+
+    level_renderer: LevelRenderer<'texture_creator>,
 }
 
 impl<'texture_creator> SceneBriefing<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
+        scene_state: Option<SceneStateBriefing>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let texture_screen =
             texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
 
+        let level = game_data.resolve_level(global_state.current_level)?;
+        let objects: Vec<Object> = level
+            .objects
+            .iter()
+            .map(|o| Object::new(o, &level, &game_data))
+            .collect::<Result<_>>()?;
+
+        let state = match scene_state {
+            Some(state) => state,
+            None => SceneStateBriefing {
+                clock_msec: 0,
+                objects: objects.iter().map(ObjectState::new).collect(),
+            },
+        };
+
+        let terrain = game_data.compose_terrain(&level)?;
+        let level_renderer =
+            LevelRenderer::new(&level, &terrain, Rc::clone(&game_data), texture_creator)?;
+
         Ok(Self {
+            clock_offset_msec: state.clock_msec,
+
             game_data,
             global_state,
             static_draw_complete: false,
+            needs_level_draw: true,
             status: Status::Running,
 
             texture_screen,
+
+            level,
+            state,
+            objects,
+
+            level_renderer,
         })
     }
 
-    fn write_briefing(&self, grid: &mut TextGrid) -> Result<()> {
-        let level = self
-            .game_data
-            .resolve_level(self.global_state.current_level)?;
+    fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> anyhow::Result<bool> {
+        if self.static_draw_complete {
+            return Ok(false);
+        }
+
+        let texture_creator = &canvas.texture_creator();
+
+        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
+        self.write_briefing(&mut text_grid);
+
+        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
+            draw_background(BACKGROUND_START, &self.game_data, texture_creator, canvas)?;
+            text_grid.render(&self.game_data, texture_creator, canvas)?;
+
+            Ok(())
+        })?;
+
+        self.static_draw_complete = true;
+
+        Ok(true)
+    }
+
+    fn draw_level(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
+        if !self.needs_level_draw {
+            return Ok(false);
+        }
+
+        self.level_renderer
+            .draw(&self.state.objects, None, canvas)?;
+
+        self.needs_level_draw = false;
+
+        Ok(true)
+    }
+
+    fn write_briefing(&self, grid: &mut TextGrid) {
+        let level = &self.level;
 
         let (difficulty, index) = decode_level_index(self.global_state.current_level);
         let name_indent = (40_u32.saturating_sub(level.parameters.name.len() as u32) / 2).max(9);
@@ -97,8 +209,6 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         );
         grid.write(10, 16, &format!("Rating  {}", difficulty));
         grid.write(5, 19, "Press mouse button to continue");
-
-        Ok(())
     }
 }
 
@@ -154,16 +264,35 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         };
     }
 
-    fn tick(
-        &mut self,
-        _canvas: &mut sdl3::render::Canvas<sdl3::video::Window>,
-        _clock_msec: u64,
-    ) -> anyhow::Result<()> {
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> anyhow::Result<()> {
+        clock_msec += self.clock_offset_msec;
+
+        let clock_msec_old = self.state.clock_msec;
+        self.state.clock_msec = clock_msec;
+
+        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
+        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
+
+        let delta = engine_ticks.saturating_sub(engine_ticks_old) as usize;
+        if delta > 0 {
+            for (object_state, object) in self.state.objects.iter_mut().zip(&self.objects) {
+                if !object.animate {
+                    continue;
+                }
+
+                object_state.frame = (object_state.frame + delta) % (object.animation_frames);
+            }
+
+            self.needs_level_draw = true;
+        }
+
         Ok(())
     }
 
     fn next_tick_at_msec(&self) -> Option<u64> {
-        None
+        let next_tick = (self.state.clock_msec / ENGINE_TICK_MSEC + 1) * ENGINE_TICK_MSEC;
+
+        Some(next_tick.saturating_sub(self.clock_offset_msec))
     }
 
     fn is_complete(&self) -> bool {
@@ -176,6 +305,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     ) -> anyhow::Result<&mut sdl3::render::Texture<'texture_creator>> {
         match id {
             TEXTURE_ID_SCREEN => Ok(&mut self.texture_screen),
+            TEXTURE_ID_LEVEL => Ok(self.level_renderer.texture()),
             _ => Err(anyhow!("no texture with ID {}", id)),
         }
     }
@@ -185,38 +315,36 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
             TEXTURE_ID_SCREEN,
             WIDTH,
             HEIGHT,
-            crate::geometry::Rect {
+            geometry::Rect {
                 x: 0,
                 y: 0,
                 width: WIDTH,
                 height: HEIGHT,
             },
         );
+
+        let level_width_scaled = (LEVEL_WIDTH * 2) / 5;
+        let level_height_scaled = (LEVEL_HEIGHT * 2) / 5;
+        let preview_x = (WIDTH - level_width_scaled) / 2;
+        let preview_y = (BACKGROUND_START - level_height_scaled) / 2;
+        compositor.add_layer(
+            TEXTURE_ID_LEVEL,
+            LEVEL_WIDTH,
+            LEVEL_HEIGHT,
+            geometry::Rect {
+                x: preview_x,
+                y: preview_y,
+                width: level_width_scaled,
+                height: level_height_scaled,
+            },
+        );
     }
 
-    fn draw(
-        &mut self,
-        canvas: &mut sdl3::render::Canvas<sdl3::video::Window>,
-    ) -> anyhow::Result<bool> {
-        if self.static_draw_complete {
-            return Ok(false);
-        }
+    fn draw(&mut self, canvas: &mut Canvas<Window>) -> anyhow::Result<bool> {
+        let static_draw = self.draw_static(canvas)?;
+        let level_draw = self.draw_level(canvas)?;
 
-        let texture_creator = &canvas.texture_creator();
-
-        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
-        self.write_briefing(&mut text_grid)?;
-
-        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            draw_background(BACKGROUND_START, &self.game_data, texture_creator, canvas)?;
-            text_grid.render(&self.game_data, texture_creator, canvas)?;
-
-            Ok(())
-        })?;
-
-        self.static_draw_complete = true;
-
-        Ok(true)
+        Ok(static_draw || level_draw)
     }
 
     fn will_redraw(&self) -> bool {
@@ -233,17 +361,17 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing,
+                scene: state::Scene::Briefing(None),
             },
             Status::DonePreviousLevel => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing,
+                scene: state::Scene::Briefing(None),
             },
             Status::Running => GameState {
                 global: self.global_state,
-                scene: state::Scene::Briefing,
+                scene: state::Scene::Briefing(Some(self.state)),
             },
         }
     }

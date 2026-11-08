@@ -204,7 +204,6 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
             };
 
         let atlas = atlas_builder.build(&palette, texture_creator)?;
-        println!("built atlas, size is {}x{}", atlas.width(), atlas.height());
 
         let objects_merge =
             create_objects(&object_atlas_index, level, |o| o.draw_only_over_terrain)?;
@@ -394,7 +393,7 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
     pub fn draw(
         &mut self,
         objects_state: &ObjectsState,
-        lemmings_state: &LemmingsState,
+        lemmings_state: Option<&LemmingsState>,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
         match self.render_strategy {
@@ -413,7 +412,7 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
     fn draw_strategy_blend(
         &mut self,
         objects_state: &ObjectsState,
-        lemmings_state: &LemmingsState,
+        lemmings_state: Option<&LemmingsState>,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
         with_texture_canvas(canvas, &mut self.texture_level, |canvas| -> Result<()> {
@@ -440,15 +439,17 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
                 &mut self.atlas,
             )?;
 
-            draw_lemmings(
-                canvas,
-                lemmings_state,
-                &mut self.atlas,
-                self.sprite_index_countdown,
-                &mut self.particle_buffer,
-                &self.game_data.particle_sets,
-                &self.palette,
-            )?;
+            if let Some(lemmings) = lemmings_state {
+                draw_lemmings(
+                    canvas,
+                    lemmings,
+                    &mut self.atlas,
+                    self.sprite_index_countdown,
+                    &mut self.particle_buffer,
+                    &self.game_data.particle_sets,
+                    &self.palette,
+                )?;
+            }
 
             Ok(())
         })?;
@@ -459,7 +460,7 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
     fn draw_strategy_stencil_no_mergeables(
         &mut self,
         objects_state: &ObjectsState,
-        lemmings_state: &LemmingsState,
+        lemmings_state: Option<&LemmingsState>,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
         let RenderStrategy::Stencil(StencilTextures { .. }) = &mut self.render_strategy else {
@@ -486,15 +487,17 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
                 &mut self.atlas,
             )?;
 
-            draw_lemmings(
-                canvas,
-                lemmings_state,
-                &mut self.atlas,
-                self.sprite_index_countdown,
-                &mut self.particle_buffer,
-                &self.game_data.particle_sets,
-                &self.palette,
-            )?;
+            if let Some(lemmings) = lemmings_state {
+                draw_lemmings(
+                    canvas,
+                    lemmings,
+                    &mut self.atlas,
+                    self.sprite_index_countdown,
+                    &mut self.particle_buffer,
+                    &self.game_data.particle_sets,
+                    &self.palette,
+                )?;
+            }
 
             Ok(())
         })
@@ -503,7 +506,7 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
     fn draw_strategy_stencil(
         &mut self,
         objects_state: &ObjectsState,
-        lemmings_state: &LemmingsState,
+        lemmings_state: Option<&LemmingsState>,
         canvas: &mut Canvas<Window>,
     ) -> Result<()> {
         let RenderStrategy::Stencil(StencilTextures {
@@ -554,15 +557,17 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
                 &mut self.atlas,
             )?;
 
-            draw_lemmings(
-                canvas,
-                lemmings_state,
-                &mut self.atlas,
-                self.sprite_index_countdown,
-                &mut self.particle_buffer,
-                &self.game_data.particle_sets,
-                &self.palette,
-            )?;
+            if let Some(lemmings) = lemmings_state {
+                draw_lemmings(
+                    canvas,
+                    lemmings,
+                    &mut self.atlas,
+                    self.sprite_index_countdown,
+                    &mut self.particle_buffer,
+                    &self.game_data.particle_sets,
+                    &self.palette,
+                )?;
+            }
 
             Ok(())
         })

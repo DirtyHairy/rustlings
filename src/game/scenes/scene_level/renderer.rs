@@ -197,7 +197,7 @@ impl<'texture_creator> Renderer<'texture_creator> {
 
     fn draw_level(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<()> {
         self.level_renderer
-            .draw(&state.object_state, &state.lemmings, canvas)
+            .draw(&state.object_state, Some(&state.lemmings), canvas)
     }
 
     fn draw_screen(&mut self, state: &SceneStateLevel, canvas: &mut Canvas<Window>) -> Result<()> {
