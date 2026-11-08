@@ -7,9 +7,7 @@ use rustlings::game_data::{
 };
 
 use crate::{
-    scenes::scene_level::terrain_diff::{
-        BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind,
-    },
+    scenes::common::{BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
     state::{
         Activity, ActivityStateBuilding, ActivityStateDigging, ActivityStateFalling, BlockField,
         Direction, LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState,

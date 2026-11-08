@@ -32,12 +32,11 @@ use strum::{EnumCount, VariantArray};
 
 use crate::{
     geometry::Rect,
-    scenes::scene_level::{
-        cache::Cache,
-        selection_controller::SelectionMode,
-        skill_panel_renderer::SkillPanelRenderer,
-        terrain_diff::{
-            BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind,
+    scenes::{
+        common::{BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
+        scene_level::{
+            cache::Cache, selection_controller::SelectionMode,
+            skill_panel_renderer::SkillPanelRenderer,
         },
     },
     state::{Activity, Direction, LemmingAnimation, SceneStateLevel},

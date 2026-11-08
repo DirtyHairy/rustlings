@@ -1,7 +1,9 @@
 use crate::{
-    scenes::scene_level::{
-        simulation::{DIG_LINE_WIDTH, DIG_X_OFFSET, test::fixture::TerrainFixtureBuilder},
-        terrain_diff::{TerrainDiff, TerrainDiffKind},
+    scenes::{
+        common::{TerrainDiff, TerrainDiffKind},
+        scene_level::simulation::{
+            DIG_LINE_WIDTH, DIG_X_OFFSET, test::fixture::TerrainFixtureBuilder,
+        },
     },
     state::{
         Activity, ActivityStateDigging, Direction, LemmingAnimation, LemmingState, ObjectsState,

@@ -1,9 +1,9 @@
 use rustlings::game_data::{NUM_PARTICLE_SETS, file::main::MaskSprite};
 
 use crate::{
-    scenes::scene_level::{
-        simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
-        terrain_diff::{TerrainDiff, TerrainDiffKind},
+    scenes::{
+        common::{TerrainDiff, TerrainDiffKind},
+        scene_level::simulation::{LemmingVerdict, test::fixture::TerrainFixtureBuilder},
     },
     state::{
         Activity, ActivityStateFalling, ActivityStateFloating, Direction, LemmingAnimation,

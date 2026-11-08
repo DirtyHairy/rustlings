@@ -1,7 +1,7 @@
 use crate::{
-    scenes::scene_level::{
-        simulation::test::fixture::TerrainFixtureBuilder,
-        terrain_diff::{TerrainDiff, TerrainDiffKind},
+    scenes::{
+        common::{TerrainDiff, TerrainDiffKind},
+        scene_level::simulation::test::fixture::TerrainFixtureBuilder,
     },
     state::{
         Activity, ActivityStateBuilding, Direction, LemmingAnimation, LemmingState, ObjectsState,
