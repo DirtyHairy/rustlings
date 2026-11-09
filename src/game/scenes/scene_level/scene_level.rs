@@ -29,7 +29,7 @@ use crate::{
     state::{GameState, SceneStateLevel},
 };
 
-const FADE_IN_MSEC: u64 = 1000;
+const FADE_IN_MSEC: u64 = 750;
 
 #[derive(PartialEq)]
 enum Status {

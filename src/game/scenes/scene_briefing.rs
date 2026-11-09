@@ -19,8 +19,8 @@ use sdl3::{
 use crate::{
     geometry,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::common::{LevelRenderer, TextGrid, draw_background},
-    state::{self, GameState, GameStateGlobal, ObjectState, SceneStateBriefing},
+    scenes::common::{FadeController, LevelRenderer, TextGrid, draw_background},
+    state::{self, GameState, GameStateGlobal, ObjectState, SceneStateBriefing, StateBriefing},
 };
 
 const WIDTH: u32 = 640;
@@ -82,12 +82,13 @@ pub struct SceneBriefing<'texture_creator> {
     static_draw_complete: bool,
     needs_level_draw: bool,
 
-    state: SceneStateBriefing,
+    state: StateBriefing,
     level: Level,
     objects: Vec<Object>,
     clock_offset_msec: u64,
 
     level_renderer: LevelRenderer<'texture_creator>,
+    fade_controller: FadeController,
 }
 
 impl<'texture_creator> SceneBriefing<'texture_creator> {
@@ -107,17 +108,29 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             .map(|o| Object::new(o, &level, &game_data))
             .collect::<Result<_>>()?;
 
-        let state = match scene_state {
-            Some(state) => state,
-            None => SceneStateBriefing {
-                clock_msec: 0,
-                objects: objects.iter().map(ObjectState::new).collect(),
-            },
+        let (state_fade, state) = match scene_state {
+            Some((state_fade, Some(state_briefing))) => (Some(state_fade), state_briefing),
+            Some((state_fade, None)) => (
+                Some(state_fade),
+                StateBriefing {
+                    clock_msec: 0,
+                    objects: objects.iter().map(ObjectState::new).collect(),
+                },
+            ),
+            None => (
+                None,
+                StateBriefing {
+                    clock_msec: 0,
+                    objects: objects.iter().map(ObjectState::new).collect(),
+                },
+            ),
         };
 
         let terrain = game_data.compose_terrain(&level)?;
         let level_renderer =
             LevelRenderer::new(&level, &terrain, Rc::clone(&game_data), texture_creator)?;
+
+        let fade_controller = FadeController::new(state_fade);
 
         Ok(Self {
             clock_offset_msec: state.clock_msec,
@@ -135,6 +148,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             objects,
 
             level_renderer,
+            fade_controller,
         })
     }
 
@@ -222,7 +236,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn opacity(&self) -> u8 {
-        255
+        self.fade_controller.opacity()
     }
 
     fn set_is_fullscreen(&mut self, _is_fullscreen: bool) {}
@@ -247,24 +261,27 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 keycode: Keycode::PageUp,
                 ..
             } => {
-                if self.status == Status::Running {
+                if self.status == Status::Running && !self.fade_controller.fade_out_started() {
                     self.status = Status::DoneNextLevel;
                 }
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::Space | Keycode::Return | Keycode::KpEnter,
                 ..
-            } => {
-                if self.status == Status::Running {
-                    self.status = Status::DoneLaunchLevel
-                }
             }
-            SceneEvent::MouseDown(MouseButton::Left, _) => self.status = Status::DoneLaunchLevel,
+            | SceneEvent::MouseDown(MouseButton::Left, _)
+                if self.status == Status::Running && !self.fade_controller.fade_out_started() =>
+            {
+                self.fade_controller.start_fade_out();
+                self.status = Status::DoneLaunchLevel;
+            }
             _ => (),
         };
     }
 
     fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> anyhow::Result<()> {
+        self.fade_controller.tick(clock_msec);
+
         clock_msec += self.clock_offset_msec;
 
         let clock_msec_old = self.state.clock_msec;
@@ -290,13 +307,18 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn next_tick_at_msec(&self) -> Option<u64> {
-        let next_tick = (self.state.clock_msec / ENGINE_TICK_MSEC + 1) * ENGINE_TICK_MSEC;
+        let mut next_tick = (self.state.clock_msec / ENGINE_TICK_MSEC + 1) * ENGINE_TICK_MSEC;
+
+        if let Some(next_tick_fade) = self.fade_controller.next_tick_at_msec() {
+            next_tick = next_tick.min(next_tick_fade + self.clock_offset_msec);
+        }
 
         Some(next_tick.saturating_sub(self.clock_offset_msec))
     }
 
     fn is_complete(&self) -> bool {
         self.status != Status::Running
+            && (!self.fade_controller.fade_out_started() || self.fade_controller.fade_out_done())
     }
 
     fn texture(
@@ -361,17 +383,20 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing(None),
+                scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
             Status::DonePreviousLevel => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
                 },
-                scene: state::Scene::Briefing(None),
+                scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
             Status::Running => GameState {
                 global: self.global_state,
-                scene: state::Scene::Briefing(Some(self.state)),
+                scene: state::Scene::Briefing(Some((
+                    self.fade_controller.finish(),
+                    Some(self.state),
+                ))),
             },
         }
     }
