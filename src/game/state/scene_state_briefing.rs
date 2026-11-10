@@ -1,10 +1,8 @@
-use crate::state::{FadeState, ObjectsState};
+use crate::state::ObjectsState;
 
 #[derive(Clone)]
-pub struct StateBriefing {
+pub struct SceneStateBriefing {
     pub clock_msec: u64,
 
     pub objects: ObjectsState,
 }
-
-pub type SceneStateBriefing = (FadeState, Option<StateBriefing>);
