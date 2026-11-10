@@ -19,8 +19,14 @@ use sdl3::{
 use crate::{
     geometry,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::common::{FadeController, LevelRenderer, TextGrid, draw_background},
-    state::{self, FadeState, GameState, GameStateGlobal, ObjectState, SceneStateBriefing},
+    scenes::common::{
+        FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU, FadeController, LevelRenderer, TextGrid,
+        draw_background,
+    },
+    state::{
+        self, ChoiceBriefing, FadeState, GameState, GameStateGlobal, ObjectState,
+        SceneStateBriefing,
+    },
 };
 
 const WIDTH: u32 = 640;
@@ -29,14 +35,6 @@ const BACKGROUND_START: u32 = 78;
 
 const TEXTURE_ID_SCREEN: usize = 0;
 const TEXTURE_ID_LEVEL: usize = 1;
-
-#[derive(PartialEq)]
-enum Status {
-    Running,
-    DoneLaunchLevel,
-    DonePreviousLevel,
-    DoneNextLevel,
-}
 
 struct Object {
     animate: bool,
@@ -76,7 +74,6 @@ impl ObjectState {
 pub struct SceneBriefing<'texture_creator> {
     game_data: Rc<GameData>,
     global_state: GameStateGlobal,
-    status: Status,
 
     texture_screen: Texture<'texture_creator>,
     static_draw_complete: bool,
@@ -114,6 +111,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
                 Some(fade_state),
                 SceneStateBriefing {
                     clock_msec: 0,
+                    choice: None,
                     objects: objects.iter().map(ObjectState::new).collect(),
                 },
             ),
@@ -121,6 +119,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
                 None,
                 SceneStateBriefing {
                     clock_msec: 0,
+                    choice: None,
                     objects: objects.iter().map(ObjectState::new).collect(),
                 },
             ),
@@ -130,7 +129,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         let level_renderer =
             LevelRenderer::new(&level, &terrain, Rc::clone(&game_data), texture_creator)?;
 
-        let fade_controller = FadeController::new(fade_state);
+        let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
 
         Ok(Self {
             clock_offset_msec: scene_state.clock_msec,
@@ -139,7 +138,6 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             global_state,
             static_draw_complete: false,
             needs_level_draw: true,
-            status: Status::Running,
 
             texture_screen,
 
@@ -252,28 +250,22 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
             SceneEvent::KeyDown {
                 keycode: Keycode::PageDown,
                 ..
-            } => {
-                if self.status == Status::Running {
-                    self.status = Status::DonePreviousLevel;
-                }
+            } if self.state.choice.is_none() => {
+                self.state.choice = Some(ChoiceBriefing::PreviousLevel);
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::PageUp,
                 ..
-            } => {
-                if self.status == Status::Running && !self.fade_controller.fadeout_started() {
-                    self.status = Status::DoneNextLevel;
-                }
-            }
+            } if self.state.choice.is_none() => self.state.choice = Some(ChoiceBriefing::NextLevel),
             SceneEvent::KeyDown {
                 keycode: Keycode::Space | Keycode::Return | Keycode::KpEnter,
                 ..
             }
             | SceneEvent::MouseDown(MouseButton::Left, _)
-                if self.status == Status::Running && !self.fade_controller.fadeout_started() =>
+                if self.state.choice.is_none() && !self.fade_controller.fadeout_started() =>
             {
                 self.fade_controller.start_fadeout();
-                self.status = Status::DoneLaunchLevel;
+                self.state.choice = Some(ChoiceBriefing::Launch);
             }
             _ => (),
         };
@@ -317,7 +309,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn is_complete(&self) -> bool {
-        self.status != Status::Running
+        self.state.choice.is_some()
             && (!self.fade_controller.fadeout_started() || self.fade_controller.fadeout_done())
     }
 
@@ -374,24 +366,24 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn finish(self: Box<Self>) -> state::GameState {
-        match self.status {
-            Status::DoneLaunchLevel => GameState {
+        match self.state.choice {
+            Some(ChoiceBriefing::Launch) => GameState {
                 global: self.global_state,
                 scene: state::Scene::Level(None),
             },
-            Status::DoneNextLevel => GameState {
+            Some(ChoiceBriefing::NextLevel) => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
                 },
                 scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
-            Status::DonePreviousLevel => GameState {
+            Some(ChoiceBriefing::PreviousLevel) => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
                 },
                 scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
-            Status::Running => GameState {
+            None => GameState {
                 global: self.global_state,
                 scene: state::Scene::Briefing(Some((
                     self.fade_controller.finish(),

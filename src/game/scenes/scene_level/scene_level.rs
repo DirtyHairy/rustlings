@@ -15,21 +15,22 @@ use sdl3::{
 use crate::{
     code::code_for_level,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::scene_level::{
-        cache::Cache,
-        renderer::{Redraw, Renderer},
-        selection_controller::{SelectionController, SelectionMode},
-        simulation::{SelectionResult, Simulation},
-        skill_panel_controller::SkillPanelController,
+    scenes::{
+        common::{FADEIN_MSEC_LEVEL, FADEOUT_MSEC_LEVEL, FadeController},
+        scene_level::{
+            cache::Cache,
+            renderer::{Redraw, Renderer},
+            selection_controller::{SelectionController, SelectionMode},
+            simulation::{SelectionResult, Simulation},
+            skill_panel_controller::SkillPanelController,
+        },
     },
-    state::{self, GameStateGlobal, TerrainProps},
+    state::{self, FadeState, GameStateGlobal, TerrainProps},
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
     state::{GameState, SceneStateLevel},
 };
-
-const FADE_IN_MSEC: u64 = 750;
 
 #[derive(PartialEq)]
 enum Status {
@@ -47,6 +48,7 @@ pub struct SceneLevel<'texture_creator> {
     scroll_controller: ScrollController,
     skill_panel_controller: SkillPanelController,
     selection_controller: SelectionController,
+    fade_controller: FadeController,
     simulation: Simulation,
 
     level_parameters: LevelParameters,
@@ -64,7 +66,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
-        scene_state: Option<Box<SceneStateLevel>>,
+        state: Option<(FadeState, Box<SceneStateLevel>)>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(global_state.current_level)?;
@@ -72,10 +74,10 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
         let simulation = Simulation::new(Rc::clone(&game_data), &level)?;
 
-        let state = match scene_state {
-            Some(state) => state,
+        let (fade_state, scene_state) = match state {
+            Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
             None => {
-                let mut state = Box::from(SceneStateLevel {
+                let mut scene_state = Box::from(SceneStateLevel {
                     level_x: level.start_x,
                     terrain: game_data.compose_terrain(&level)?,
                     terrain_map: vec![Default::default(); (LEVEL_WIDTH * LEVEL_HEIGHT) as usize],
@@ -87,27 +89,35 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
                     ..Default::default()
                 });
 
-                init_terrain_map(&state.terrain, &level, &game_data, &mut state.terrain_map)?;
-                simulation.initialize(&mut state);
+                init_terrain_map(
+                    &scene_state.terrain,
+                    &level,
+                    &game_data,
+                    &mut scene_state.terrain_map,
+                )?;
+                simulation.initialize(&mut scene_state);
 
-                state
+                (None, scene_state)
             }
         };
 
-        let renderer = Renderer::new(&level, &state, Rc::clone(&game_data), texture_creator)?;
+        let renderer = Renderer::new(&level, &scene_state, Rc::clone(&game_data), texture_creator)?;
         let skill_panel_controller = SkillPanelController::new(&level);
         let scroll_controller = ScrollController::new();
         let selection_controller = SelectionController::new();
+        let fade_controller =
+            FadeController::new(fade_state, FADEIN_MSEC_LEVEL, FADEOUT_MSEC_LEVEL);
 
         Ok(SceneLevel {
-            clock_offset_msec: state.clock_msec,
+            clock_offset_msec: scene_state.clock_msec,
             global_state,
-            state,
+            state: scene_state,
             status: Status::Running,
             renderer,
             scroll_controller,
             selection_controller,
             skill_panel_controller,
+            fade_controller,
             simulation,
             level_parameters: level.parameters,
             shift_down: false,
@@ -182,7 +192,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         match self.status {
             Status::Running => GameState {
                 global: self.global_state,
-                scene: state::Scene::Level(Some(self.state)),
+                scene: state::Scene::Level(Some((self.fade_controller.finish(), self.state))),
             },
             Status::DoneNextLevel => GameState {
                 global: GameStateGlobal {
@@ -208,7 +218,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn opacity(&self) -> u8 {
-        ((self.state.clock_msec * 255) / FADE_IN_MSEC).min(255) as u8
+        self.fade_controller.opacity()
     }
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool) {
@@ -306,6 +316,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn tick(&mut self, canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
+        self.fade_controller.tick(clock_msec);
+
         clock_msec += self.clock_offset_msec;
 
         let clock_msec_old = self.state.clock_msec;
@@ -359,8 +371,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn next_tick_at_msec(&self) -> Option<u64> {
         let mut next_tick = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
-        if self.opacity() < 255 {
-            next_tick = next_tick.min(((self.opacity() as u64 + 1) * FADE_IN_MSEC) / 255);
+        if let Some(next_tick_fade) = self.fade_controller.next_tick_at_msec() {
+            next_tick = next_tick.min(next_tick_fade);
         }
 
         if let Some(next_tick_scroll) = self.scroll_controller.next_tick_at_msec(&self.state) {
