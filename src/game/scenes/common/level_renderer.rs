@@ -165,8 +165,7 @@ impl<'texture_creator> LevelRenderer<'texture_creator> {
             SdlAtlasBuilder::with_capacity(LemmingAnimation::COUNT + OBJECTS_PER_TILESET + 1);
 
         [Direction::Right, Direction::Left]
-            .iter()
-            .cloned()
+            .into_iter()
             .for_each(|direction| {
                 LemmingAnimation::VARIANTS
                     .iter()

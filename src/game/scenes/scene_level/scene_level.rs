@@ -361,25 +361,27 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn next_tick_at_msec(&self) -> Option<u64> {
-        let mut next_tick = if !self.state.paused || self.pause_tick_scheduled {
+        let next_tick = if !self.state.paused
+            || self.pause_tick_scheduled
+            || self.skill_panel_controller.needs_tick()
+        {
             Some((self.state.clock_msec + 1).next_multiple_of(ENGINE_TICK_MSEC))
         } else {
             None
         };
 
-        if let Some(next_tick_fade) = self
+        let next_tick_fade = self
             .fade_controller
             .next_tick_since_creation_at_msec()
-            .map(|tick| tick + self.clock_offset_msec)
-        {
-            next_tick = Some(next_tick.map_or(next_tick_fade, |tick| tick.min(next_tick_fade)));
-        }
+            .map(|tick| tick + self.clock_offset_msec);
 
-        if let Some(next_tick_scroll) = self.scroll_controller.next_tick_at_msec(&self.state) {
-            next_tick = Some(next_tick.map_or(next_tick_scroll, |tick| tick.min(next_tick_scroll)))
-        }
+        let next_tick_scroll = self.scroll_controller.next_tick_at_msec(&self.state);
 
-        next_tick.map(|next_tick| next_tick.saturating_sub(self.clock_offset_msec))
+        [next_tick, next_tick_scroll, next_tick_fade]
+            .into_iter()
+            .flatten()
+            .min()
+            .map(|tick| tick.saturating_sub(self.clock_offset_msec))
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {

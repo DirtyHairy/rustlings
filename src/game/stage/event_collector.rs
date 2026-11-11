@@ -46,6 +46,19 @@ pub enum GameEvent {
     EnterFullscreen,
     LeaveFullscreen,
     ModeChanged,
+    SetSpeed(u32),
+}
+
+enum GameEvents {
+    None,
+    One(GameEvent),
+    Two(GameEvent, GameEvent),
+}
+
+impl From<Option<GameEvent>> for GameEvents {
+    fn from(value: Option<GameEvent>) -> Self {
+        value.map_or(GameEvents::None, GameEvents::One)
+    }
 }
 
 pub enum MouseOwnerChange {
@@ -122,17 +135,19 @@ impl EventCollector {
                 maybe_evt
             };
 
-            if let Some(event) = maybe_event
-                && let Some(decoded_event) = decode_sdl_event(&event)
-            {
-                self.aggregate_event(&decoded_event);
-                self.decoded_events.push(decoded_event);
-            }
-
-            for event in event_pump.poll_iter() {
-                if let Some(decoded_event) = decode_sdl_event(&event) {
-                    self.aggregate_event(&decoded_event);
-                    self.decoded_events.push(decoded_event);
+            for event in maybe_event.into_iter().chain(event_pump.poll_iter()) {
+                match decode_sdl_event(&event) {
+                    GameEvents::None => (),
+                    GameEvents::One(evt) => {
+                        self.aggregate_event(&evt);
+                        self.decoded_events.push(evt);
+                    }
+                    GameEvents::Two(evt1, evt2) => {
+                        for evt in [evt1, evt2] {
+                            self.aggregate_event(&evt);
+                            self.decoded_events.push(evt);
+                        }
+                    }
                 }
             }
 
@@ -166,27 +181,30 @@ impl EventCollector {
     }
 }
 
-fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
+fn decode_sdl_event(event: &Event) -> GameEvents {
+    let mod_all =
+        Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD | Mod::LCTRLMOD | Mod::RCTRLMOD;
+
     match *event {
-        Event::Quit { .. } => Some(GameEvent::Quit),
+        Event::Quit { .. } => GameEvents::One(GameEvent::Quit),
 
         Event::Window { win_event, .. } => match win_event {
-            WindowEvent::PixelSizeChanged(_, _) => Some(GameEvent::Redraw),
-            WindowEvent::MouseEnter => Some(GameEvent::MouseEnter),
-            WindowEvent::MouseLeave => Some(GameEvent::MouseLeave),
-            _ => None,
+            WindowEvent::PixelSizeChanged(_, _) => GameEvents::One(GameEvent::Redraw),
+            WindowEvent::MouseEnter => GameEvents::One(GameEvent::MouseEnter),
+            WindowEvent::MouseLeave => GameEvents::One(GameEvent::MouseLeave),
+            _ => GameEvents::None,
         },
         Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_ENTER_FULLSCREEN.0 => {
-            Some(GameEvent::EnterFullscreen)
+            GameEvents::One(GameEvent::EnterFullscreen)
         }
         Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_LEAVE_FULLSCREEN.0 => {
-            Some(GameEvent::LeaveFullscreen)
+            GameEvents::One(GameEvent::LeaveFullscreen)
         }
 
-        Event::RenderDeviceReset { .. } => Some(GameEvent::RenderReset),
-        Event::RenderTargetsReset { .. } => Some(GameEvent::RenderReset),
+        Event::RenderDeviceReset { .. } => GameEvents::One(GameEvent::RenderReset),
+        Event::RenderTargetsReset { .. } => GameEvents::One(GameEvent::RenderReset),
         Event::Unknown { type_, .. } if type_ == events::SDL_EVENT_RENDER_DEVICE_LOST.0 => {
-            Some(GameEvent::RenderReset)
+            GameEvents::One(GameEvent::RenderReset)
         }
 
         Event::Display {
@@ -200,7 +218,7 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
         | Event::Display {
             display_event: DisplayEvent::DesktopModeChanged,
             ..
-        } => Some(GameEvent::ModeChanged),
+        } => GameEvents::One(GameEvent::ModeChanged),
         Event::KeyDown {
             keycode: Some(keycode),
             keymod,
@@ -208,20 +226,13 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
             repeat: false,
             ..
         } => match (keycode, keymod) {
-            (Keycode::R, m) if m.intersects(Mod::LCTRLMOD | Mod::RCTRLMOD) => {
-                Some(GameEvent::RenderReset)
+            (Keycode::R, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::RenderReset),
+            (Keycode::Q, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::Quit),
+            (Keycode::Return, m) if m.intersects(mod_all) => {
+                GameEvents::One(GameEvent::ToggleFullscreen)
             }
-            (Keycode::Q, m)
-                if m.intersects(Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) =>
-            {
-                Some(GameEvent::Quit)
-            }
-            (Keycode::Return, m)
-                if m.intersects(Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD) =>
-            {
-                Some(GameEvent::ToggleFullscreen)
-            }
-            _ => Some(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {
+            (Keycode::Space, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::SetSpeed(4)),
+            _ => GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {
                 keycode,
                 keymod,
                 scancode,
@@ -233,22 +244,30 @@ fn decode_sdl_event(event: &Event) -> Option<GameEvent> {
             scancode: Some(scancode),
             repeat: false,
             ..
-        } => Some(GameEvent::DispatchSceneEvent(SceneEvent::KeyUp {
-            keycode,
-            scancode,
-        })),
+        } => match keycode {
+            Keycode::Space => GameEvents::Two(
+                GameEvent::SetSpeed(1),
+                GameEvent::DispatchSceneEvent(SceneEvent::KeyUp { keycode, scancode }),
+            ),
+            _ => GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyUp {
+                keycode,
+                scancode,
+            })),
+        },
 
-        Event::MouseMotion { x, y, .. } => Some(GameEvent::MouseMove { x, y }),
+        Event::MouseMotion { x, y, .. } => GameEvents::One(GameEvent::MouseMove { x, y }),
         Event::MouseButtonDown {
             mouse_btn, x, y, ..
         } => MouseButton::try_from(mouse_btn)
             .ok()
-            .map(|button| GameEvent::MouseDown { x, y, button }),
+            .map(|button| GameEvent::MouseDown { x, y, button })
+            .into(),
         Event::MouseButtonUp {
             mouse_btn, x, y, ..
         } => MouseButton::try_from(mouse_btn)
             .ok()
-            .map(|button| GameEvent::MouseUp { x, y, button }),
-        _ => None,
+            .map(|button| GameEvent::MouseUp { x, y, button })
+            .into(),
+        _ => GameEvents::None,
     }
 }

@@ -42,7 +42,9 @@ pub struct Stage<'sdl> {
     rerender: bool,
     suspended: bool,
     ts_reference: Instant,
+    time_offset: u64,
     time_old: u64,
+    speed: u32,
 
     last_time_per_frame_update: Instant,
     cached_time_per_frame_msec: Option<u64>,
@@ -74,6 +76,8 @@ impl<'sdl> Stage<'sdl> {
             suspended: false,
             ts_reference: Instant::now(),
             time_old: 0,
+            time_offset: 0,
+            speed: 1,
             last_time_per_frame_update: Instant::now(),
             cached_time_per_frame_msec: None,
         }
@@ -94,6 +98,7 @@ impl<'sdl> Stage<'sdl> {
         self.suspended = false;
         self.ts_reference = Instant::now();
         self.time_old = 0;
+        self.time_offset = 0;
 
         self.transfer_mouse_state(&mut render_state)?;
 
@@ -124,13 +129,14 @@ impl<'sdl> Stage<'sdl> {
                 return Ok(stop_reason);
             }
 
-            let ts_tick = Instant::now();
-            let mut time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
+            let now = Instant::now();
+            let mut time = self.time_since_reference(now) + self.time_offset;
 
-            if time - self.time_old > MAX_TIMESLICE_MSEC {
-                self.ts_reference +=
-                    Duration::from_millis(time - self.time_old - MAX_TIMESLICE_MSEC);
-                time = ts_tick.duration_since(self.ts_reference).as_millis() as u64;
+            if time - self.time_old > MAX_TIMESLICE_MSEC * self.speed as u64 {
+                self.ts_reference = now;
+                self.time_offset = self.time_old + MAX_TIMESLICE_MSEC * self.speed as u64;
+
+                time = self.time_since_reference(now) + self.time_offset;
             }
 
             if !self.suspended {
@@ -145,7 +151,9 @@ impl<'sdl> Stage<'sdl> {
             let aggregate_timeout = if scene.will_redraw() {
                 Some(0)
             } else {
-                scene.next_tick_at_msec().map(|x| x.saturating_sub(time))
+                scene
+                    .next_tick_at_msec()
+                    .map(|x| x.saturating_sub(time) / self.speed as u64)
             };
 
             event_watch.activate();
@@ -158,6 +166,10 @@ impl<'sdl> Stage<'sdl> {
 
             self.update_mouse_state(&event_collector, &mut render_state);
         }
+    }
+
+    fn time_since_reference(&self, now: Instant) -> u64 {
+        now.duration_since(self.ts_reference).as_millis() as u64 * self.speed as u64
     }
 
     fn transfer_mouse_state(&mut self, render_state: &mut RenderState) -> Result<()> {
@@ -228,6 +240,13 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::LeaveFullscreen => {
                     scene.set_is_fullscreen(false);
                     self.suspended = false;
+                }
+                GameEvent::SetSpeed(speed) => {
+                    let now = Instant::now();
+
+                    self.time_offset += self.time_since_reference(now);
+                    self.ts_reference = now;
+                    self.speed = speed;
                 }
             }
         }

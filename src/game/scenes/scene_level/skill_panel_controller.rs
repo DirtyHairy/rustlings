@@ -126,6 +126,10 @@ impl SkillPanelController {
         !(self.incrementing.is_empty() && self.decrementing.is_empty())
     }
 
+    pub fn needs_tick(&self) -> bool {
+        !(self.incrementing.is_empty() && self.decrementing.is_empty())
+    }
+
     fn handle_mouse_down(&mut self, state: &mut SceneStateLevel, x: u32, y: u32) -> bool {
         const ORDERED_SKILLS: [Skill; Skill::COUNT] = [
             Skill::Climber,
