@@ -185,7 +185,7 @@ impl ScrollController {
     pub fn next_tick_at_msec(&self, state: &SceneStateLevel) -> Option<u64> {
         match self.scroll_mode() {
             ScrollMode::Left | ScrollMode::Right => {
-                Some(((state.clock_msec / SCROLL_MSEC_PER_PIXEL) + 1) * SCROLL_MSEC_PER_PIXEL)
+                Some((state.clock_msec + 1).next_multiple_of(SCROLL_MSEC_PER_PIXEL))
             }
             _ => None,
         }
