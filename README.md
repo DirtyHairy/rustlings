@@ -15,9 +15,10 @@ Graphics make heavy use of GPU rendering. SDL software rendering works, but
 expect a hefty CPU load without acceleration. With acceleration, CPU load is
 minimal (as it should be for something that ran on a 80286 😛).
 
-<img src="doc/images/game_1.png" width="640" alt="Just dig!"></img>
-<img src="doc/images/game_2.png" width="640" alt="Only floaters can survive this"></img>
-<img src="doc/images/game_3.png" width="640" alt="Watch out, there`s traps about"></img>
+<img src="doc/images/game_1.png" width="640" alt="Prepare for liftoff"></img>
+<img src="doc/images/game_2.png" width="640" alt="You Live and Lem"></img>
+<img src="doc/images/game_3.png" width="640" alt="Explosions everywhere"></img>
+<img src="doc/images/game_4.png" width="640" alt="Let's see what's next"></img>
 
 # Building
 
