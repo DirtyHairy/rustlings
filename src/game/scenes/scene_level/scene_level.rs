@@ -65,7 +65,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let (fade_state, scene_state) = match state {
             Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
             None => {
-                let mut scene_state = Box::from(SceneStateLevel {
+                let mut scene_state = Box::new(SceneStateLevel {
                     level_x: level.start_x,
                     terrain: game_data.compose_terrain(&level)?,
                     terrain_map: vec![Default::default(); (LEVEL_WIDTH * LEVEL_HEIGHT) as usize],
@@ -363,7 +363,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn next_tick_at_msec(&self) -> Option<u64> {
         let mut next_tick = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
-        if let Some(next_tick_fade) = self.fade_controller.next_tick_at_msec() {
+        if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_msec() {
             next_tick = next_tick.min(next_tick_fade + self.clock_offset_msec);
         }
 

@@ -62,8 +62,8 @@ impl Object {
     }
 }
 
-impl ObjectState {
-    fn new(object: &Object) -> Self {
+impl From<&Object> for ObjectState {
+    fn from(object: &Object) -> Self {
         ObjectState {
             triggered: false,
             frame: object.first_frame,
@@ -105,25 +105,12 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             .map(|o| Object::new(o, &level, &game_data))
             .collect::<Result<_>>()?;
 
-        let (fade_state, scene_state) = match state {
-            Some((fade_state, Some(scene_state))) => (Some(fade_state), scene_state),
-            Some((fade_state, None)) => (
-                Some(fade_state),
-                SceneStateBriefing {
-                    clock_msec: 0,
-                    choice: None,
-                    objects: objects.iter().map(ObjectState::new).collect(),
-                },
-            ),
-            None => (
-                None,
-                SceneStateBriefing {
-                    clock_msec: 0,
-                    choice: None,
-                    objects: objects.iter().map(ObjectState::new).collect(),
-                },
-            ),
-        };
+        let (fade_state, scene_state) = state.unzip();
+        let scene_state = scene_state.flatten().unwrap_or_else(|| SceneStateBriefing {
+            clock_msec: 0,
+            choice: None,
+            objects: objects.iter().map(|o| o.into()).collect(),
+        });
 
         let terrain = game_data.compose_terrain(&level)?;
         let level_renderer =
@@ -243,24 +230,25 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn dispatch_event(&mut self, event: crate::scene::SceneEvent) {
+        if self.state.choice.is_some() {
+            return;
+        }
         match event {
             SceneEvent::KeyDown {
                 keycode: Keycode::PageDown,
                 ..
-            } if self.state.choice.is_none() => {
+            } => {
                 self.state.choice = Some(ChoiceBriefing::PreviousLevel);
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::PageUp,
                 ..
-            } if self.state.choice.is_none() => self.state.choice = Some(ChoiceBriefing::NextLevel),
+            } => self.state.choice = Some(ChoiceBriefing::NextLevel),
             SceneEvent::KeyDown {
                 keycode: Keycode::Space | Keycode::Return | Keycode::KpEnter,
                 ..
             }
-            | SceneEvent::MouseDown(MouseButton::Left, _)
-                if self.state.choice.is_none() =>
-            {
+            | SceneEvent::MouseDown(MouseButton::Left, _) => {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceBriefing::Launch);
             }
@@ -298,7 +286,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     fn next_tick_at_msec(&self) -> Option<u64> {
         let mut next_tick = (self.state.clock_msec / ENGINE_TICK_MSEC + 1) * ENGINE_TICK_MSEC;
 
-        if let Some(next_tick_fade) = self.fade_controller.next_tick_at_msec() {
+        if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_msec() {
             next_tick = next_tick.min(next_tick_fade + self.clock_offset_msec);
         }
 

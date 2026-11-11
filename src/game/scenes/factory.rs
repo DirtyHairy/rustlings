@@ -16,19 +16,19 @@ pub fn create_scene<'texture_creator, T>(
     texture_creator: &'texture_creator TextureCreator<T>,
 ) -> Result<Box<dyn Scene<'texture_creator> + 'texture_creator>> {
     match game_state.scene {
-        state::Scene::Level(state) => Ok(Box::from(SceneLevel::new(
+        state::Scene::Level(state) => Ok(Box::new(SceneLevel::new(
             game_data,
             game_state.global,
             state,
             texture_creator,
         )?)),
-        state::Scene::Briefing(state) => Ok(Box::from(SceneBriefing::new(
+        state::Scene::Briefing(state) => Ok(Box::new(SceneBriefing::new(
             game_data,
             game_state.global,
             state,
             texture_creator,
         )?)),
-        state::Scene::Debrief(state) => Ok(Box::from(SceneDebrief::new(
+        state::Scene::Debrief(state) => Ok(Box::new(SceneDebrief::new(
             game_data,
             game_state.global,
             state,

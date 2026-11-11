@@ -40,7 +40,7 @@ pub struct SceneDebrief<'texture_creator> {
     draw_complete: bool,
 
     fade_controller: FadeController,
-    level: LevelParameters,
+    level_parameters: LevelParameters,
 }
 
 impl<'texture_creator> SceneDebrief<'texture_creator> {
@@ -69,12 +69,12 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
             state: scene_state,
             texture_screen,
             draw_complete: false,
-            level: level.parameters,
+            level_parameters: level.parameters,
         })
     }
 
     fn level_solved(&self) -> bool {
-        self.global_state.last_saved_percent >= self.level.percent_required()
+        self.global_state.last_saved_percent >= self.level_parameters.percent_required()
     }
 
     fn next_level(&self) -> usize {
@@ -88,7 +88,7 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
             text_grid.write(12, 1, "Your time is up!");
         }
 
-        let saved_required = self.level.percent_required();
+        let saved_required = self.level_parameters.percent_required();
         let saved_percent = self.global_state.last_saved_percent;
 
         text_grid.write(12, 3, &format!("You rescued {}%", saved_percent));
@@ -124,13 +124,13 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
         }
 
         if self.level_solved() {
-            let (_, level_index) = decode_level_index(self.global_state.current_level + 1);
+            let (_, level_index) = decode_level_index(self.next_level());
             let code = code_for_level(
                 self.next_level(),
                 Some(saved_percent),
                 Some(self.global_state.code_salt),
             )
-            .unwrap_or("ABCDEFGHIJ".into());
+            .expect("internal error during code generation");
 
             text_grid.write(
                 4,
@@ -170,14 +170,16 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
     }
 
     fn dispatch_event(&mut self, event: SceneEvent) {
+        if self.state.choice.is_some() {
+            return;
+        }
+
         match event {
             SceneEvent::KeyDown {
                 keycode: Keycode::Space | Keycode::Return | Keycode::KpEnter,
                 ..
             }
-            | SceneEvent::MouseDown(MouseButton::Left, _)
-                if self.state.choice.is_none() =>
-            {
+            | SceneEvent::MouseDown(MouseButton::Left, _) => {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceDebrief::Continue);
             }
@@ -192,7 +194,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
     }
 
     fn next_tick_at_msec(&self) -> Option<u64> {
-        self.fade_controller.next_tick_at_msec()
+        self.fade_controller.next_tick_since_creation_at_msec()
     }
 
     fn is_complete(&self) -> bool {

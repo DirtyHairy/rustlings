@@ -126,16 +126,19 @@ mod test {
     #[test]
     fn next_tick_at_msec_ramps_up_during_fadein() {
         let mut fade_controller = FadeController::new(None, 765, 1020);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(3));
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), Some(3));
 
         fade_controller.tick(32);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(33));
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), Some(33));
 
         fade_controller.tick(33);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(36));
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), Some(36));
 
         fade_controller.tick(764);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(765));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(765)
+        );
     }
 
     #[test]
@@ -143,10 +146,10 @@ mod test {
         let mut fade_controller = FadeController::new(None, 765, 1020);
 
         fade_controller.tick(765);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
 
         fade_controller.tick(800);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
     }
 
     #[test]
@@ -155,16 +158,28 @@ mod test {
         fade_controller.tick(1000);
 
         fade_controller.start_fadeout();
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(1004));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(1004)
+        );
 
         fade_controller.tick(1199);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(1200));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(1200)
+        );
 
         fade_controller.tick(1200);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(1204));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(1204)
+        );
 
         fade_controller.tick(2019);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(2020));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(2020)
+        );
     }
 
     #[test]
@@ -175,10 +190,10 @@ mod test {
         fade_controller.start_fadeout();
 
         fade_controller.tick(2020);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
 
         fade_controller.tick(4000);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
     }
 
     #[test]
@@ -187,19 +202,28 @@ mod test {
         fade_controller.tick(301);
 
         fade_controller.start_fadeout();
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(305));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(305)
+        );
 
         fade_controller.tick(316);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(317));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(317)
+        );
 
         fade_controller.tick(700);
-        assert_eq!(fade_controller.next_tick_at_msec(), Some(701));
+        assert_eq!(
+            fade_controller.next_tick_since_creation_at_msec(),
+            Some(701)
+        );
 
         fade_controller.tick(701);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
 
         fade_controller.tick(1000);
-        assert_eq!(fade_controller.next_tick_at_msec(), None);
+        assert_eq!(fade_controller.next_tick_since_creation_at_msec(), None);
     }
 
     #[test]
