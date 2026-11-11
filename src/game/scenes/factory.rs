@@ -6,7 +6,7 @@ use sdl3::render::TextureCreator;
 
 use crate::{
     scene::Scene,
-    scenes::{SceneBriefing, SceneLevel},
+    scenes::{SceneBriefing, SceneDebrief, SceneLevel},
     state::{self, GameState},
 };
 
@@ -23,6 +23,12 @@ pub fn create_scene<'texture_creator, T>(
             texture_creator,
         )?)),
         state::Scene::Briefing(state) => Ok(Box::from(SceneBriefing::new(
+            game_data,
+            game_state.global,
+            state,
+            texture_creator,
+        )?)),
+        state::Scene::Debrief(state) => Ok(Box::from(SceneDebrief::new(
             game_data,
             game_state.global,
             state,

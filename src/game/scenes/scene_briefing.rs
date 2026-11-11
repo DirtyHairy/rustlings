@@ -150,7 +150,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         })
     }
 
-    fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> anyhow::Result<bool> {
+    fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
         if self.static_draw_complete {
             return Ok(false);
         }
@@ -262,7 +262,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 ..
             }
             | SceneEvent::MouseDown(MouseButton::Left, _)
-                if self.state.choice.is_none() && !self.fade_controller.fadeout_started() =>
+                if self.state.choice.is_none() =>
             {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceBriefing::Launch);
@@ -271,7 +271,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         };
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> anyhow::Result<()> {
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
         self.fade_controller.tick(clock_msec);
 
         clock_msec += self.clock_offset_msec;
@@ -313,10 +313,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
             && (!self.fade_controller.fadeout_started() || self.fade_controller.fadeout_done())
     }
 
-    fn texture(
-        &mut self,
-        id: usize,
-    ) -> anyhow::Result<&mut sdl3::render::Texture<'texture_creator>> {
+    fn texture(&mut self, id: usize) -> Result<&mut sdl3::render::Texture<'texture_creator>> {
         match id {
             TEXTURE_ID_SCREEN => Ok(&mut self.texture_screen),
             TEXTURE_ID_LEVEL => Ok(self.level_renderer.texture()),
@@ -354,7 +351,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         );
     }
 
-    fn draw(&mut self, canvas: &mut Canvas<Window>) -> anyhow::Result<bool> {
+    fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
         let static_draw = self.draw_static(canvas)?;
         let level_draw = self.draw_level(canvas)?;
 
@@ -374,12 +371,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
             Some(ChoiceBriefing::NextLevel) => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
+                    ..self.global_state
                 },
                 scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
             Some(ChoiceBriefing::PreviousLevel) => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
+                    ..self.global_state
                 },
                 scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },

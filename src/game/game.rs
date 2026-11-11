@@ -14,7 +14,7 @@ use sdl3::{
 use crate::{
     scenes::create_scene,
     stage::{Stage, StopReason},
-    state::{self, GameState, GameStateGlobal},
+    state::{self, GameState},
 };
 
 pub struct Config {
@@ -90,7 +90,7 @@ pub fn run(config: &Config) -> Result<()> {
         .into();
 
     let mut game_state = GameState {
-        global: GameStateGlobal { current_level: 0 },
+        global: Default::default(),
         scene: state::Scene::Briefing(None),
     };
 

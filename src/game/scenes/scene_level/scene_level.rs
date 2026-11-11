@@ -197,12 +197,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             Status::DoneNextLevel => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
+                    ..self.global_state
                 },
                 scene: state::Scene::Briefing(None),
             },
             Status::DonePreviousLevel => GameState {
                 global: GameStateGlobal {
                     current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
+                    ..self.global_state
                 },
                 scene: state::Scene::Briefing(None),
             },
