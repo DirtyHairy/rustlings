@@ -78,7 +78,7 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
             return 100;
         }
 
-        (self.level.required * 100 / self.level.released).max(100) as u8
+        (self.level.required * 100 / self.level.released).min(100) as u8
     }
 
     fn level_solved(&self) -> bool {

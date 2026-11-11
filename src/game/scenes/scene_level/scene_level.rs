@@ -3,8 +3,7 @@ use std::{collections::VecDeque, rc::Rc};
 use anyhow::Result;
 use rustlings::game_data::{
     Bitmap, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters,
-    NUM_LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH, Skill, decode_level_index,
-    file::ground::InteractionType,
+    SCREEN_HEIGHT, SCREEN_WIDTH, Skill, decode_level_index, file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -32,17 +31,9 @@ use crate::{
     state::{GameState, SceneStateLevel},
 };
 
-#[derive(PartialEq)]
-enum Status {
-    Running,
-    DoneNextLevel,
-    DonePreviousLevel,
-}
-
 pub struct SceneLevel<'texture_creator> {
     global_state: GameStateGlobal,
     state: Box<SceneStateLevel>,
-    status: Status,
 
     renderer: Renderer<'texture_creator>,
     scroll_controller: ScrollController,
@@ -112,7 +103,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             clock_offset_msec: scene_state.clock_msec,
             global_state,
             state: scene_state,
-            status: Status::Running,
             renderer,
             scroll_controller,
             selection_controller,
@@ -185,29 +175,33 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         self.simulation
             .assign_skill(&mut self.state, lemming_index, skill)
     }
+
+    fn level_complete(&self) -> bool {
+        let all_released = (self.state.lemmings_out == self.level_parameters.released)
+            || self.state.armageddon.is_some();
+
+        self.state.remaining_time_seconds == 0 || (all_released && self.state.lemmings.is_empty())
+    }
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
     fn finish(self: Box<Self>) -> GameState {
-        match self.status {
-            Status::Running => GameState {
+        if self.fade_controller.fadeout_done() {
+            GameState {
+                global: GameStateGlobal {
+                    last_saved_percent: ((self.state.lemmings_in * 100)
+                        / self.level_parameters.required)
+                        .min(100) as u8,
+                    last_time_remaining_seconds: self.state.remaining_time_seconds,
+                    ..self.global_state
+                },
+                scene: state::Scene::Debrief(None),
+            }
+        } else {
+            GameState {
                 global: self.global_state,
                 scene: state::Scene::Level(Some((self.fade_controller.finish(), self.state))),
-            },
-            Status::DoneNextLevel => GameState {
-                global: GameStateGlobal {
-                    current_level: (self.global_state.current_level + 1) % NUM_LEVELS,
-                    ..self.global_state
-                },
-                scene: state::Scene::Briefing(None),
-            },
-            Status::DonePreviousLevel => GameState {
-                global: GameStateGlobal {
-                    current_level: (self.global_state.current_level + NUM_LEVELS - 1) % NUM_LEVELS,
-                    ..self.global_state
-                },
-                scene: state::Scene::Briefing(None),
-            },
+            }
         }
     }
 
@@ -253,23 +247,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
         match event {
             SceneEvent::KeyDown {
-                keycode: Keycode::PageDown,
-                ..
-            } => {
-                if self.status == Status::Running {
-                    self.status = Status::DonePreviousLevel;
-                }
-            }
-            SceneEvent::KeyDown {
-                keycode: Keycode::PageUp,
-                ..
-            } => {
-                if self.status == Status::Running {
-                    self.status = Status::DoneNextLevel;
-                }
-            }
-
-            SceneEvent::KeyDown {
                 keycode: Keycode::Space,
                 keymod,
                 ..
@@ -289,6 +266,12 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
                 keycode: Keycode::LShift | Keycode::RShift,
                 ..
             } => self.shift_down = false,
+            SceneEvent::KeyDown {
+                keycode: Keycode::Escape,
+                ..
+            } if !self.fade_controller.fadeout_started() => {
+                self.fade_controller.start_fadeout();
+            }
 
             SceneEvent::MouseDown(MouseButton::Right, _) => self.right_mouse_down = true,
             SceneEvent::MouseUp(MouseButton::Right, _) => self.right_mouse_down = false,
@@ -367,6 +350,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SKILL_PANEL);
         }
 
+        if self.level_complete() && !self.fade_controller.fadeout_started() {
+            self.fade_controller.start_fadeout();
+        }
+
         Ok(())
     }
 
@@ -403,7 +390,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     }
 
     fn is_complete(&self) -> bool {
-        self.status != Status::Running
+        self.fade_controller.fadeout_done()
     }
 }
 

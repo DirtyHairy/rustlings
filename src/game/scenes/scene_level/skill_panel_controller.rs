@@ -7,7 +7,7 @@ use strum::EnumCount;
 
 use crate::{
     scene::{MouseButton, MouseCoordinates, SceneEvent},
-    state::{ArmageddonState, LevelState, SceneStateLevel},
+    state::{ArmageddonState, SceneStateLevel},
 };
 
 bitflags! {
@@ -179,9 +179,7 @@ impl SkillPanelController {
     }
 
     fn trigger_armageddon(&mut self, state: &mut SceneStateLevel) {
-        if state.armageddon.is_some()
-            || matches!(state.level_state, LevelState::Intro | LevelState::Open)
-        {
+        if state.armageddon.is_some() {
             return;
         }
 

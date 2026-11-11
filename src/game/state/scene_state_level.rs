@@ -12,15 +12,6 @@ pub struct Selection {
     pub secondary_lemming_stale: bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
-pub enum LevelState {
-    #[default]
-    Intro,
-    Open,
-    Spawn,
-    Late,
-}
-
 #[repr(u8)]
 #[derive(FromRepr, Debug, PartialEq)]
 pub enum BlockField {
@@ -66,8 +57,6 @@ pub struct ArmageddonState {
 
 #[derive(Clone, Default)]
 pub struct SceneStateLevel {
-    pub level_state: LevelState,
-
     pub level_x: u32,
     pub terrain: Bitmap,
     pub terrain_map: Vec<TerrainProps>,
@@ -91,7 +80,7 @@ pub struct SceneStateLevel {
 
     pub lemmings: LemmingsState,
 
-    pub spawn_countdown: u32,
+    pub spawn_countdown: Option<u32>,
 
     pub armageddon: Option<ArmageddonState>,
 }

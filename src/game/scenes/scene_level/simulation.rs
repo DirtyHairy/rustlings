@@ -10,8 +10,8 @@ use crate::{
     scenes::common::{BRICK_COLOR, BRICK_LINE_WIDTH, DIG_LINE_WIDTH, TerrainDiff, TerrainDiffKind},
     state::{
         Activity, ActivityStateBuilding, ActivityStateDigging, ActivityStateFalling, BlockField,
-        Direction, LemmingAnimation, LemmingHealth, LemmingState, LevelState, ObjectState,
-        SceneStateLevel, TerrainProps,
+        Direction, LemmingAnimation, LemmingHealth, LemmingState, ObjectState, SceneStateLevel,
+        TerrainProps,
     },
 };
 
@@ -150,17 +150,13 @@ impl Simulation {
 
         match current_tick {
             TICK_OPEN_ENTRANCES => {
-                state.level_state = LevelState::Open;
                 self.open_entrances(state);
             }
-            TICK_START_SPAWN => {
-                state.level_state = LevelState::Spawn;
-                state.spawn_countdown = SPAWN_COUNTDOWN_DEFAULT
-            }
+            TICK_START_SPAWN => state.spawn_countdown = Some(SPAWN_COUNTDOWN_DEFAULT),
             _ => (),
         }
 
-        if state.level_state == LevelState::Spawn && state.armageddon.is_none() {
+        if state.armageddon.is_none() {
             self.tick_spawn(state);
         }
 
@@ -252,10 +248,14 @@ impl Simulation {
     }
 
     fn tick_spawn(&self, state: &mut SceneStateLevel) {
+        let Some(spawn_countdown) = &mut state.spawn_countdown else {
+            return;
+        };
+
         const PATTERNS: [[usize; 4]; 4] = [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 2, 1], [0, 1, 2, 3]];
 
-        state.spawn_countdown = state.spawn_countdown.saturating_sub(1);
-        if state.spawn_countdown > 0 {
+        *spawn_countdown = spawn_countdown.saturating_sub(1);
+        if *spawn_countdown > 0 {
             return;
         }
 
@@ -276,9 +276,9 @@ impl Simulation {
         state.lemmings_out += 1;
 
         if state.lemmings_out == self.released_total {
-            state.level_state = LevelState::Late;
+            state.spawn_countdown = None;
         } else {
-            state.spawn_countdown = 99_u32.saturating_sub(state.release_rate) / 2 + 4;
+            state.spawn_countdown = Some(99_u32.saturating_sub(state.release_rate) / 2 + 4);
         }
     }
 
