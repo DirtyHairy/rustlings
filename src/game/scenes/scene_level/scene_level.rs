@@ -3,7 +3,7 @@ use std::{collections::VecDeque, rc::Rc};
 use anyhow::Result;
 use rustlings::game_data::{
     Bitmap, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters,
-    SCREEN_HEIGHT, SCREEN_WIDTH, Skill, decode_level_index, file::ground::InteractionType,
+    SCREEN_HEIGHT, SCREEN_WIDTH, Skill, file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -12,7 +12,6 @@ use sdl3::{
 };
 
 use crate::{
-    code::code_for_level,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::{
         common::{FADEIN_MSEC_LEVEL, FADEOUT_MSEC_LEVEL, FadeController},
@@ -61,8 +60,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(global_state.current_level)?;
-        print_level(global_state.current_level, &level);
-
         let simulation = Simulation::new(Rc::clone(&game_data), &level)?;
 
         let (fade_state, scene_state) = match state {
@@ -190,7 +187,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             GameState {
                 global: GameStateGlobal {
                     last_saved_percent: ((self.state.lemmings_in * 100)
-                        / self.level_parameters.required)
+                        / self.level_parameters.released)
                         .min(100) as u8,
                     last_time_remaining_seconds: self.state.remaining_time_seconds,
                     ..self.global_state
@@ -392,17 +389,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
     fn is_complete(&self) -> bool {
         self.fade_controller.fadeout_done()
     }
-}
-
-fn print_level(current_level: usize, level: &Level) {
-    let (difficulty, index) = decode_level_index(current_level);
-    println!();
-    println!("{} {}", difficulty, index);
-    println!(
-        "code: {}",
-        code_for_level(current_level, None, None).unwrap_or("[invalid]".into())
-    );
-    println!("{}", level);
 }
 
 fn init_terrain_map(

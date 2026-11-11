@@ -84,13 +84,13 @@ mod test {
         fade_controller.tick(500);
         fade_controller.start_fadeout();
 
-        for fixture in [510, 600, 1010] {
+        for fixture in [510, 600, 1009] {
             fade_controller.tick(fixture);
 
             assert!(!fade_controller.fadeout_done());
         }
 
-        for fixture in [1011, 1500] {
+        for fixture in [1010, 1500] {
             fade_controller.tick(fixture);
 
             assert!(fade_controller.fadeout_done());
@@ -107,7 +107,7 @@ mod test {
         assert!(fade_controller.fadeout_started());
         assert!(!fade_controller.fadeout_done());
 
-        for fixture in [100, 200, 280, 300] {
+        for fixture in [100, 200, 280, 209] {
             fade_controller.tick(fixture);
 
             assert_eq!(
@@ -117,7 +117,9 @@ mod test {
             assert!(!fade_controller.fadeout_done());
         }
 
-        fade_controller.tick(301);
+        fade_controller.tick(300);
+
+        assert_eq!(fade_controller.opacity(), 0);
         assert!(fade_controller.fadeout_done());
     }
 

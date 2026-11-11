@@ -12,7 +12,7 @@ pub const FADEIN_MSEC_MENU: u64 = 500;
 pub const FADEOUT_MSEC_MENU: u64 = 500;
 
 pub const FADEIN_MSEC_LEVEL: u64 = 1000;
-pub const FADEOUT_MSEC_LEVEL: u64 = 2500;
+pub const FADEOUT_MSEC_LEVEL: u64 = 2000;
 
 impl FadeController {
     pub fn new(
@@ -99,15 +99,7 @@ impl FadeController {
 
     pub fn fadeout_done(&self) -> bool {
         match self.state.fadeout_started_at_msec {
-            Some(fadeout_started_at_msec) => {
-                let fadein_duration_msec = fadeout_started_at_msec.min(self.fadein_duration_msec);
-                let fadeout_duration_msec = (((fadein_duration_msec * 255)
-                    / self.fadein_duration_msec)
-                    * self.fadeout_duration_msec)
-                    / 255;
-
-                self.state.clock_msec > fadeout_started_at_msec + fadeout_duration_msec
-            }
+            Some(_) => self.opacity() == 0,
             None => false,
         }
     }
