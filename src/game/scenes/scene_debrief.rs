@@ -73,16 +73,8 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
         })
     }
 
-    fn saved_required(&self) -> u8 {
-        if self.level.released == 0 {
-            return 100;
-        }
-
-        (self.level.required * 100 / self.level.released).min(100) as u8
-    }
-
     fn level_solved(&self) -> bool {
-        self.global_state.last_saved_percent >= self.saved_required()
+        self.global_state.last_saved_percent >= self.level.percent_required()
     }
 
     fn next_level(&self) -> usize {
@@ -96,7 +88,7 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
             text_grid.write(12, 1, "Your time is up!");
         }
 
-        let saved_required = self.saved_required();
+        let saved_required = self.level.percent_required();
         let saved_percent = self.global_state.last_saved_percent;
 
         text_grid.write(12, 3, &format!("You rescued {}%", saved_percent));
@@ -251,7 +243,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
 
     fn finish(self: Box<Self>) -> GameState {
         match self.state.choice {
-            Some(ChoiceDebrief::Continue) => GameState {
+            Some(ChoiceDebrief::Continue) if self.fade_controller.fadeout_done() => GameState {
                 global: GameStateGlobal {
                     current_level: if self.level_solved() {
                         self.next_level()
@@ -262,7 +254,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
                 },
                 scene: Briefing(None),
             },
-            None => GameState {
+            _ => GameState {
                 global: self.global_state,
                 scene: state::Scene::Debrief(Some((self.fade_controller.finish(), self.state))),
             },

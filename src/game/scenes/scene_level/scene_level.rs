@@ -179,6 +179,14 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
         self.state.remaining_time_seconds == 0 || (all_released && self.state.lemmings.is_empty())
     }
+
+    fn saved_percent(&self) -> u8 {
+        if self.level_parameters.released == 0 {
+            return 100;
+        }
+
+        ((self.state.lemmings_in * 100) / self.level_parameters.released).min(100) as u8
+    }
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
@@ -186,9 +194,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         if self.fade_controller.fadeout_done() {
             GameState {
                 global: GameStateGlobal {
-                    last_saved_percent: ((self.state.lemmings_in * 100)
-                        / self.level_parameters.released)
-                        .min(100) as u8,
+                    last_saved_percent: self.saved_percent(),
                     last_time_remaining_seconds: self.state.remaining_time_seconds,
                     ..self.global_state
                 },
@@ -358,7 +364,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         let mut next_tick = ((self.state.clock_msec / ENGINE_TICK_MSEC) + 1) * ENGINE_TICK_MSEC;
 
         if let Some(next_tick_fade) = self.fade_controller.next_tick_at_msec() {
-            next_tick = next_tick.min(next_tick_fade);
+            next_tick = next_tick.min(next_tick_fade + self.clock_offset_msec);
         }
 
         if let Some(next_tick_scroll) = self.scroll_controller.next_tick_at_msec(&self.state) {

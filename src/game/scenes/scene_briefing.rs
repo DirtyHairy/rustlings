@@ -203,10 +203,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             10,
             &format!(
                 "{:4} To Be Saved",
-                format!(
-                    "{}%",
-                    (level.parameters.required * 100) / level.parameters.released
-                )
+                format!("{}%", level.parameters.percent_required())
             ),
         );
         grid.write(
@@ -364,7 +361,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
 
     fn finish(self: Box<Self>) -> state::GameState {
         match self.state.choice {
-            Some(ChoiceBriefing::Launch) => GameState {
+            Some(ChoiceBriefing::Launch) if self.fade_controller.fadeout_done() => GameState {
                 global: self.global_state,
                 scene: state::Scene::Level(None),
             },
@@ -382,7 +379,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 },
                 scene: state::Scene::Briefing(Some((self.fade_controller.finish(), None))),
             },
-            None => GameState {
+            _ => GameState {
                 global: self.global_state,
                 scene: state::Scene::Briefing(Some((
                     self.fade_controller.finish(),

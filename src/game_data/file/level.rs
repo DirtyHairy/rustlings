@@ -62,6 +62,16 @@ pub struct Level {
     pub objects: Vec<Object>,
 }
 
+impl LevelParameters {
+    pub fn percent_required(&self) -> u8 {
+        if self.released == 0 {
+            return 100;
+        }
+
+        (self.required * 100 / self.released).min(100) as u8
+    }
+}
+
 pub fn read_level_file(path: &Path, index: usize) -> Result<Vec<Level>> {
     let compressed_level_data = read_game_file(path, &format!("level00{}.dat", index))?;
 
