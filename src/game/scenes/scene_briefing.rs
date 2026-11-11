@@ -235,13 +235,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         }
         match event {
             SceneEvent::KeyDown {
-                keycode: Keycode::PageDown,
+                keycode: Keycode::PageUp,
                 ..
             } => {
                 self.state.choice = Some(ChoiceBriefing::PreviousLevel);
             }
             SceneEvent::KeyDown {
-                keycode: Keycode::PageUp,
+                keycode: Keycode::PageDown,
                 ..
             } => self.state.choice = Some(ChoiceBriefing::NextLevel),
             SceneEvent::KeyDown {

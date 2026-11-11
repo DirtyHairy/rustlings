@@ -5,12 +5,11 @@ to act as a drop-in replacement for the original DOS executable with pixel-exact
 physics and high-quality upscaled graphics rendered at the native screen refresh
 rate.
 
-All levels load in the correct order and are fully playable. Still missing are:
+At this point the gamme is fully playable. Still missing are
 
-- Level finish conditions --- nothing happens if all lemmings are gone or
-  time runs out
-- Menu and level screens
+- The main menu
 - Audio
+- Winning --- the game currently wraps after the last level
 
 Graphics make heavy use of GPU rendering. SDL software rendering works, but
 expect a hefty CPU load without acceleration. With acceleration, CPU load is
@@ -48,16 +47,40 @@ game to the data files via
 $ ./target/release/rustlings <path to DOS files>
 ```
 
-Keybindings:
+# Playing
 
-- **Page up / down**: next / previous level
+Gameplay works just the same as it did in DOS, including most quirks and bugs
+of the original. Without the main menu there currently is no way to enter level
+codes, but you can use page up / page down on the briefing screen to cycle through
+the levels.
+
+## Keybindings:
+
+'Meta' refers to any of ctrl / alt / command.
+
+### All screens
+
+- **meta enter**: toggle full screen
+- **meta q**: quit game
+
+### Briefing screen
+
+- **Page down / up**: next / previous level
+- **Enter / Space / Left click** launch current level
+
+### Ingame
+
 - **Left / right**: scroll (hold shift or right mouse button for fast scrolling)
 - **1 -- 8**: switch skill
 - \+ / - : change release rate
 - **Shift**: hold to emulate right mouse button
+- **Escape**: exit level early
 - **p**: pause
-- **ctrl/cmd enter**: toggle full screen
-- **ctrl/cmd q**: quit
+- **meta space**: hold to run at 4x speed
+
+### Debriefing screen
+
+- **Enter / Space / Left click** Launch next level / retry current level
 
 # References
 
