@@ -13,6 +13,7 @@ use sdl3::{
 use crate::scene::SceneEvent;
 
 const INITIAL_CAPACITY: usize = 32;
+const INDEFINITE_POLL_INTERVAL_MSEC: u64 = 100;
 
 #[derive(Clone, Copy)]
 pub enum MouseButton {
@@ -117,25 +118,21 @@ impl EventCollector {
                 break;
             }
 
-            let maybe_event = if let Some(timeout) = timeout_millis {
-                let wait_timeout =
-                    cmp::max(timeout.saturating_sub(elapsed), aggregation_time_remaining);
-
-                event_pump.wait_event_timeout(Duration::from_millis(wait_timeout))
+            let wait_timeout = if self.decoded_events.is_empty() {
+                cmp::max(
+                    aggregation_time_remaining,
+                    timeout_millis
+                        .map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed)),
+                )
             } else {
-                let mut maybe_evt: Option<Event>;
-
-                loop {
-                    maybe_evt = event_pump.wait_event_timeout(Duration::from_millis(100));
-                    if maybe_evt.is_some() {
-                        break;
-                    }
-                }
-
-                maybe_evt
+                aggregation_time_remaining
             };
 
-            for event in maybe_event.into_iter().chain(event_pump.poll_iter()) {
+            for event in event_pump
+                .wait_event_timeout(Duration::from_millis(wait_timeout))
+                .into_iter()
+                .chain(event_pump.poll_iter())
+            {
                 match decode_sdl_event(&event) {
                     GameEvents::None => (),
                     GameEvents::One(evt) => {
