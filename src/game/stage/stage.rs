@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::mem::transmute;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -5,6 +6,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Result, anyhow};
 use rustlings::game_data::GameData;
 use rustlings::sdl::{current_refresh_rate, is_main_thread, with_texture_canvas};
+use sdl3::event::EventWatch;
 use sdl3::mouse::MouseState;
 use sdl3::pixels::{Color, PixelFormat};
 use sdl3::render::{ScaleMode, Texture};
@@ -88,10 +90,6 @@ impl<'sdl> Stage<'sdl> {
 
         scene.register_layers(&mut render_state);
 
-        let expose_watch = ExposeWatch::new(self, &mut render_state, scene);
-        let mut event_watch = self.sdl_context.event()?.add_event_watch(expose_watch);
-        event_watch.deactivate();
-
         let mut event_collector = EventCollector::new();
 
         self.rerender = true;
@@ -156,13 +154,16 @@ impl<'sdl> Stage<'sdl> {
                     .map(|x| x.saturating_sub(time) / self.speed as u64)
             };
 
-            event_watch.activate();
+            let mut event_pump = self.sdl_context.event_pump()?;
+            let expose_watch = ExposeWatch::new(self, &mut render_state, scene)?;
+
             event_collector.collect_events(
                 ts_frame_start + Duration::from_millis(frame_budget),
                 aggregate_timeout,
-                &mut self.sdl_context.event_pump()?,
+                &mut event_pump,
             );
-            event_watch.deactivate();
+
+            drop(expose_watch);
 
             self.update_mouse_state(&event_collector, &mut render_state);
         }
@@ -513,14 +514,49 @@ impl<'sdl> Stage<'sdl> {
     }
 }
 
-struct ExposeWatch {
+// In order to avoid undefined behavior caused by double borrows (which for example might
+// manifest in associated data consistency issues caused by unspilled changes to the
+// dependencies) ExposeWatch extends the borrow of its dependencies over its lifetime.
+struct ExposeWatch<'a> {
+    _watch: EventWatch<ExposeWatchCb>,
+    _parents: PhantomData<&'a mut ()>,
+}
+
+impl<'a> ExposeWatch<'a> {
+    pub fn new(
+        stage: &'a mut Stage,
+        render_state: &'a mut RenderState,
+        scene: &'a mut dyn Scene,
+    ) -> Result<Self> {
+        let sdl = stage.sdl_context.clone();
+
+        let expose_watch = ExposeWatchCb::new(stage, render_state, scene);
+        // Important: no borrows of any of stage, render_state or scene anymore
+        // below this point while ExposeWatch is alive!
+
+        let watch = sdl.event()?.add_event_watch(expose_watch);
+
+        Ok(Self {
+            _watch: watch,
+            _parents: PhantomData,
+        })
+    }
+}
+
+// We need an explicit drop to make sure that 'a stays alive until ExposeWatch
+// is actually dropped and to guarantee that _watch cannot be moved out.
+impl Drop for ExposeWatch<'_> {
+    fn drop(&mut self) {}
+}
+
+struct ExposeWatchCb {
     stage: *mut Stage<'static>,
     render_state: *mut RenderState<'static>,
     scene: *mut dyn Scene<'static>,
 }
-unsafe impl Send for ExposeWatch {}
+unsafe impl Send for ExposeWatchCb {}
 
-impl EventWatchCallback for ExposeWatch {
+impl EventWatchCallback for ExposeWatchCb {
     fn callback(&mut self, event: Event) {
         // https://wiki.libsdl.org/SDL3/SDL_SetEventFilter states EXPOSE is guranteed
         // to be dispatched on the main thread, but making this explicit doesn't hurt
@@ -542,19 +578,21 @@ impl EventWatchCallback for ExposeWatch {
     }
 }
 
-impl ExposeWatch {
+impl ExposeWatchCb {
     pub fn new(stage: &mut Stage, render_state: &mut RenderState, scene: &mut dyn Scene) -> Self {
         // SAFETY: EventWatchCallbacks are declared as Send + 'static, which makes sense for the
         // general case: they are sent to another thread and live until the watch is removed.
         // However, we don't need this as we 1. check whether we are on the main thread before
         // doing anything and 2. drop and destroy the watch before the dependencies are dropped
-        // or moved.
+        // or moved. Note that we still need to avoid a double borrow of the dependencies during
+        // the lifetime of the watch in order to avoid undefined behavior (which e.g. might manifest
+        // in data consistency issues); this is why ExposeWatch keeps those references alive.
         //
         // The whole construction qualifies as abomination, but MacOS stalls the event pump during
         // window resize, so this is the only way to get redraws and avoid an ugly stretched texture
         // while the window handles are being dragged.
         #[allow(clippy::unnecessary_cast)]
-        ExposeWatch {
+        ExposeWatchCb {
             stage: (stage as *mut _) as *mut Stage<'static>,
             render_state: (render_state as *mut _) as *mut RenderState<'static>,
             scene: unsafe {
