@@ -91,6 +91,7 @@ pub fn read_game_data(path: &Path) -> Result<GameData> {
             screen_background: main.screen_background,
             mask_sprites: main.mask_sprites,
             particle_sets: load_particle_sets(),
+            main_menu: main.main_menu,
         })
     })
 }

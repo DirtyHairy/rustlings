@@ -5,7 +5,7 @@ pub use crate::game_data::file::ground::{
     OBJECTS_PER_TILESET, ObjectInfo, Palettes, TILES_PER_TILESET, TerrainInfo,
 };
 pub use crate::game_data::file::level::{Level, LevelParameters, Object, TerrainTile};
-use crate::game_data::file::main::{LemmingSprite, MaskSprite};
+use crate::game_data::file::main::{LemmingSprite, MainMenuAssets, MaskSprite};
 use crate::game_data::file::palette::{LOWER_PALETTE_FIXED, UPPER_PALETTE_SKILL_PANEL};
 pub use crate::game_data::file::palette::{PALETTE_SIZE, PaletteEntry};
 pub use crate::game_data::file::sprite::{Bitmap, Sprite};
@@ -54,6 +54,7 @@ pub struct GameData {
     pub screen_background: Bitmap,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
     pub particle_sets: ParticleSets,
+    pub main_menu: MainMenuAssets,
 }
 
 impl GameData {

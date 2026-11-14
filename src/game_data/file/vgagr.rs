@@ -49,7 +49,7 @@ pub fn read_vgagr(
             4,
             object_data,
             &mut offset,
-            info.animation_frame_size,
+            Some(info.animation_frame_size),
             TransparencyEncoding::PlanarOffset(info.mask_offset),
         )?);
     }

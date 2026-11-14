@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow, bail};
 use strum::EnumCount;
 
 use crate::game_data::Bitmap;
-use crate::game_data::file::encoding::datfile;
+use crate::game_data::file::encoding::datfile::{self, Section};
 use crate::game_data::file::sprite::{Sprite, TransparencyEncoding};
 use crate::game_data::file::util::read_game_file;
 
@@ -12,6 +12,8 @@ pub const FONT_SKILL_PANEL_SKILLS_SIZE: usize = 11;
 pub const FONT_SKILL_PANEL_SIZE: usize = 39;
 pub const FONT_MAIN_SIZE: usize = 94;
 pub const FONT_COUNTDOWN_SIZE: usize = 10;
+
+const EYE_SPRITE_COUNT: usize = 7;
 
 const COLOR_WHITE: u8 = 0x03;
 const COLOR_BLACK: u8 = 0x00;
@@ -86,7 +88,7 @@ pub const LEMMING_SPRITE_LAYOUT: [(usize, u32, u32, usize); LemmingSprite::COUNT
     (1, 32, 32, 3),
 ];
 
-#[derive(Copy, Clone, PartialEq, Default, Debug, EnumCount)]
+#[derive(Copy, Clone, PartialEq, Default, EnumCount, Debug)]
 pub enum MaskSprite {
     #[default]
     BashR = 0,
@@ -94,6 +96,30 @@ pub enum MaskSprite {
     MineR = 2,
     MineL = 3,
     Explosion = 4,
+}
+
+#[derive(Copy, Clone, PartialEq, EnumCount)]
+pub enum SignFrame {
+    OnePlayer = 0,
+    NewLevel = 1,
+    Audio = 2,
+    Difficulty = 3,
+    Exit = 4,
+    Controls = 5,
+}
+
+#[derive(Copy, Clone, PartialEq, EnumCount)]
+pub enum RatingFrame {
+    Mayhem = 0,
+    Taxing = 1,
+    Tricky = 2,
+    Fun = 3,
+}
+
+#[derive(Copy, Clone, PartialEq, EnumCount)]
+pub enum AudioSettingFrame {
+    Fx = 0,
+    Music = 1,
 }
 
 pub const MASK_SPRITE_LAYOUT: [(usize, u32, u32); MaskSprite::COUNT] = [
@@ -104,6 +130,18 @@ pub const MASK_SPRITE_LAYOUT: [(usize, u32, u32); MaskSprite::COUNT] = [
     (1, 16, 22),
 ];
 
+#[derive(Clone)]
+pub struct MainMenuAssets {
+    pub logo: Sprite,
+    pub signs: Sprite,
+    pub audio_settings: Sprite,
+    pub eyes: [Sprite; EYE_SPRITE_COUNT],
+    pub scroller_left: Sprite,
+    pub scroller_right: Sprite,
+    pub scroller_reel: Sprite,
+    pub ratings: Sprite,
+}
+
 pub struct Content {
     pub lemming_sprites: [Sprite; LemmingSprite::COUNT],
     pub skill_panel: Bitmap,
@@ -113,6 +151,7 @@ pub struct Content {
     pub font_main: Sprite,
     pub screen_background: Bitmap,
     pub mask_sprites: [Sprite; MaskSprite::COUNT],
+    pub main_menu: MainMenuAssets,
 }
 
 pub fn read_main(path: &Path) -> Result<Content> {
@@ -135,7 +174,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             bpp,
             &sections[0].data,
             &mut offset,
-            (width as usize * height as usize * bpp) / 8,
+            None,
             TransparencyEncoding::Black,
         )?;
     }
@@ -151,7 +190,7 @@ pub fn read_main(path: &Path) -> Result<Content> {
             1,
             &sections[1].data,
             &mut offset,
-            (width * height) as usize / 8,
+            None,
             TransparencyEncoding::Black,
             |c| if c == 0 { COLOR_WHITE } else { COLOR_BLACK },
         )?;
@@ -241,6 +280,8 @@ pub fn read_main(path: &Path) -> Result<Content> {
     let menu_background =
         Bitmap::read_planar(320, 104, 2, &sections[3].data, TransparencyEncoding::Black)?;
 
+    let main_menu = read_main_menu_assets(&sections)?;
+
     Ok(Content {
         lemming_sprites,
         skill_panel,
@@ -250,6 +291,113 @@ pub fn read_main(path: &Path) -> Result<Content> {
         font_main,
         screen_background: menu_background,
         mask_sprites,
+        main_menu,
+    })
+}
+
+pub fn read_main_menu_assets(sections: &[Section]) -> Result<MainMenuAssets> {
+    let mut offset = 0x2080;
+    let logo = Sprite::read_planar(
+        1,
+        632,
+        94,
+        4,
+        &sections[3].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let signs = Sprite::read_planar(
+        SignFrame::COUNT,
+        120,
+        61,
+        4,
+        &sections[3].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let audio_settings = Sprite::read_planar(
+        AudioSettingFrame::COUNT,
+        64,
+        31,
+        4,
+        &sections[3].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let mut eyes: [Sprite; EYE_SPRITE_COUNT] = Default::default();
+    offset = 0;
+    for i in 0..EYE_SPRITE_COUNT {
+        eyes[i] = Sprite::read_planar(
+            8,
+            32,
+            12,
+            4,
+            &sections[4].data,
+            &mut offset,
+            None,
+            TransparencyEncoding::Black,
+        )?;
+    }
+
+    let scroller_left = Sprite::read_planar(
+        16,
+        48,
+        16,
+        4,
+        &sections[4].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let scroller_right = Sprite::read_planar(
+        16,
+        48,
+        16,
+        4,
+        &sections[4].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let scroller_reel = Sprite::read_planar(
+        1,
+        16,
+        16,
+        5,
+        &sections[4].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    let ratings = Sprite::read_planar(
+        RatingFrame::COUNT,
+        72,
+        27,
+        4,
+        &sections[4].data,
+        &mut offset,
+        None,
+        TransparencyEncoding::Black,
+    )?;
+
+    Ok(MainMenuAssets {
+        logo,
+        signs,
+        audio_settings,
+        eyes,
+        scroller_left,
+        scroller_right,
+        scroller_reel,
+        ratings,
     })
 }
 

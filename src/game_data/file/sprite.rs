@@ -238,7 +238,7 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
-        frame_size: usize,
+        frame_size: Option<usize>,
         transparency_encoding: TransparencyEncoding,
     ) -> Result<Sprite> {
         Self::read_planar_impl::<fn(u8) -> u8>(
@@ -261,7 +261,7 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
-        frame_size: usize,
+        frame_size: Option<usize>,
         transparency_encoding: TransparencyEncoding,
         mapping: T,
     ) -> Result<Sprite> {
@@ -285,7 +285,7 @@ impl Sprite {
         bpp: usize,
         data: &[u8],
         offset: &mut usize,
-        frame_size: usize,
+        frame_size: Option<usize>,
         transparency_encoding: TransparencyEncoding,
         mapping: Option<T>,
     ) -> Result<Sprite> {
@@ -294,6 +294,8 @@ impl Sprite {
             height,
             frames: Vec::with_capacity(frame_count),
         };
+
+        let frame_size = frame_size.unwrap_or(((width * height) as usize * bpp) / 8);
 
         for iframe in 0..frame_count {
             let base = *offset + iframe * frame_size;
