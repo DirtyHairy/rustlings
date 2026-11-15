@@ -233,6 +233,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         if self.state.choice.is_some() {
             return;
         }
+
         match event {
             SceneEvent::KeyDown {
                 keycode: Keycode::PageUp,
@@ -251,6 +252,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
             | SceneEvent::MouseDown(MouseButton::Left, _) => {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceBriefing::Launch);
+            }
+            SceneEvent::KeyDown {
+                keycode: Keycode::Escape,
+                ..
+            }
+            | SceneEvent::MouseDown(MouseButton::Right | MouseButton::EmulatedRight, _) => {
+                self.fade_controller.start_fadeout();
+                self.state.choice = Some(ChoiceBriefing::MainScreen);
             }
             _ => (),
         };
@@ -347,11 +356,15 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         false
     }
 
-    fn finish(self: Box<Self>) -> state::GameState {
-        match self.state.choice {
+    fn finish(self: Box<Self>) -> Option<GameState> {
+        let new_state = match self.state.choice {
             Some(ChoiceBriefing::Launch) if self.fade_controller.fadeout_done() => GameState {
                 global: self.global_state,
                 scene: state::Scene::Level(None),
+            },
+            Some(ChoiceBriefing::MainScreen) if self.fade_controller.fadeout_done() => GameState {
+                global: self.global_state,
+                scene: state::Scene::MainScreen(None),
             },
             Some(ChoiceBriefing::NextLevel) => GameState {
                 global: GameStateGlobal {
@@ -374,6 +387,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                     Some(self.state),
                 ))),
             },
-        }
+        };
+
+        Some(new_state)
     }
 }

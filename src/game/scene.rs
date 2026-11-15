@@ -20,6 +20,7 @@ pub struct MouseCoordinates {
 pub enum MouseButton {
     Left,
     Right,
+    EmulatedRight,
 }
 
 #[derive(Clone, Copy)]
@@ -72,5 +73,5 @@ pub trait Scene<'texture_creator> {
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool>;
     fn will_redraw(&self) -> bool;
 
-    fn finish(self: Box<Self>) -> GameState;
+    fn finish(self: Box<Self>) -> Option<GameState>;
 }

@@ -3,8 +3,10 @@ mod factory;
 mod scene_briefing;
 mod scene_debrief;
 mod scene_level;
+mod scene_main_screen;
 
 pub use factory::*;
 pub use scene_briefing::*;
 pub use scene_debrief::*;
 pub use scene_level::*;
+pub use scene_main_screen::*;

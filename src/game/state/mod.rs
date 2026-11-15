@@ -6,6 +6,7 @@ mod object_state;
 mod scene_state_briefing;
 mod scene_state_debrief;
 mod scene_state_level;
+mod scene_state_main_screen;
 
 pub use fade_state::*;
 pub use game_state::*;
@@ -15,3 +16,4 @@ pub use object_state::*;
 pub use scene_state_briefing::*;
 pub use scene_state_debrief::*;
 pub use scene_state_level::*;
+pub use scene_state_main_screen::*;

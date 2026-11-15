@@ -183,6 +183,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceDebrief::Continue);
             }
+            SceneEvent::KeyDown {
+                keycode: Keycode::Escape,
+                ..
+            }
+            | SceneEvent::MouseDown(MouseButton::Right | MouseButton::EmulatedRight, _) => {
+                self.fade_controller.start_fadeout();
+                self.state.choice = Some(ChoiceDebrief::MainScreen);
+            }
             _ => (),
         }
     }
@@ -243,8 +251,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
         false
     }
 
-    fn finish(self: Box<Self>) -> GameState {
-        match self.state.choice {
+    fn finish(self: Box<Self>) -> Option<GameState> {
+        let new_state = match self.state.choice {
             Some(ChoiceDebrief::Continue) if self.fade_controller.fadeout_done() => GameState {
                 global: GameStateGlobal {
                     current_level: if self.level_solved() {
@@ -256,10 +264,16 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
                 },
                 scene: Briefing(None),
             },
+            Some(ChoiceDebrief::MainScreen) if self.fade_controller.fadeout_done() => GameState {
+                global: self.global_state,
+                scene: state::Scene::MainScreen(None),
+            },
             _ => GameState {
                 global: self.global_state,
                 scene: state::Scene::Debrief(Some((self.fade_controller.finish(), self.state))),
             },
-        }
+        };
+
+        Some(new_state)
     }
 }

@@ -1,10 +1,13 @@
-use crate::state::{FadeState, SceneStateBriefing, SceneStateDebrief, SceneStateLevel};
+use crate::state::{
+    FadeState, SceneStateBriefing, SceneStateDebrief, SceneStateLevel, SceneStateMainScreen,
+};
 
 #[derive(Clone)]
 pub enum Scene {
     Briefing(Option<(FadeState, Option<SceneStateBriefing>)>),
     Level(Option<(FadeState, Box<SceneStateLevel>)>),
     Debrief(Option<(FadeState, SceneStateDebrief)>),
+    MainScreen(Option<(FadeState, SceneStateMainScreen)>),
 }
 
 #[derive(Clone, Default)]

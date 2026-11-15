@@ -190,24 +190,6 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 }
 
 impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> {
-    fn finish(self: Box<Self>) -> GameState {
-        if self.fade_controller.fadeout_done() {
-            GameState {
-                global: GameStateGlobal {
-                    last_saved_percent: self.saved_percent(),
-                    last_time_remaining_seconds: self.state.remaining_time_seconds,
-                    ..self.global_state
-                },
-                scene: state::Scene::Debrief(None),
-            }
-        } else {
-            GameState {
-                global: self.global_state,
-                scene: state::Scene::Level(Some((self.fade_controller.finish(), self.state))),
-            }
-        }
-    }
-
     fn width(&self) -> u32 {
         SCREEN_WIDTH
     }
@@ -260,11 +242,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             }
             SceneEvent::KeyDown {
                 keycode: Keycode::LShift | Keycode::RShift,
-                keymod,
                 ..
-            } if keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD | Mod::NOMOD) => {
-                self.shift_down = true
-            }
+            } => self.shift_down = true,
             SceneEvent::KeyUp {
                 keycode: Keycode::LShift | Keycode::RShift,
                 ..
@@ -404,6 +383,26 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
     fn is_complete(&self) -> bool {
         self.fade_controller.fadeout_done()
+    }
+
+    fn finish(self: Box<Self>) -> Option<GameState> {
+        let new_state = if self.fade_controller.fadeout_done() {
+            GameState {
+                global: GameStateGlobal {
+                    last_saved_percent: self.saved_percent(),
+                    last_time_remaining_seconds: self.state.remaining_time_seconds,
+                    ..self.global_state
+                },
+                scene: state::Scene::Debrief(None),
+            }
+        } else {
+            GameState {
+                global: self.global_state,
+                scene: state::Scene::Level(Some((self.fade_controller.finish(), self.state))),
+            }
+        };
+
+        Some(new_state)
     }
 }
 

@@ -5,6 +5,7 @@ pub enum ChoiceBriefing {
     Launch,
     NextLevel,
     PreviousLevel,
+    MainScreen,
 }
 
 #[derive(Clone)]

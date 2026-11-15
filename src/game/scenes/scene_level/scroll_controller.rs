@@ -139,6 +139,7 @@ impl ScrollController {
                 self.mouse_down_right = false;
                 false
             }
+            _ => false,
         }
     }
 

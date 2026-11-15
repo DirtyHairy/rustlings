@@ -57,6 +57,7 @@ impl From<MouseButton> for scene::MouseButton {
         match btn {
             MouseButton::Left => Self::Left,
             MouseButton::Right => Self::Right,
+            MouseButton::EmulatedRight => Self::EmulatedRight,
         }
     }
 }

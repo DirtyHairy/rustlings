@@ -19,6 +19,7 @@ const INDEFINITE_POLL_INTERVAL_MSEC: u64 = 100;
 pub enum MouseButton {
     Left,
     Right,
+    EmulatedRight,
 }
 
 impl TryFrom<SdlMouseButton> for MouseButton {
@@ -76,6 +77,7 @@ pub struct EventAggregate {
 pub struct EventCollector {
     decoded_events: Vec<GameEvent>,
     aggregate: EventAggregate,
+    shift_down: bool,
 }
 
 impl EventCollector {
@@ -83,6 +85,7 @@ impl EventCollector {
         Self {
             decoded_events: Vec::with_capacity(INITIAL_CAPACITY),
             aggregate: Default::default(),
+            shift_down: false,
         }
     }
 
@@ -133,7 +136,7 @@ impl EventCollector {
                 .into_iter()
                 .chain(event_pump.poll_iter())
             {
-                match decode_sdl_event(&event) {
+                match self.decode_sdl_event(&event) {
                     GameEvents::None => (),
                     GameEvents::One(evt) => {
                         self.aggregate_event(&evt);
@@ -176,95 +179,121 @@ impl EventCollector {
             _ => (),
         }
     }
-}
 
-fn decode_sdl_event(event: &Event) -> GameEvents {
-    let mod_all =
-        Mod::LALTMOD | Mod::RALTMOD | Mod::LGUIMOD | Mod::RGUIMOD | Mod::LCTRLMOD | Mod::RCTRLMOD;
+    fn decode_sdl_event(&mut self, event: &Event) -> GameEvents {
+        let mod_all = Mod::LALTMOD
+            | Mod::RALTMOD
+            | Mod::LGUIMOD
+            | Mod::RGUIMOD
+            | Mod::LCTRLMOD
+            | Mod::RCTRLMOD;
 
-    match *event {
-        Event::Quit { .. } => GameEvents::One(GameEvent::Quit),
+        match *event {
+            Event::Quit { .. } => GameEvents::One(GameEvent::Quit),
 
-        Event::Window { win_event, .. } => match win_event {
-            WindowEvent::PixelSizeChanged(_, _) => GameEvents::One(GameEvent::Redraw),
-            WindowEvent::MouseEnter => GameEvents::One(GameEvent::MouseEnter),
-            WindowEvent::MouseLeave => GameEvents::One(GameEvent::MouseLeave),
-            _ => GameEvents::None,
-        },
-        Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_ENTER_FULLSCREEN.0 => {
-            GameEvents::One(GameEvent::EnterFullscreen)
-        }
-        Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_LEAVE_FULLSCREEN.0 => {
-            GameEvents::One(GameEvent::LeaveFullscreen)
-        }
-
-        Event::RenderDeviceReset { .. } => GameEvents::One(GameEvent::RenderReset),
-        Event::RenderTargetsReset { .. } => GameEvents::One(GameEvent::RenderReset),
-        Event::Unknown { type_, .. } if type_ == events::SDL_EVENT_RENDER_DEVICE_LOST.0 => {
-            GameEvents::One(GameEvent::RenderReset)
-        }
-
-        Event::Display {
-            display_event: DisplayEvent::Moved,
-            ..
-        }
-        | Event::Display {
-            display_event: DisplayEvent::CurrentModeChanged,
-            ..
-        }
-        | Event::Display {
-            display_event: DisplayEvent::DesktopModeChanged,
-            ..
-        } => GameEvents::One(GameEvent::ModeChanged),
-        Event::KeyDown {
-            keycode: Some(keycode),
-            keymod,
-            scancode: Some(scancode),
-            repeat: false,
-            ..
-        } => match (keycode, keymod) {
-            (Keycode::R, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::RenderReset),
-            (Keycode::Q, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::Quit),
-            (Keycode::Return, m) if m.intersects(mod_all) => {
-                GameEvents::One(GameEvent::ToggleFullscreen)
+            Event::Window { win_event, .. } => match win_event {
+                WindowEvent::PixelSizeChanged(_, _) => GameEvents::One(GameEvent::Redraw),
+                WindowEvent::MouseEnter => GameEvents::One(GameEvent::MouseEnter),
+                WindowEvent::MouseLeave => GameEvents::One(GameEvent::MouseLeave),
+                _ => GameEvents::None,
+            },
+            Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_ENTER_FULLSCREEN.0 => {
+                GameEvents::One(GameEvent::EnterFullscreen)
             }
-            (Keycode::Space, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::SetSpeed(4)),
-            _ => GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {
-                keycode,
+            Event::Unknown { type_, .. } if type_ == SDL_EVENT_WINDOW_LEAVE_FULLSCREEN.0 => {
+                GameEvents::One(GameEvent::LeaveFullscreen)
+            }
+
+            Event::RenderDeviceReset { .. } => GameEvents::One(GameEvent::RenderReset),
+            Event::RenderTargetsReset { .. } => GameEvents::One(GameEvent::RenderReset),
+            Event::Unknown { type_, .. } if type_ == events::SDL_EVENT_RENDER_DEVICE_LOST.0 => {
+                GameEvents::One(GameEvent::RenderReset)
+            }
+
+            Event::Display {
+                display_event: DisplayEvent::Moved,
+                ..
+            }
+            | Event::Display {
+                display_event: DisplayEvent::CurrentModeChanged,
+                ..
+            }
+            | Event::Display {
+                display_event: DisplayEvent::DesktopModeChanged,
+                ..
+            } => GameEvents::One(GameEvent::ModeChanged),
+            Event::KeyDown {
+                keycode: Some(keycode),
                 keymod,
-                scancode,
-            })),
-        },
+                scancode: Some(scancode),
+                repeat: false,
+                ..
+            } => match (keycode, keymod) {
+                (Keycode::R, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::RenderReset),
+                (Keycode::Q, m) if m.intersects(mod_all) => GameEvents::One(GameEvent::Quit),
+                (Keycode::Return, m) if m.intersects(mod_all) => {
+                    GameEvents::One(GameEvent::ToggleFullscreen)
+                }
+                (Keycode::Space, m) if m.intersects(mod_all) => {
+                    GameEvents::One(GameEvent::SetSpeed(4))
+                }
+                (keycode, _) => {
+                    if matches!(keycode, Keycode::LShift | Keycode::RShift) {
+                        self.shift_down = true;
+                    }
 
-        Event::KeyUp {
-            keycode: Some(keycode),
-            scancode: Some(scancode),
-            repeat: false,
-            ..
-        } => match keycode {
-            Keycode::Space => GameEvents::Two(
-                GameEvent::SetSpeed(1),
-                GameEvent::DispatchSceneEvent(SceneEvent::KeyUp { keycode, scancode }),
-            ),
-            _ => GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyUp {
-                keycode,
-                scancode,
-            })),
-        },
+                    GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyDown {
+                        keycode,
+                        keymod,
+                        scancode,
+                    }))
+                }
+            },
 
-        Event::MouseMotion { x, y, .. } => GameEvents::One(GameEvent::MouseMove { x, y }),
-        Event::MouseButtonDown {
-            mouse_btn, x, y, ..
-        } => MouseButton::try_from(mouse_btn)
-            .ok()
-            .map(|button| GameEvent::MouseDown { x, y, button })
-            .into(),
-        Event::MouseButtonUp {
-            mouse_btn, x, y, ..
-        } => MouseButton::try_from(mouse_btn)
-            .ok()
-            .map(|button| GameEvent::MouseUp { x, y, button })
-            .into(),
-        _ => GameEvents::None,
+            Event::KeyUp {
+                keycode: Some(keycode),
+                scancode: Some(scancode),
+                repeat: false,
+                ..
+            } => match keycode {
+                Keycode::Space => GameEvents::Two(
+                    GameEvent::SetSpeed(1),
+                    GameEvent::DispatchSceneEvent(SceneEvent::KeyUp { keycode, scancode }),
+                ),
+                keycode => {
+                    if matches!(keycode, Keycode::LShift | Keycode::RShift) {
+                        self.shift_down = false;
+                    }
+
+                    GameEvents::One(GameEvent::DispatchSceneEvent(SceneEvent::KeyUp {
+                        keycode,
+                        scancode,
+                    }))
+                }
+            },
+
+            Event::MouseMotion { x, y, .. } => GameEvents::One(GameEvent::MouseMove { x, y }),
+            Event::MouseButtonDown {
+                mouse_btn, x, y, ..
+            } => MouseButton::try_from(mouse_btn)
+                .ok()
+                .map(|button| GameEvent::MouseDown {
+                    x,
+                    y,
+                    button: if self.shift_down {
+                        MouseButton::EmulatedRight
+                    } else {
+                        button
+                    },
+                })
+                .into(),
+            Event::MouseButtonUp {
+                mouse_btn, x, y, ..
+            } => MouseButton::try_from(mouse_btn)
+                .ok()
+                .map(|button| GameEvent::MouseUp { x, y, button })
+                .into(),
+            _ => GameEvents::None,
+        }
     }
 }

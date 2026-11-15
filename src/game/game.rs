@@ -91,7 +91,7 @@ pub fn run(config: &Config) -> Result<()> {
 
     let mut game_state = GameState {
         global: Default::default(),
-        scene: state::Scene::Briefing(None),
+        scene: state::Scene::MainScreen(None),
     };
 
     let (sdl_context, window) = init_sdl()?;
@@ -114,12 +114,16 @@ pub fn run(config: &Config) -> Result<()> {
             let mut scene = create_scene(Rc::clone(&game_data), game_state, &texture_creator)?;
 
             run_result = stage.run(&mut *scene)?;
-            game_state = scene.finish();
+
+            if let Some(new_state) = scene.finish() {
+                game_state = new_state;
+            } else {
+                break;
+            }
         }
 
         match run_result {
             StopReason::Quit => {
-                println!("shutting down");
                 break;
             }
             StopReason::RenderReset => {
@@ -135,6 +139,8 @@ pub fn run(config: &Config) -> Result<()> {
             StopReason::NextScene => (),
         }
     }
+
+    println!("shutting down");
 
     Ok(())
 }

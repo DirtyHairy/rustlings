@@ -332,8 +332,8 @@ pub fn read_main_menu_assets(sections: &[Section]) -> Result<MainMenuAssets> {
 
     let mut eyes: [Sprite; EYE_SPRITE_COUNT] = Default::default();
     offset = 0;
-    for i in 0..EYE_SPRITE_COUNT {
-        eyes[i] = Sprite::read_planar(
+    for eye in eyes.iter_mut() {
+        *eye = Sprite::read_planar(
             8,
             32,
             12,
