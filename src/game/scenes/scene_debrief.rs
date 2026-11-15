@@ -161,6 +161,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
         self.fade_controller.opacity()
     }
 
+    fn emulate_right_mouse_buttom(&self) -> bool {
+        true
+    }
+
     fn set_is_fullscreen(&mut self, _is_fullscreen: bool) {}
 
     fn set_mouse_enabled(&mut self, _mouse_enabled: bool) {}
@@ -187,7 +191,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
                 keycode: Keycode::Escape,
                 ..
             }
-            | SceneEvent::MouseDown(MouseButton::Right | MouseButton::EmulatedRight, _) => {
+            | SceneEvent::MouseDown(MouseButton::Right, _) => {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceDebrief::MainScreen);
             }

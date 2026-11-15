@@ -20,7 +20,6 @@ pub struct MouseCoordinates {
 pub enum MouseButton {
     Left,
     Right,
-    EmulatedRight,
 }
 
 #[derive(Clone, Copy)]
@@ -55,6 +54,8 @@ pub trait Scene<'texture_creator> {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
     fn opacity(&self) -> u8;
+
+    fn emulate_right_mouse_buttom(&self) -> bool;
 
     fn set_is_fullscreen(&mut self, is_fullscreen: bool);
     fn set_mouse_enabled(&mut self, mouse_enabled: bool);

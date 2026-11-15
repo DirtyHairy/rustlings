@@ -19,7 +19,6 @@ const INDEFINITE_POLL_INTERVAL_MSEC: u64 = 100;
 pub enum MouseButton {
     Left,
     Right,
-    EmulatedRight,
 }
 
 impl TryFrom<SdlMouseButton> for MouseButton {
@@ -77,15 +76,18 @@ pub struct EventAggregate {
 pub struct EventCollector {
     decoded_events: Vec<GameEvent>,
     aggregate: EventAggregate,
+
+    emulate_right_mouse_button: bool,
     shift_down: bool,
 }
 
 impl EventCollector {
-    pub fn new() -> Self {
+    pub fn new(emulate_right_mouse_button: bool) -> Self {
         Self {
             decoded_events: Vec::with_capacity(INITIAL_CAPACITY),
             aggregate: Default::default(),
             shift_down: false,
+            emulate_right_mouse_button,
         }
     }
 
@@ -280,8 +282,8 @@ impl EventCollector {
                 .map(|button| GameEvent::MouseDown {
                     x,
                     y,
-                    button: if self.shift_down {
-                        MouseButton::EmulatedRight
+                    button: if self.shift_down && self.emulate_right_mouse_button {
+                        MouseButton::Right
                     } else {
                         button
                     },

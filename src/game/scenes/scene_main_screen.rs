@@ -140,6 +140,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         self.fade_controller.opacity()
     }
 
+    fn emulate_right_mouse_buttom(&self) -> bool {
+        true
+    }
+
     fn set_is_fullscreen(&mut self, _is_fullscreen: bool) {}
 
     fn set_mouse_enabled(&mut self, _mouse_enabled: bool) {}

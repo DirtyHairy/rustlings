@@ -156,7 +156,9 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
 
     fn try_assign_skill_with_fallback(&mut self, skill: Skill) -> SelectionResult {
         let mut selection_result = self.try_assign_skill(skill, SelectionMode::Primary);
-        if selection_result == SelectionResult::Fallback {
+        if selection_result == SelectionResult::Fallback
+            && !self.state.selection.secondary_lemming_stale
+        {
             selection_result = self.try_assign_skill(skill, SelectionMode::Secondary);
         }
 
@@ -196,6 +198,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
     fn height(&self) -> u32 {
         SCREEN_HEIGHT
+    }
+
+    fn emulate_right_mouse_buttom(&self) -> bool {
+        false
     }
 
     fn opacity(&self) -> u8 {

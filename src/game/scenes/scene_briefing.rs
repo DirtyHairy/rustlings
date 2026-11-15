@@ -17,6 +17,7 @@ use sdl3::{
 };
 
 use crate::{
+    code::code_for_level,
     geometry,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::common::{
@@ -117,6 +118,11 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             LevelRenderer::new(&level, &terrain, Rc::clone(&game_data), texture_creator)?;
 
         let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
+
+        let code = code_for_level(global_state.current_level, None, None).unwrap();
+        println!("Level: {}", level.parameters.name);
+        println!("Code: {}", code);
+        println!();
 
         Ok(Self {
             clock_offset_msec: scene_state.clock_msec,
@@ -221,6 +227,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         self.fade_controller.opacity()
     }
 
+    fn emulate_right_mouse_buttom(&self) -> bool {
+        true
+    }
+
     fn set_is_fullscreen(&mut self, _is_fullscreen: bool) {}
 
     fn set_mouse_enabled(&mut self, _mouse_enabled: bool) {}
@@ -257,7 +267,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
                 keycode: Keycode::Escape,
                 ..
             }
-            | SceneEvent::MouseDown(MouseButton::Right | MouseButton::EmulatedRight, _) => {
+            | SceneEvent::MouseDown(MouseButton::Right, _) => {
                 self.fade_controller.start_fadeout();
                 self.state.choice = Some(ChoiceBriefing::MainScreen);
             }

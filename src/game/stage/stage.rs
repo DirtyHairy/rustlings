@@ -57,7 +57,6 @@ impl From<MouseButton> for scene::MouseButton {
         match btn {
             MouseButton::Left => Self::Left,
             MouseButton::Right => Self::Right,
-            MouseButton::EmulatedRight => Self::EmulatedRight,
         }
     }
 }
@@ -91,7 +90,7 @@ impl<'sdl> Stage<'sdl> {
 
         scene.register_layers(&mut render_state);
 
-        let mut event_collector = EventCollector::new();
+        let mut event_collector = EventCollector::new(scene.emulate_right_mouse_buttom());
 
         self.rerender = true;
         self.suspended = false;
