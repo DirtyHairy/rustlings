@@ -2,7 +2,10 @@ use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
 use bitflags::{Flags, bitflags};
-use rustlings::{game_data::GameData, sdl::with_texture_canvas};
+use rustlings::{
+    game_data::{GameData, file::palette::MENU_SCREEN_PALETTE},
+    sdl::{SdlAtlasBuilder, with_texture_canvas},
+};
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
@@ -13,7 +16,7 @@ use sdl3::{
 use crate::{
     geometry::Rect,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::common::{FADEIN_MSEC_MENU, FadeController, draw_background},
+    scenes::common::{FADEIN_MSEC_MENU, FadeController, TextGrid, draw_background},
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
 };
 
@@ -77,8 +80,47 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
     pub fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {
         let texture_creator = canvas.texture_creator();
 
+        let logo_shadow = self.game_data.main_menu.logo.clone_mapped(|_, t| (0, t));
+        let signs_shadow = self.game_data.main_menu.signs.clone_mapped(|_, t| (0, t));
+
+        let mut atlas_builder = SdlAtlasBuilder::new();
+
+        let index_logo = atlas_builder.add_sprite(&self.game_data.main_menu.logo);
+        atlas_builder.add_sprite(&logo_shadow);
+
+        let index_signs = atlas_builder.add_sprite(&self.game_data.main_menu.signs);
+        atlas_builder.add_sprite(&signs_shadow);
+
+        let atlas = atlas_builder.build(&MENU_SCREEN_PALETTE, &texture_creator)?;
+
+        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
+        text_grid.write(8, 17, "(C)MCMXCI Psygnosis Ltd");
+        text_grid.write(11, 18, "A DMA Design Game");
+
         with_texture_canvas(canvas, &mut self.texture_static, |canvas| {
-            draw_background(0, &self.game_data, &texture_creator, canvas)
+            draw_background(0, &self.game_data, &texture_creator, canvas)?;
+
+            atlas.blit(canvas, index_logo + 1, 0, 20, 0, false, false)?;
+            atlas.blit(canvas, index_logo, 8, 10, 0, false, false)?;
+
+            for (i, (x, y)) in [
+                (68, 120),
+                (196, 120),
+                (324, 120),
+                (452, 120),
+                (196, 197),
+                (324, 197),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                atlas.blit(canvas, index_signs + 1, x - 8, y + 8, i, false, false)?;
+                atlas.blit(canvas, index_signs, x, y, i, false, false)?;
+            }
+
+            text_grid.render(&self.game_data, &texture_creator, canvas)?;
+
+            Ok(())
         })?;
 
         Ok(())

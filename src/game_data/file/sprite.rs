@@ -218,6 +218,25 @@ impl Bitmap {
             transparency,
         })
     }
+
+    pub fn clone_mapped<F: Fn(u8, bool) -> (u8, bool)>(&self, mapping: F) -> Self {
+        let mut data = vec![0; self.data.len()];
+        let mut transparency = vec![false; self.transparency.len()];
+
+        for i in 0..(self.width * self.height) as usize {
+            let (color_mapped, transparency_mapped) = mapping(self.data[i], self.transparency[i]);
+
+            data[i] = color_mapped;
+            transparency[i] = transparency_mapped;
+        }
+
+        Self {
+            height: self.height,
+            width: self.width,
+            data,
+            transparency,
+        }
+    }
 }
 
 impl Display for Sprite {
@@ -342,5 +361,19 @@ impl Sprite {
 
         self.frames.push(frame);
         Ok(())
+    }
+
+    pub fn clone_mapped<F: Fn(u8, bool) -> (u8, bool)>(&self, mapping: F) -> Self {
+        let frames: Vec<Bitmap> = self
+            .frames
+            .iter()
+            .map(|frame| frame.clone_mapped(&mapping))
+            .collect();
+
+        Self {
+            width: self.width,
+            height: self.height,
+            frames,
+        }
     }
 }
