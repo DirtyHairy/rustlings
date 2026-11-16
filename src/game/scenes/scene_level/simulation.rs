@@ -906,9 +906,13 @@ impl LemmingState {
         }
     }
 
-    fn tick_ohno(&mut self, terrain: &Terrain) -> LemmingVerdict {
+    fn tick_ohno(&mut self, terrain: &mut Terrain) -> LemmingVerdict {
         if self.frame == self.animation_frame_count() - 1 {
             self.set_health(LemmingHealth::Exploding);
+
+            if self.activity == Activity::Blocking {
+                terrain.clear_block_field(self.x, self.y);
+            }
         } else {
             self.frame += 1;
 
