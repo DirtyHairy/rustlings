@@ -4,7 +4,7 @@ pub enum ChoiceMainScreen {
     Quit,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ScrollerPhase {
     Scroll,
     Pause,
