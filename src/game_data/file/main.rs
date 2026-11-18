@@ -371,7 +371,7 @@ pub fn read_main_menu_assets(sections: &[Section]) -> Result<MainMenuAssets> {
         1,
         16,
         16,
-        5,
+        4,
         &sections[4].data,
         &mut offset,
         None,

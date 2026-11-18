@@ -7,7 +7,7 @@ pub enum Scene {
     Briefing(Option<(FadeState, Option<SceneStateBriefing>)>),
     Level(Option<(FadeState, Box<SceneStateLevel>)>),
     Debrief(Option<(FadeState, SceneStateDebrief)>),
-    MainScreen(Option<(FadeState, SceneStateMainScreen)>),
+    MainScreen(Option<(FadeState, Box<SceneStateMainScreen>)>),
 }
 
 #[derive(Clone, Default)]

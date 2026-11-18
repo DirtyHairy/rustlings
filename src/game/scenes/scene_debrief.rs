@@ -8,7 +8,7 @@ use rustlings::{
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    render::{Canvas, Texture, TextureCreator},
+    render::{Canvas, RenderTarget, Texture, TextureCreator},
     video::Window,
 };
 
@@ -31,25 +31,27 @@ const HEIGHT: u32 = 350;
 const TEXTURE_ID_SCREEN: usize = 0;
 
 pub struct SceneDebrief<'texture_creator> {
-    game_data: Rc<GameData>,
     global_state: GameStateGlobal,
 
     state: SceneStateDebrief,
 
     texture_screen: Texture<'texture_creator>,
-    draw_complete: bool,
 
     fade_controller: FadeController,
     level_parameters: LevelParameters,
 }
 
 impl<'texture_creator> SceneDebrief<'texture_creator> {
-    pub fn new<T>(
+    pub fn new<T, U>(
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, SceneStateDebrief)>,
+        canvas: &mut Canvas<U>,
         texture_creator: &'texture_creator TextureCreator<T>,
-    ) -> Result<Self> {
+    ) -> Result<Self>
+    where
+        U: RenderTarget,
+    {
         let texture_screen =
             texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
 
@@ -62,15 +64,17 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
 
         let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
 
-        Ok(Self {
-            game_data,
+        let mut scene = Self {
             global_state,
             fade_controller,
             state: scene_state,
             texture_screen,
-            draw_complete: false,
             level_parameters: level.parameters,
-        })
+        };
+
+        scene.draw_static(&game_data, canvas, texture_creator)?;
+
+        Ok(scene)
     }
 
     fn level_solved(&self) -> bool {
@@ -79,6 +83,26 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
 
     fn next_level(&self) -> usize {
         (self.global_state.current_level + 1) % NUM_LEVELS
+    }
+
+    fn draw_static<T, U>(
+        &mut self,
+        game_data: &GameData,
+        canvas: &mut Canvas<U>,
+        texture_creator: &TextureCreator<T>,
+    ) -> Result<()>
+    where
+        U: RenderTarget,
+    {
+        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
+        self.write_debrief(&mut text_grid);
+
+        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
+            draw_background(0, game_data, texture_creator, canvas)?;
+            text_grid.render(game_data, texture_creator, canvas)?;
+
+            Ok(())
+        })
     }
 
     fn write_debrief(&self, text_grid: &mut TextGrid) {
@@ -229,25 +253,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
         );
     }
 
-    fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
-        if self.draw_complete {
-            return Ok(false);
-        }
-
-        let texture_creator = &canvas.texture_creator();
-
-        let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
-        self.write_debrief(&mut text_grid);
-
-        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            draw_background(0, &self.game_data, texture_creator, canvas)?;
-            text_grid.render(&self.game_data, texture_creator, canvas)?;
-
-            Ok(())
-        })?;
-
-        self.draw_complete = true;
-
+    fn draw(&mut self, _canvas: &mut Canvas<Window>) -> Result<bool> {
         Ok(true)
     }
 

@@ -23,7 +23,7 @@ use crate::scene::{self, CursorType, MouseCoordinates, Scene, SceneEvent};
 use crate::stage::event_collector::{EventCollector, GameEvent, MouseButton, MouseOwnerChange};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
-const MAX_TIMESLICE_MSEC: u64 = 100;
+const MAX_TIMESLICE_EXCESS_MSEC: u64 = 100;
 const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 1;
 const FALLBACK_REFRESH_RATE: f32 = 100.;
 const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
@@ -111,6 +111,8 @@ impl<'sdl> Stage<'sdl> {
             render_state.mouse_y,
         )));
 
+        let mut aggregate_timeout: Option<u64> = None;
+
         loop {
             if !self.suspended {
                 self.render_scene(scene, &mut render_state)?;
@@ -130,9 +132,14 @@ impl<'sdl> Stage<'sdl> {
             let now = Instant::now();
             let mut time = self.time_since_reference(now) + self.time_offset;
 
-            if time - self.time_old > MAX_TIMESLICE_MSEC * self.speed as u64 {
+            if let Some(aggregate_timeout) = aggregate_timeout
+                && time - self.time_old
+                    > aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC * self.speed as u64
+            {
                 self.ts_reference = now;
-                self.time_offset = self.time_old + MAX_TIMESLICE_MSEC * self.speed as u64;
+                self.time_offset = self.time_old
+                    + aggregate_timeout
+                    + MAX_TIMESLICE_EXCESS_MSEC * self.speed as u64;
 
                 time = self.time_since_reference(now) + self.time_offset;
             }
@@ -146,7 +153,8 @@ impl<'sdl> Stage<'sdl> {
                 }
             }
 
-            let aggregate_timeout = if scene.will_redraw() {
+            aggregate_timeout = if scene.will_redraw() || self.last_opacity != Some(scene.opacity())
+            {
                 Some(0)
             } else {
                 scene

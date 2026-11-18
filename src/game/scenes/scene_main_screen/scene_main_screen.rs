@@ -9,14 +9,18 @@ use rustlings::{
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    render::{Canvas, Texture, TextureCreator},
+    rect::Rect as SdlRect,
+    render::{BlendMode, Canvas, Texture, TextureCreator},
     video::Window,
 };
 
 use crate::{
     geometry::Rect,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
-    scenes::common::{FADEIN_MSEC_MENU, FadeController, TextGrid, draw_background},
+    scenes::{
+        common::{FADEIN_MSEC_MENU, FadeController, TextGrid, draw_background},
+        scene_main_screen::scroller::Scroller,
+    },
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
 };
 
@@ -29,6 +33,7 @@ bitflags! {
     #[derive(Clone, Copy)]
     struct Redraw: u32 {
         const STATIC = 0x01;
+        const SCROLLER = 0x02;
     }
 }
 
@@ -36,7 +41,9 @@ pub struct SceneMainScreen<'texture_creator> {
     game_data: Rc<GameData>,
     global_state: GameStateGlobal,
 
-    state: SceneStateMainScreen,
+    clock_offset: u64,
+
+    state: Box<SceneStateMainScreen>,
 
     texture_screen: Texture<'texture_creator>,
     texture_static: Texture<'texture_creator>,
@@ -44,13 +51,15 @@ pub struct SceneMainScreen<'texture_creator> {
     redraw: Redraw,
 
     fade_controller: FadeController,
+    scroller: Scroller<'texture_creator>,
 }
 
 impl<'texture_creator> SceneMainScreen<'texture_creator> {
     pub fn new<T>(
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
-        state: Option<(FadeState, SceneStateMainScreen)>,
+        state: Option<(FadeState, Box<SceneStateMainScreen>)>,
+        canvas: &mut Canvas<Window>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let texture_screen =
@@ -61,25 +70,41 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
 
         let (fade_state, scene_state) = match state {
             Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
-            None => (None, SceneStateMainScreen { choice: None }),
+            None => (
+                None,
+                Box::new(SceneStateMainScreen {
+                    choice: None,
+                    scroller: Default::default(),
+                    clock_msec: 0,
+                }),
+            ),
         };
 
+        let scroller = Scroller::new(texture_creator, &game_data)?;
         let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEIN_MSEC_MENU);
 
-        Ok(Self {
+        let mut scene = Self {
             game_data,
             global_state,
+            clock_offset: scene_state.clock_msec,
             state: scene_state,
             texture_screen,
             texture_static,
             redraw: Redraw::all(),
             fade_controller,
-        })
+            scroller,
+        };
+
+        scene.draw_static(canvas, texture_creator)?;
+
+        Ok(scene)
     }
 
-    pub fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> Result<()> {
-        let texture_creator = canvas.texture_creator();
-
+    pub fn draw_static<T>(
+        &mut self,
+        canvas: &mut Canvas<Window>,
+        texture_creator: &TextureCreator<T>,
+    ) -> Result<()> {
         let logo_shadow = self.game_data.main_menu.logo.clone_mapped(|_, t| (0, t));
         let signs_shadow = self.game_data.main_menu.signs.clone_mapped(|_, t| (0, t));
 
@@ -91,14 +116,14 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         let index_signs = atlas_builder.add_sprite(&self.game_data.main_menu.signs);
         atlas_builder.add_sprite(&signs_shadow);
 
-        let atlas = atlas_builder.build(&MENU_SCREEN_PALETTE, &texture_creator)?;
+        let atlas = atlas_builder.build(&MENU_SCREEN_PALETTE, texture_creator)?;
 
         let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
         text_grid.write(8, 17, "(C)MCMXCI Psygnosis Ltd");
         text_grid.write(11, 18, "A DMA Design Game");
 
         with_texture_canvas(canvas, &mut self.texture_static, |canvas| {
-            draw_background(0, &self.game_data, &texture_creator, canvas)?;
+            draw_background(0, &self.game_data, texture_creator, canvas)?;
 
             atlas.blit(canvas, index_logo + 1, 0, 20, 0, false, false)?;
             atlas.blit(canvas, index_logo, 8, 10, 0, false, false)?;
@@ -118,7 +143,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
                 atlas.blit(canvas, index_signs, x, y, i, false, false)?;
             }
 
-            text_grid.render(&self.game_data, &texture_creator, canvas)?;
+            text_grid.render(&self.game_data, texture_creator, canvas)?;
 
             Ok(())
         })?;
@@ -174,14 +199,32 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, clock_msec: u64) -> Result<()> {
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
         self.fade_controller.tick(clock_msec);
+
+        clock_msec += self.clock_offset;
+        self.state.clock_msec = clock_msec;
+
+        if self.scroller.tick(clock_msec, &mut self.state.scroller) {
+            self.redraw.insert(Redraw::SCROLLER);
+        }
 
         Ok(())
     }
 
     fn next_tick_at_msec(&self) -> Option<u64> {
-        self.fade_controller.next_tick_since_creation_at_msec()
+        let next_tick_fade = self
+            .fade_controller
+            .next_tick_since_creation_at_msec()
+            .map(|t| t + self.clock_offset);
+
+        let next_tick_scroller = self.scroller.next_tick_at_msec(&self.state.scroller);
+
+        [next_tick_fade, Some(next_tick_scroller)]
+            .into_iter()
+            .flatten()
+            .min()
+            .map(|t| t.saturating_sub(self.clock_offset))
     }
 
     fn is_complete(&self) -> bool {
@@ -209,12 +252,17 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
             return Ok(false);
         }
 
-        if self.redraw.contains(Redraw::STATIC) {
-            self.draw_static(canvas)?;
+        if self.redraw.contains(Redraw::SCROLLER) {
+            self.scroller.render(&self.state.scroller, canvas)?;
         }
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
+            self.texture_static.set_blend_mode(BlendMode::None);
             canvas.copy(&self.texture_static, None, None)?;
+
+            let scroller_texture = self.scroller.texture();
+            scroller_texture.set_blend_mode(BlendMode::None);
+            canvas.copy(scroller_texture, None, SdlRect::new(0, 334, 640, 16))?;
 
             Ok(())
         })?;
@@ -225,7 +273,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
     }
 
     fn will_redraw(&self) -> bool {
-        false
+        !self.redraw.is_empty()
     }
 
     fn finish(self: Box<Self>) -> Option<GameState> {

@@ -12,7 +12,7 @@ use rustlings::{
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    render::{Canvas, Texture, TextureCreator},
+    render::{Canvas, RenderTarget, Texture, TextureCreator},
     video::Window,
 };
 
@@ -73,11 +73,9 @@ impl From<&Object> for ObjectState {
 }
 
 pub struct SceneBriefing<'texture_creator> {
-    game_data: Rc<GameData>,
     global_state: GameStateGlobal,
 
     texture_screen: Texture<'texture_creator>,
-    static_draw_complete: bool,
     needs_level_draw: bool,
 
     state: SceneStateBriefing,
@@ -90,12 +88,16 @@ pub struct SceneBriefing<'texture_creator> {
 }
 
 impl<'texture_creator> SceneBriefing<'texture_creator> {
-    pub fn new<T>(
+    pub fn new<T, U>(
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Option<SceneStateBriefing>)>,
+        canvas: &mut Canvas<U>,
         texture_creator: &'texture_creator TextureCreator<T>,
-    ) -> Result<Self> {
+    ) -> Result<Self>
+    where
+        U: RenderTarget,
+    {
         let texture_screen =
             texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
 
@@ -124,12 +126,10 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         println!("Code: {}", code);
         println!();
 
-        Ok(Self {
+        let mut scene = Self {
             clock_offset_msec: scene_state.clock_msec,
 
-            game_data,
             global_state,
-            static_draw_complete: false,
             needs_level_draw: true,
 
             texture_screen,
@@ -140,29 +140,31 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
             level_renderer,
             fade_controller,
-        })
+        };
+
+        scene.draw_static(&game_data, canvas, texture_creator)?;
+
+        Ok(scene)
     }
 
-    fn draw_static(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
-        if self.static_draw_complete {
-            return Ok(false);
-        }
-
-        let texture_creator = &canvas.texture_creator();
-
+    fn draw_static<T, U>(
+        &mut self,
+        game_data: &GameData,
+        canvas: &mut Canvas<U>,
+        texture_creator: &TextureCreator<T>,
+    ) -> Result<()>
+    where
+        U: RenderTarget,
+    {
         let mut text_grid = TextGrid::new(WIDTH, HEIGHT);
         self.write_briefing(&mut text_grid);
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            draw_background(BACKGROUND_START, &self.game_data, texture_creator, canvas)?;
-            text_grid.render(&self.game_data, texture_creator, canvas)?;
+            draw_background(BACKGROUND_START, game_data, texture_creator, canvas)?;
+            text_grid.render(game_data, texture_creator, canvas)?;
 
             Ok(())
-        })?;
-
-        self.static_draw_complete = true;
-
-        Ok(true)
+        })
     }
 
     fn draw_level(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
@@ -356,14 +358,13 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn draw(&mut self, canvas: &mut Canvas<Window>) -> Result<bool> {
-        let static_draw = self.draw_static(canvas)?;
         let level_draw = self.draw_level(canvas)?;
 
-        Ok(static_draw || level_draw)
+        Ok(level_draw)
     }
 
     fn will_redraw(&self) -> bool {
-        false
+        self.needs_level_draw
     }
 
     fn finish(self: Box<Self>) -> Option<GameState> {

@@ -105,13 +105,19 @@ pub fn run(config: &Config) -> Result<()> {
         let run_result: StopReason;
 
         {
+            let mut scene = create_scene(
+                Rc::clone(&game_data),
+                game_state,
+                &mut canvas,
+                &texture_creator,
+            )?;
+
             let mut stage = Stage::new(
                 &sdl_context,
                 &mut canvas,
                 &texture_creator,
                 Rc::clone(&game_data),
             );
-            let mut scene = create_scene(Rc::clone(&game_data), game_state, &texture_creator)?;
 
             run_result = stage.run(&mut *scene)?;
 
