@@ -70,7 +70,7 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
     ) -> Result<Self> {
-        Self::new_with_text(texture_creator, game_data, &TEXT)
+        Self::new_with_text(texture_creator, game_data, TEXT)
     }
 
     pub fn new_with_text<T>(

@@ -257,8 +257,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            self.texture_static.set_blend_mode(BlendMode::None);
-            canvas.copy(&self.texture_static, None, None)?;
+            if self.redraw.contains(Redraw::STATIC) {
+                self.texture_static.set_blend_mode(BlendMode::None);
+                canvas.copy(&self.texture_static, None, None)?;
+            }
 
             let scroller_texture = self.scroller.texture();
             scroller_texture.set_blend_mode(BlendMode::None);

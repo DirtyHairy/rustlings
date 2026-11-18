@@ -254,7 +254,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
     }
 
     fn draw(&mut self, _canvas: &mut Canvas<Window>) -> Result<bool> {
-        Ok(true)
+        Ok(false)
     }
 
     fn will_redraw(&self) -> bool {
