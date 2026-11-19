@@ -123,12 +123,6 @@ impl<'sdl> Stage<'sdl> {
                 .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MSEC);
             let ts_frame_start = Instant::now();
 
-            if let Some(stop_reason) =
-                self.consume_events(&mut render_state, scene, &mut event_collector)?
-            {
-                return Ok(stop_reason);
-            }
-
             let now = Instant::now();
             let mut time = self.time_since_reference(now) + self.time_offset;
 
@@ -150,6 +144,12 @@ impl<'sdl> Stage<'sdl> {
                 if scene.is_complete() {
                     return Ok(StopReason::NextScene);
                 }
+            }
+
+            if let Some(stop_reason) =
+                self.consume_events(&mut render_state, scene, &mut event_collector)?
+            {
+                return Ok(stop_reason);
             }
 
             aggregate_timeout = if scene.will_redraw() || self.last_opacity != Some(scene.opacity())
