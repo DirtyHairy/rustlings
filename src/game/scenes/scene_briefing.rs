@@ -121,11 +121,6 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
         let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
 
-        let code = code_for_level(global_state.current_level, None, None).unwrap();
-        println!("Level: {}", level.parameters.name);
-        println!("Code: {}", code);
-        println!();
-
         let mut scene = Self {
             clock_offset_msec: scene_state.clock_msec,
 
@@ -142,9 +137,22 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             fade_controller,
         };
 
+        scene.log_level();
         scene.draw_static(&game_data, canvas, texture_creator)?;
 
         Ok(scene)
+    }
+
+    fn log_level(&self) {
+        let code = code_for_level(self.global_state.current_level, None, None).unwrap();
+        let (rating, index) = decode_level_index(self.global_state.current_level);
+
+        println!(
+            "Rating {}, level {}: {}",
+            rating, index, self.level.parameters.name
+        );
+        println!("Code: {}", code);
+        println!();
     }
 
     fn draw_static<T, U>(
