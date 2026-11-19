@@ -133,10 +133,12 @@ impl<'sdl> Stage<'sdl> {
             let mut time = self.time_since_reference(now) + self.time_offset;
 
             if let Some(aggregate_timeout) = aggregate_timeout
-                && time - self.time_old > aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC
+                && time - self.time_old
+                    > (aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC) * self.speed as u64
             {
                 self.ts_reference = now;
-                self.time_offset = self.time_old + aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC;
+                self.time_offset = self.time_old
+                    + (aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC) * self.speed as u64;
 
                 time = self.time_since_reference(now) + self.time_offset;
             }
