@@ -2,8 +2,8 @@ use std::{collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, LevelParameters,
-    SCREEN_HEIGHT, SCREEN_WIDTH, Skill, file::ground::InteractionType,
+    Bitmap, ENGINE_FPS, ENGINE_FPS_REALTIME, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH,
+    Level, LevelParameters, SCREEN_HEIGHT, SCREEN_WIDTH, Skill, file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -330,7 +330,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
 
         let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
-            ((clock_msec as i64 + self.state.simulation_clock_offset).max(0) / 1000) as u32,
+            (((clock_msec as i64 + self.state.simulation_clock_offset).max(0) * ENGINE_FPS as i64)
+                / (1000 * ENGINE_FPS_REALTIME as i64)) as u32,
         );
 
         if remaining_time_seconds != self.state.remaining_time_seconds {

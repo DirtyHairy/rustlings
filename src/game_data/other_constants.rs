@@ -5,4 +5,6 @@ pub const VGASPEC_POSITION: u32 = 304;
 pub const SCREEN_WIDTH: u32 = 320;
 pub const SCREEN_HEIGHT: u32 = 200;
 
-pub const ENGINE_TICK_MSEC: u64 = 1000 / 17; // 17 FPS
+pub const ENGINE_FPS: u64 = 15;
+pub const ENGINE_FPS_REALTIME: u64 = 17;
+pub const ENGINE_TICK_MSEC: u64 = 1000 / ENGINE_FPS;
