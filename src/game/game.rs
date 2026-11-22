@@ -19,17 +19,23 @@ use crate::{
 
 pub struct Config {
     pub data_dir: String,
+    pub render_driver: Option<String>,
+    pub vsync: bool,
 }
 
 const WINDOW_WIDTH: u32 = 640;
 const WINDOW_HEIGHT: u32 = 480;
 
-fn init_sdl() -> Result<(Sdl, Window)> {
+fn init_sdl(config: &Config) -> Result<(Sdl, Window)> {
     let sdl_context = sdl3::init()?;
-    sdl3::hint::set("SDL_RENDER_VSYNC", "1");
+    sdl3::hint::set("SDL_RENDER_VSYNC", if config.vsync { "1" } else { "0" });
     sdl3::hint::set("SDL_FRAMEBUFFER_ACCELERATION", "1");
     sdl3::hint::set("SDL_VIDEO_MAC_FULLSCREEN_SPACES", "1");
     sdl3::hint::set("SDL_VIDEO_MAC_FULLSCREEN_MENU_VISIBILITY", "1");
+
+    if let Some(driver) = &config.render_driver {
+        sdl3::hint::set("SDL_RENDER_DRIVER", driver);
+    }
 
     let sdl_video = sdl_context.video()?;
 
@@ -94,7 +100,7 @@ pub fn run(config: &Config) -> Result<()> {
         scene: state::Scene::MainScreen(None),
     };
 
-    let (sdl_context, window) = init_sdl()?;
+    let (sdl_context, window) = init_sdl(config)?;
 
     // Creating the canvas consumes the window. However, we need to preserve it in order
     // to spawn a new canvas if we lose context (see below), so we clone it. Looks expensive,
