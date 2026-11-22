@@ -8,3 +8,4 @@ pub use atlas::*;
 pub use misc_wrappers::*;
 pub use sprite::*;
 pub use texture::*;
+pub use util::*;

@@ -1,5 +1,8 @@
 use anyhow::{Result, anyhow};
-use sdl3::pixels::{Color, PixelFormat};
+use sdl3::{
+    pixels::{Color, PixelFormat},
+    sys::timer::SDL_DelayPrecise,
+};
 
 use crate::game_data::{Bitmap, PaletteEntry};
 
@@ -69,4 +72,10 @@ pub fn copy_bitmap_to_texture_data_at(
     }
 
     Ok(())
+}
+
+pub fn delay_precise(nanos: u64) {
+    unsafe {
+        SDL_DelayPrecise(nanos);
+    }
 }

@@ -1,7 +1,8 @@
 use core::time::Duration;
-use std::{cmp, time::Instant};
+use std::time::Instant;
 
 use anyhow::anyhow;
+use rustlings::sdl::delay_precise;
 use sdl3::{
     EventPump,
     event::{DisplayEvent, Event, WindowEvent},
@@ -101,6 +102,12 @@ impl EventCollector {
     ) {
         let ts_reference = Instant::now();
 
+        delay_precise(
+            aggregate_at_least_until
+                .saturating_duration_since(ts_reference)
+                .as_nanos() as u64,
+        );
+
         self.decoded_events.clear();
         self.aggregate = Default::default();
 
@@ -110,28 +117,14 @@ impl EventCollector {
             let now = Instant::now();
             let elapsed = now.duration_since(ts_reference).as_millis() as u64;
 
-            let aggregation_time_remaining = aggregate_at_least_until
-                .checked_duration_since(now)
-                .unwrap_or(Duration::ZERO)
-                .as_millis() as u64;
-
-            if !first_iteration
-                && aggregation_time_remaining == 0
-                && (!self.decoded_events.is_empty()
-                    || timeout_millis.is_some_and(|timeout| elapsed >= timeout))
+            if !self.decoded_events.is_empty()
+                || (timeout_millis.is_some_and(|timeout| elapsed >= timeout) && !first_iteration)
             {
                 break;
             }
 
-            let wait_timeout = if self.decoded_events.is_empty() {
-                cmp::max(
-                    aggregation_time_remaining,
-                    timeout_millis
-                        .map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed)),
-                )
-            } else {
-                aggregation_time_remaining
-            };
+            let wait_timeout =
+                timeout_millis.map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed));
 
             for event in event_pump
                 .wait_event_timeout(Duration::from_millis(wait_timeout))
