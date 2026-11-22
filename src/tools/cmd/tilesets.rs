@@ -25,23 +25,23 @@ fn display_tileset(game_data: &GameData) -> Result<()> {
 
     let mut spritesets: Vec<Vec<SDLSprite>> = Vec::new();
 
-    for i in 0..game_data.tilesets.len() {
+    for tileset in game_data.tilesets.iter() {
         let mut sprites: Vec<SDLSprite> = Vec::new();
-        let palette = &game_data.tilesets[i].palettes.custom;
+        let palette = tileset.palettes.custom;
 
-        for object_sprite in &game_data.tilesets[i].object_sprites {
+        for object_sprite in &tileset.object_sprites {
             if let Some(sdl_sprite) = object_sprite
                 .as_ref()
-                .and_then(|sprite| SDLSprite::from_sprite(sprite, palette, &texture_creator).ok())
+                .and_then(|sprite| SDLSprite::from_sprite(sprite, &palette, &texture_creator).ok())
             {
                 sprites.push(sdl_sprite)
             }
         }
 
-        for tile in &game_data.tilesets[i].tiles {
+        for tile in &tileset.tiles {
             if let Some(sdl_sprite) = tile
                 .as_ref()
-                .and_then(|bitmap| SDLSprite::from_bitmap(bitmap, palette, &texture_creator).ok())
+                .and_then(|bitmap| SDLSprite::from_bitmap(bitmap, &palette, &texture_creator).ok())
             {
                 sprites.push(sdl_sprite)
             }
