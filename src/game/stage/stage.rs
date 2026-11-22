@@ -24,7 +24,7 @@ use crate::stage::event_collector::{EventCollector, GameEvent, MouseButton, Mous
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
 const MAX_TIMESLICE_EXCESS_MSEC: u64 = 100;
-const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 1;
+const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 3;
 const FALLBACK_REFRESH_RATE: f32 = 100.;
 const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
 
