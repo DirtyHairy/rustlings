@@ -111,42 +111,30 @@ impl EventCollector {
         self.decoded_events.clear();
         self.aggregate = Default::default();
 
-        let mut first_iteration = true;
+        let now = Instant::now();
+        let elapsed = now.duration_since(ts_reference).as_millis() as u64;
 
-        loop {
-            let now = Instant::now();
-            let elapsed = now.duration_since(ts_reference).as_millis() as u64;
+        let wait_timeout =
+            timeout_millis.map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed));
 
-            if !self.decoded_events.is_empty()
-                || (timeout_millis.is_some_and(|timeout| elapsed >= timeout) && !first_iteration)
-            {
-                break;
-            }
-
-            let wait_timeout =
-                timeout_millis.map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed));
-
-            for event in event_pump
-                .wait_event_timeout(Duration::from_millis(wait_timeout))
-                .into_iter()
-                .chain(event_pump.poll_iter())
-            {
-                match self.decode_sdl_event(&event) {
-                    GameEvents::None => (),
-                    GameEvents::One(evt) => {
+        for event in event_pump
+            .wait_event_timeout(Duration::from_millis(wait_timeout))
+            .into_iter()
+            .chain(event_pump.poll_iter())
+        {
+            match self.decode_sdl_event(&event) {
+                GameEvents::None => (),
+                GameEvents::One(evt) => {
+                    self.aggregate_event(&evt);
+                    self.decoded_events.push(evt);
+                }
+                GameEvents::Two(evt1, evt2) => {
+                    for evt in [evt1, evt2] {
                         self.aggregate_event(&evt);
                         self.decoded_events.push(evt);
                     }
-                    GameEvents::Two(evt1, evt2) => {
-                        for evt in [evt1, evt2] {
-                            self.aggregate_event(&evt);
-                            self.decoded_events.push(evt);
-                        }
-                    }
                 }
             }
-
-            first_iteration = false;
         }
     }
 
