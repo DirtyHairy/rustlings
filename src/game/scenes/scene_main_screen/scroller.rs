@@ -20,7 +20,7 @@ use crate::state::{SCROLLER_VISIBLE_CHARS, ScrollerPhase, ScrollerState};
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 16;
 
-const MSEC_PER_TICK: u64 = 1000 / 30;
+const NSEC_PER_TICK: u64 = 1000000 / 30;
 
 const TICKS_PAUSE: u64 = 100;
 const TICKS_PER_LETTER: u64 = 4;
@@ -45,7 +45,7 @@ impl Default for ScrollerState {
     fn default() -> Self {
         Self {
             ticks_in_phase: 0,
-            clock_msec: 0,
+            clock_nsec: 0,
             phase: ScrollerPhase::Scroll,
             next_char_index: 0,
             current_scroller_frame: 0,
@@ -116,11 +116,11 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
     }
 
     pub fn tick(&mut self, clock_msec: u64, state: &mut ScrollerState) -> bool {
-        tick(state, self.text, clock_msec)
+        tick(state, self.text, clock_msec * 1000)
     }
 
     pub fn next_tick_at_msec(&self, state: &ScrollerState) -> u64 {
-        next_tick_at_msec(state)
+        next_tick_at_nsec(state) / 1000
     }
 
     pub fn render<T: RenderTarget>(
@@ -201,12 +201,12 @@ fn compose_onto(fg: &Bitmap, bg: &Bitmap) -> Result<Bitmap> {
     })
 }
 
-fn tick(state: &mut ScrollerState, text: &[u8], clock_msec: u64) -> bool {
-    let old_clock_msec = state.clock_msec;
-    state.clock_msec = clock_msec;
+fn tick(state: &mut ScrollerState, text: &[u8], clock_nsec: u64) -> bool {
+    let old_clock_nsec = state.clock_nsec;
+    state.clock_nsec = clock_nsec;
 
-    let old_ticks = old_clock_msec / MSEC_PER_TICK;
-    let new_ticks = clock_msec / MSEC_PER_TICK;
+    let old_ticks = old_clock_nsec / NSEC_PER_TICK;
+    let new_ticks = clock_nsec / NSEC_PER_TICK;
     let mut ticks = new_ticks.saturating_sub(old_ticks);
 
     let mut redraw = false;
@@ -247,13 +247,13 @@ fn tick(state: &mut ScrollerState, text: &[u8], clock_msec: u64) -> bool {
     redraw
 }
 
-fn next_tick_at_msec(state: &ScrollerState) -> u64 {
+fn next_tick_at_nsec(state: &ScrollerState) -> u64 {
     match state.phase {
         ScrollerPhase::Pause => {
-            state.clock_msec + TICKS_PAUSE.saturating_sub(state.ticks_in_phase) * MSEC_PER_TICK
-                - (state.clock_msec % MSEC_PER_TICK)
+            state.clock_nsec + TICKS_PAUSE.saturating_sub(state.ticks_in_phase) * NSEC_PER_TICK
+                - (state.clock_nsec % NSEC_PER_TICK)
         }
-        ScrollerPhase::Scroll => (state.clock_msec + 1).next_multiple_of(MSEC_PER_TICK),
+        ScrollerPhase::Scroll => (state.clock_nsec + 1).next_multiple_of(NSEC_PER_TICK),
     }
 }
 
@@ -289,7 +289,7 @@ fn resolve_font_index(c: u8) -> usize {
 mod test {
     use crate::{
         scenes::scene_main_screen::scroller::{
-            FONT_INDEX_BLANK, MSEC_PER_TICK, TICKS_PER_LETTER, next_tick_at_msec,
+            FONT_INDEX_BLANK, NSEC_PER_TICK, TICKS_PER_LETTER, next_tick_at_nsec,
             resolve_font_index, tick,
         },
         state::{ScrollerPhase, ScrollerState},
@@ -318,7 +318,7 @@ mod test {
         let mut state: ScrollerState = Default::default();
 
         for _ in 1..=TICKS_PER_LETTER + 1 {
-            assert_eq!(next_tick_at_msec(&state), MSEC_PER_TICK);
+            assert_eq!(next_tick_at_nsec(&state), NSEC_PER_TICK);
             tick(&mut state, FIXTURE, TICKS_PER_LETTER);
         }
     }
@@ -326,7 +326,7 @@ mod test {
     #[test]
     fn scroller_is_still_empty_after_three_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 3 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 3 * NSEC_PER_TICK);
 
         for c in state.current_line {
             assert_eq!(c, FONT_INDEX_BLANK);
@@ -336,7 +336,7 @@ mod test {
     #[test]
     fn scroller_shifts_in_the_first_character_after_four_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 4 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 4 * NSEC_PER_TICK);
 
         let (&last, rest) = state.current_line.split_last().unwrap();
 
@@ -354,7 +354,7 @@ mod test {
     #[test]
     fn scroller_enters_pause_after_hitting_newline() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 16 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 16 * NSEC_PER_TICK);
 
         assert_eq!(state.phase, ScrollerPhase::Pause);
 
@@ -376,19 +376,19 @@ mod test {
     #[test]
     fn pause_lasts_100_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 16 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 16 * NSEC_PER_TICK);
 
-        assert_eq!(next_tick_at_msec(&state), 116 * MSEC_PER_TICK);
+        assert_eq!(next_tick_at_nsec(&state), 116 * NSEC_PER_TICK);
 
-        tick(&mut state, FIXTURE, 66 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 66 * NSEC_PER_TICK);
 
-        assert_eq!(next_tick_at_msec(&state), 116 * MSEC_PER_TICK);
+        assert_eq!(next_tick_at_nsec(&state), 116 * NSEC_PER_TICK);
     }
 
     #[test]
     fn after_pause_the_next_char_is_shifted_in_and_scrolling_resume() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 116 * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, 116 * NSEC_PER_TICK);
 
         assert_eq!(state.phase, ScrollerPhase::Scroll);
 
@@ -410,7 +410,7 @@ mod test {
     #[test]
     fn scroller_wraps_at_the_end() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, (16 + 100 + 16 + 100) * MSEC_PER_TICK);
+        tick(&mut state, FIXTURE, (16 + 100 + 16 + 100) * NSEC_PER_TICK);
 
         assert_eq!(state.phase, ScrollerPhase::Scroll);
 

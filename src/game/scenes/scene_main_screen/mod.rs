@@ -1,3 +1,4 @@
+mod eyes;
 mod scene_main_screen;
 mod scroller;
 

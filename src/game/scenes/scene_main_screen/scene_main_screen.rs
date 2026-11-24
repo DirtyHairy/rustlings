@@ -19,7 +19,7 @@ use crate::{
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::{
         common::{FADEIN_MSEC_MENU, FadeController, TextGrid, draw_background},
-        scene_main_screen::scroller::Scroller,
+        scene_main_screen::{eyes::Eyes, scroller::Scroller},
     },
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
 };
@@ -34,6 +34,7 @@ bitflags! {
     struct Redraw: u32 {
         const STATIC = 0x01;
         const SCROLLER = 0x02;
+        const EYES = 0x04;
     }
 }
 
@@ -52,6 +53,7 @@ pub struct SceneMainScreen<'texture_creator> {
 
     fade_controller: FadeController,
     scroller: Scroller<'texture_creator, 'static>,
+    eyes: Eyes<'texture_creator>,
 }
 
 impl<'texture_creator> SceneMainScreen<'texture_creator> {
@@ -75,12 +77,14 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
                 Box::new(SceneStateMainScreen {
                     choice: None,
                     scroller: Default::default(),
+                    eyes: Default::default(),
                     clock_msec: 0,
                 }),
             ),
         };
 
         let scroller = Scroller::new(texture_creator, &game_data)?;
+        let eyes = Eyes::new(texture_creator, &game_data)?;
         let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEIN_MSEC_MENU);
 
         let mut scene = Self {
@@ -93,6 +97,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
             redraw: Redraw::all(),
             fade_controller,
             scroller,
+            eyes,
         };
 
         scene.draw_static(canvas, texture_creator)?;
@@ -209,6 +214,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
             self.redraw.insert(Redraw::SCROLLER);
         }
 
+        if self.eyes.tick(clock_msec, &mut self.state.eyes) {
+            self.redraw.insert(Redraw::EYES);
+        }
+
         Ok(())
     }
 
@@ -219,12 +228,17 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
             .map(|t| t + self.clock_offset);
 
         let next_tick_scroller = self.scroller.next_tick_at_msec(&self.state.scroller);
+        let next_tick_eyes = self.eyes.next_tick_at_msec(&self.state.eyes);
 
-        [next_tick_fade, Some(next_tick_scroller)]
-            .into_iter()
-            .flatten()
-            .min()
-            .map(|t| t.saturating_sub(self.clock_offset))
+        [
+            next_tick_fade,
+            Some(next_tick_scroller),
+            Some(next_tick_eyes),
+        ]
+        .into_iter()
+        .flatten()
+        .min()
+        .map(|t| t.saturating_sub(self.clock_offset))
     }
 
     fn is_complete(&self) -> bool {
@@ -262,9 +276,15 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
                 canvas.copy(&self.texture_static, None, None)?;
             }
 
-            let scroller_texture = self.scroller.texture();
-            scroller_texture.set_blend_mode(BlendMode::None);
-            canvas.copy(scroller_texture, None, SdlRect::new(0, 334, 640, 16))?;
+            if self.redraw.intersects(Redraw::STATIC | Redraw::EYES) {
+                self.eyes.render(&self.state.eyes, canvas)?;
+            }
+
+            if self.redraw.intersects(Redraw::STATIC | Redraw::SCROLLER) {
+                let scroller_texture = self.scroller.texture();
+                scroller_texture.set_blend_mode(BlendMode::None);
+                canvas.copy(scroller_texture, None, SdlRect::new(0, 334, 640, 16))?;
+            }
 
             Ok(())
         })?;
