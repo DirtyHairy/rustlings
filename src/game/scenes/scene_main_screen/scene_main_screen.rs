@@ -17,7 +17,9 @@ use crate::{
     geometry::Rect,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::{
-        common::{FADEIN_MUSEC_MENU, FadeController, TextGrid, draw_background},
+        common::{
+            FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU, FadeController, TextGrid, draw_background,
+        },
         scene_main_screen::{eyes::Eyes, scroller::Scroller},
     },
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
@@ -84,7 +86,8 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
 
         let scroller = Scroller::new(texture_creator, &game_data)?;
         let eyes = Eyes::new(texture_creator, &game_data)?;
-        let fade_controller = FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEIN_MUSEC_MENU);
+        let fade_controller =
+            FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 
         let mut scene = Self {
             game_data,

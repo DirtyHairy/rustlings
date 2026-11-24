@@ -63,7 +63,7 @@ pub struct SceneStateLevel {
     pub object_state: ObjectsState,
 
     pub clock_musec: u64,
-    pub simulation_clock_offset: i64,
+    pub simulation_clock_offset_musec: i64,
     pub paused: bool,
     pub tick: u64,
 

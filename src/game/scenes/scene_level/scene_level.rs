@@ -298,7 +298,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         self.state.clock_musec = clock_musec;
 
         if self.state.paused {
-            self.state.simulation_clock_offset += clock_musec_old as i64 - clock_musec as i64;
+            self.state.simulation_clock_offset_musec += clock_musec_old as i64 - clock_musec as i64;
         }
 
         if clock_musec <= clock_musec_old {
@@ -331,7 +331,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
 
         let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
-            (((clock_musec as i64 + self.state.simulation_clock_offset).max(0) * ENGINE_FPS as i64)
+            (((clock_musec as i64 + self.state.simulation_clock_offset_musec).max(0)
+                * ENGINE_FPS as i64)
                 / (1000000 * ENGINE_FPS_REALTIME as i64)) as u32,
         );
 

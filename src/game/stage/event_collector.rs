@@ -119,7 +119,8 @@ impl EventCollector {
         });
 
         for event in event_pump
-            .wait_event_timeout(Duration::from_micros(wait_timeout))
+            // make sure that we err on the side of a slightly too long wait
+            .wait_event_timeout(Duration::from_millis(wait_timeout.div_ceil(1000)))
             .into_iter()
             .chain(event_pump.poll_iter())
         {
