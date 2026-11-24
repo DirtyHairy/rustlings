@@ -9,7 +9,6 @@ use rustlings::{
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    rect::Rect as SdlRect,
     render::{BlendMode, Canvas, Texture, TextureCreator},
     video::Window,
 };
@@ -281,9 +280,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
             }
 
             if self.redraw.intersects(Redraw::STATIC | Redraw::SCROLLER) {
-                let scroller_texture = self.scroller.texture();
-                scroller_texture.set_blend_mode(BlendMode::None);
-                canvas.copy(scroller_texture, None, SdlRect::new(0, 334, 640, 16))?;
+                self.scroller.render(&self.state.scroller, canvas)?;
             }
 
             Ok(())

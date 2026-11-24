@@ -7,17 +7,17 @@ use rustlings::{
             palette::MENU_SCREEN_PALETTE,
         },
     },
-    sdl::{SdlAtlas, SdlAtlasBuilder, with_texture_canvas},
+    sdl::{SdlAtlas, SdlAtlasBuilder},
 };
 use sdl3::{
-    pixels::PixelFormat,
-    render::{Canvas, RenderTarget, Texture, TextureCreator},
+    render::{Canvas, RenderTarget, TextureCreator},
     sys::blendmode::SDL_BLENDMODE_NONE,
 };
 
 use crate::state::{SCROLLER_VISIBLE_CHARS, ScrollerPhase, ScrollerState};
 
 const WIDTH: u32 = 640;
+const SCREEN_HEIGHT: u32 = 350;
 const HEIGHT: u32 = 16;
 
 const NSEC_PER_TICK: u64 = 1000000 / 30;
@@ -56,8 +56,6 @@ impl Default for ScrollerState {
 
 pub struct Scroller<'texture_creator, 'a> {
     atlas: SdlAtlas<'texture_creator>,
-
-    texture_scroller: Texture<'texture_creator>,
 
     index_lemming_left: usize,
     index_lemming_right: usize,
@@ -103,12 +101,8 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
         let mut atlas = atlas_builder.build(&MENU_SCREEN_PALETTE, texture_creator)?;
         atlas.apply_blend_mode(SDL_BLENDMODE_NONE);
 
-        let texture_scroller =
-            texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
-
         Ok(Self {
             atlas,
-            texture_scroller,
             index_lemming_left,
             index_lemming_right,
             text,
@@ -128,51 +122,45 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
         state: &ScrollerState,
         canvas: &mut Canvas<T>,
     ) -> Result<()> {
-        with_texture_canvas(canvas, &mut self.texture_scroller, |canvas| {
-            let shift = if state.phase == ScrollerPhase::Scroll {
-                (state.ticks_in_phase % TICKS_PER_LETTER) as i32 * PIXELS_PER_TICK as i32
-            } else {
-                (TICKS_PER_LETTER as i32) * (PIXELS_PER_TICK as i32)
-            };
+        let shift = if state.phase == ScrollerPhase::Scroll {
+            (state.ticks_in_phase % TICKS_PER_LETTER) as i32 * PIXELS_PER_TICK as i32
+        } else {
+            (TICKS_PER_LETTER as i32) * (PIXELS_PER_TICK as i32)
+        };
 
-            for (i, char_index) in state.current_line.into_iter().enumerate() {
-                self.atlas.blit(
-                    canvas,
-                    0,
-                    48 + 16 * (i as i32) - shift,
-                    0,
-                    char_index,
-                    false,
-                    false,
-                )?;
-            }
-
+        for (i, char_index) in state.current_line.into_iter().enumerate() {
             self.atlas.blit(
                 canvas,
-                self.index_lemming_left,
                 0,
-                0,
-                state.current_scroller_frame,
+                48 + 16 * (i as i32) - shift,
+                (SCREEN_HEIGHT - HEIGHT) as i32,
+                char_index,
                 false,
                 false,
             )?;
+        }
 
-            self.atlas.blit(
-                canvas,
-                self.index_lemming_right,
-                WIDTH as i32 - 48,
-                0,
-                state.current_scroller_frame,
-                false,
-                false,
-            )?;
+        self.atlas.blit(
+            canvas,
+            self.index_lemming_left,
+            0,
+            (SCREEN_HEIGHT - HEIGHT) as i32,
+            state.current_scroller_frame,
+            false,
+            false,
+        )?;
 
-            Ok(())
-        })
-    }
+        self.atlas.blit(
+            canvas,
+            self.index_lemming_right,
+            WIDTH as i32 - 48,
+            (SCREEN_HEIGHT - HEIGHT) as i32,
+            state.current_scroller_frame,
+            false,
+            false,
+        )?;
 
-    pub fn texture(&mut self) -> &mut Texture<'texture_creator> {
-        &mut self.texture_scroller
+        Ok(())
     }
 }
 
