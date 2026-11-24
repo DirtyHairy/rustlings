@@ -90,7 +90,7 @@ impl<'texture_creator> Eyes<'texture_creator> {
     }
 
     pub fn next_tick_at_msec(&self, state: &EyesState) -> u64 {
-        next_tick_at_nsec(state)
+        next_tick_at_nsec(state) / 1000
     }
 
     pub fn render<T: RenderTarget>(&self, state: &EyesState, canvas: &mut Canvas<T>) -> Result<()> {
