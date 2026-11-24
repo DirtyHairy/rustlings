@@ -2,8 +2,9 @@ use std::{collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, ENGINE_FPS, ENGINE_FPS_REALTIME, ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH,
-    Level, LevelParameters, SCREEN_HEIGHT, SCREEN_WIDTH, Skill, file::ground::InteractionType,
+    Bitmap, ENGINE_FPS, ENGINE_FPS_REALTIME, ENGINE_TICK_MUSEC, GameData, LEVEL_HEIGHT,
+    LEVEL_WIDTH, Level, LevelParameters, SCREEN_HEIGHT, SCREEN_WIDTH, Skill,
+    file::ground::InteractionType,
 };
 use sdl3::{
     keyboard::{Keycode, Mod},
@@ -14,7 +15,7 @@ use sdl3::{
 use crate::{
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::{
-        common::{FADEIN_MSEC_LEVEL, FADEOUT_MSEC_LEVEL, FadeController},
+        common::{FADEIN_MUSEC_LEVEL, FADEOUT_MUSEC_LEVEL, FadeController},
         scene_level::{
             cache::Cache,
             renderer::{Redraw, Renderer},
@@ -42,7 +43,7 @@ pub struct SceneLevel<'texture_creator> {
     simulation: Simulation,
 
     level_parameters: LevelParameters,
-    clock_offset_msec: u64,
+    clock_offset_musec: u64,
 
     shift_down: bool,
     right_mouse_down: bool,
@@ -94,10 +95,10 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let scroll_controller = ScrollController::new();
         let selection_controller = SelectionController::new();
         let fade_controller =
-            FadeController::new(fade_state, FADEIN_MSEC_LEVEL, FADEOUT_MSEC_LEVEL);
+            FadeController::new(fade_state, FADEIN_MUSEC_LEVEL, FADEOUT_MUSEC_LEVEL);
 
         Ok(SceneLevel {
-            clock_offset_msec: scene_state.clock_msec,
+            clock_offset_musec: scene_state.clock_musec,
             global_state,
             state: scene_state,
             renderer,
@@ -288,31 +289,31 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
     }
 
-    fn tick(&mut self, canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
-        self.fade_controller.tick(clock_msec);
+    fn tick(&mut self, canvas: &mut Canvas<Window>, mut clock_musec: u64) -> Result<()> {
+        self.fade_controller.tick(clock_musec);
 
-        clock_msec += self.clock_offset_msec;
+        clock_musec += self.clock_offset_musec;
 
-        let clock_msec_old = self.state.clock_msec;
-        self.state.clock_msec = clock_msec;
+        let clock_musec_old = self.state.clock_musec;
+        self.state.clock_musec = clock_musec;
 
         if self.state.paused {
-            self.state.simulation_clock_offset += clock_msec_old as i64 - clock_msec as i64;
+            self.state.simulation_clock_offset += clock_musec_old as i64 - clock_musec as i64;
         }
 
-        if clock_msec <= clock_msec_old {
+        if clock_musec <= clock_musec_old {
             return Ok(());
         }
 
         if self
             .scroll_controller
-            .tick(clock_msec, clock_msec_old, &mut self.state)
+            .tick(clock_musec, clock_musec_old, &mut self.state)
         {
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
-        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
+        let engine_ticks_old = clock_musec_old / ENGINE_TICK_MUSEC;
+        let engine_ticks = clock_musec / ENGINE_TICK_MUSEC;
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
@@ -330,8 +331,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
 
         let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
-            (((clock_msec as i64 + self.state.simulation_clock_offset).max(0) * ENGINE_FPS as i64)
-                / (1000 * ENGINE_FPS_REALTIME as i64)) as u32,
+            (((clock_musec as i64 + self.state.simulation_clock_offset).max(0) * ENGINE_FPS as i64)
+                / (1000000 * ENGINE_FPS_REALTIME as i64)) as u32,
         );
 
         if remaining_time_seconds != self.state.remaining_time_seconds {
@@ -346,28 +347,28 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         Ok(())
     }
 
-    fn next_tick_at_msec(&self) -> Option<u64> {
+    fn next_tick_at_musec(&self) -> Option<u64> {
         let next_tick = if !self.state.paused
             || self.pause_tick_scheduled
             || self.skill_panel_controller.needs_tick()
         {
-            Some((self.state.clock_msec + 1).next_multiple_of(ENGINE_TICK_MSEC))
+            Some((self.state.clock_musec + 1).next_multiple_of(ENGINE_TICK_MUSEC))
         } else {
             None
         };
 
         let next_tick_fade = self
             .fade_controller
-            .next_tick_since_creation_at_msec()
-            .map(|tick| tick + self.clock_offset_msec);
+            .next_tick_since_creation_at_musec()
+            .map(|tick| tick + self.clock_offset_musec);
 
-        let next_tick_scroll = self.scroll_controller.next_tick_at_msec(&self.state);
+        let next_tick_scroll = self.scroll_controller.next_tick_at_musec(&self.state);
 
         [next_tick, next_tick_scroll, next_tick_fade]
             .into_iter()
             .flatten()
             .min()
-            .map(|tick| tick.saturating_sub(self.clock_offset_msec))
+            .map(|tick| tick.saturating_sub(self.clock_offset_musec))
     }
 
     fn register_layers(&self, compositor: &mut dyn crate::scene::Compositor) {

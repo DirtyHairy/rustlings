@@ -10,7 +10,7 @@ pub enum ChoiceBriefing {
 
 #[derive(Clone)]
 pub struct SceneStateBriefing {
-    pub clock_msec: u64,
+    pub clock_musec: u64,
     pub choice: Option<ChoiceBriefing>,
 
     pub objects: ObjectsState,

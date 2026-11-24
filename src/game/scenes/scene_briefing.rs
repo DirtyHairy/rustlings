@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow};
 use rustlings::{
     game_data,
     game_data::{
-        ENGINE_TICK_MSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, NUM_LEVELS,
+        ENGINE_TICK_MUSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, NUM_LEVELS,
         decode_level_index, file::ground::InteractionType,
     },
     sdl::with_texture_canvas,
@@ -21,7 +21,7 @@ use crate::{
     geometry,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::common::{
-        FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU, FadeController, LevelRenderer, TextGrid,
+        FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU, FadeController, LevelRenderer, TextGrid,
         draw_background,
     },
     state::{
@@ -81,7 +81,7 @@ pub struct SceneBriefing<'texture_creator> {
     state: SceneStateBriefing,
     level: Level,
     objects: Vec<Object>,
-    clock_offset_msec: u64,
+    clock_offset_musec: u64,
 
     level_renderer: LevelRenderer<'texture_creator>,
     fade_controller: FadeController,
@@ -110,7 +110,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
         let (fade_state, scene_state) = state.unzip();
         let scene_state = scene_state.flatten().unwrap_or_else(|| SceneStateBriefing {
-            clock_msec: 0,
+            clock_musec: 0,
             choice: None,
             objects: objects.iter().map(|o| o.into()).collect(),
         });
@@ -119,10 +119,11 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         let level_renderer =
             LevelRenderer::new(&level, &terrain, Rc::clone(&game_data), texture_creator)?;
 
-        let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
+        let fade_controller =
+            FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 
         let mut scene = Self {
-            clock_offset_msec: scene_state.clock_msec,
+            clock_offset_musec: scene_state.clock_musec,
 
             global_state,
             needs_level_draw: true,
@@ -285,16 +286,16 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         };
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
-        self.fade_controller.tick(clock_msec);
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_musec: u64) -> Result<()> {
+        self.fade_controller.tick(clock_musec);
 
-        clock_msec += self.clock_offset_msec;
+        clock_musec += self.clock_offset_musec;
 
-        let clock_msec_old = self.state.clock_msec;
-        self.state.clock_msec = clock_msec;
+        let clock_musec_old = self.state.clock_musec;
+        self.state.clock_musec = clock_musec;
 
-        let engine_ticks_old = clock_msec_old / ENGINE_TICK_MSEC;
-        let engine_ticks = clock_msec / ENGINE_TICK_MSEC;
+        let engine_ticks_old = clock_musec_old / ENGINE_TICK_MUSEC;
+        let engine_ticks = clock_musec / ENGINE_TICK_MUSEC;
 
         let delta = engine_ticks.saturating_sub(engine_ticks_old) as usize;
         if delta > 0 {
@@ -312,14 +313,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         Ok(())
     }
 
-    fn next_tick_at_msec(&self) -> Option<u64> {
-        let mut next_tick = (self.state.clock_msec / ENGINE_TICK_MSEC + 1) * ENGINE_TICK_MSEC;
+    fn next_tick_at_musec(&self) -> Option<u64> {
+        let mut next_tick = (self.state.clock_musec + 1).next_multiple_of(ENGINE_TICK_MUSEC);
 
-        if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_msec() {
-            next_tick = next_tick.min(next_tick_fade + self.clock_offset_msec);
+        if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_musec() {
+            next_tick = next_tick.min(next_tick_fade + self.clock_offset_musec);
         }
 
-        Some(next_tick.saturating_sub(self.clock_offset_msec))
+        Some(next_tick.saturating_sub(self.clock_offset_musec))
     }
 
     fn is_complete(&self) -> bool {

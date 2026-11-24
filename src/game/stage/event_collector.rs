@@ -14,7 +14,7 @@ use sdl3::{
 use crate::scene::SceneEvent;
 
 const INITIAL_CAPACITY: usize = 32;
-const INDEFINITE_POLL_INTERVAL_MSEC: u64 = 100;
+const INDEFINITE_POLL_INTERVAL_MUSEC: u64 = 100000;
 
 #[derive(Clone, Copy)]
 pub enum MouseButton {
@@ -97,7 +97,7 @@ impl EventCollector {
     pub fn collect_events(
         &mut self,
         aggregate_at_least_until: Instant,
-        timeout_millis: Option<u64>,
+        timeout_musec: Option<u64>,
         event_pump: &mut EventPump,
     ) {
         let ts_reference = Instant::now();
@@ -112,13 +112,14 @@ impl EventCollector {
         self.aggregate = Default::default();
 
         let now = Instant::now();
-        let elapsed = now.duration_since(ts_reference).as_millis() as u64;
+        let elapsed_musec = now.duration_since(ts_reference).as_micros() as u64;
 
-        let wait_timeout =
-            timeout_millis.map_or(INDEFINITE_POLL_INTERVAL_MSEC, |t| t.saturating_sub(elapsed));
+        let wait_timeout = timeout_musec.map_or(INDEFINITE_POLL_INTERVAL_MUSEC, |t| {
+            t.saturating_sub(elapsed_musec)
+        });
 
         for event in event_pump
-            .wait_event_timeout(Duration::from_millis(wait_timeout))
+            .wait_event_timeout(Duration::from_micros(wait_timeout))
             .into_iter()
             .chain(event_pump.poll_iter())
         {

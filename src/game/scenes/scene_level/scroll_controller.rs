@@ -38,7 +38,7 @@ enum ScrollMode {
     Drag,
 }
 
-const SCROLL_MSEC_PER_PIXEL: u64 = 5; // 3200 msec to scroll over the full width
+const SCROLL_MUSEC_PER_PIXEL: u64 = 5000; // 3200 msec to scroll over the full width
 const FAST_SCROLL_SPEEDUP: u32 = 3;
 const LEVEL_X_MAX: u32 = LEVEL_WIDTH - SCREEN_WIDTH;
 
@@ -144,12 +144,12 @@ impl ScrollController {
 
     pub fn tick(
         &mut self,
-        clock_msec: u64,
-        clock_msec_old: u64,
+        clock_musec: u64,
+        clock_musec_old: u64,
         state: &mut SceneStateLevel,
     ) -> bool {
-        let scroll_ticks_old = clock_msec_old / SCROLL_MSEC_PER_PIXEL;
-        let scroll_ticks_new = clock_msec / SCROLL_MSEC_PER_PIXEL;
+        let scroll_ticks_old = clock_musec_old / SCROLL_MUSEC_PER_PIXEL;
+        let scroll_ticks_new = clock_musec / SCROLL_MUSEC_PER_PIXEL;
         let scroll_speedup = if self.fast_scroll() {
             FAST_SCROLL_SPEEDUP
         } else {
@@ -182,10 +182,10 @@ impl ScrollController {
         dirty
     }
 
-    pub fn next_tick_at_msec(&self, state: &SceneStateLevel) -> Option<u64> {
+    pub fn next_tick_at_musec(&self, state: &SceneStateLevel) -> Option<u64> {
         match self.scroll_mode() {
             ScrollMode::Left | ScrollMode::Right => {
-                Some((state.clock_msec + 1).next_multiple_of(SCROLL_MSEC_PER_PIXEL))
+                Some((state.clock_musec + 1).next_multiple_of(SCROLL_MUSEC_PER_PIXEL))
             }
             _ => None,
         }

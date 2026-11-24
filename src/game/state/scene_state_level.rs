@@ -62,7 +62,7 @@ pub struct SceneStateLevel {
     pub terrain_map: Vec<TerrainProps>,
     pub object_state: ObjectsState,
 
-    pub clock_msec: u64,
+    pub clock_musec: u64,
     pub simulation_clock_offset: i64,
     pub paused: bool,
     pub tick: u64,

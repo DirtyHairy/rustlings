@@ -17,7 +17,7 @@ use crate::{
     geometry::Rect,
     scene::{Compositor, CursorType, MouseButton, Scene, SceneEvent},
     scenes::common::{
-        FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU, FadeController, TextGrid, draw_background,
+        FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU, FadeController, TextGrid, draw_background,
     },
     state::{
         self, ChoiceDebrief, FadeState, GameState, GameStateGlobal, Scene::Briefing,
@@ -62,7 +62,8 @@ impl<'texture_creator> SceneDebrief<'texture_creator> {
 
         let level = game_data.resolve_level(global_state.current_level)?;
 
-        let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEOUT_MSEC_MENU);
+        let fade_controller =
+            FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 
         let mut scene = Self {
             global_state,
@@ -223,14 +224,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
         }
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, clock_msec: u64) -> Result<()> {
-        self.fade_controller.tick(clock_msec);
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, clock_musec: u64) -> Result<()> {
+        self.fade_controller.tick(clock_musec);
 
         Ok(())
     }
 
-    fn next_tick_at_msec(&self) -> Option<u64> {
-        self.fade_controller.next_tick_since_creation_at_msec()
+    fn next_tick_at_musec(&self) -> Option<u64> {
+        self.fade_controller.next_tick_since_creation_at_musec()
     }
 
     fn is_complete(&self) -> bool {

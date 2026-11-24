@@ -19,7 +19,7 @@ struct EyeSpec {
     sprite_index: usize,
 }
 
-const NSEC_PER_TICK: u64 = 1000000 / 20;
+const MUSEC_PER_TICK: u64 = 1000000 / 20;
 const FRAMES_PER_EYE: isize = 8;
 
 const EYE_SPEC: &[EyeSpec] = &[
@@ -59,7 +59,7 @@ impl Default for EyesState {
     fn default() -> Self {
         Self {
             eye_counters: array::from_fn::<isize, EYE_COUNT, _>(|i| i as isize * (0x28 >> 1)),
-            clock_nsec: 0,
+            clock_musec: 0,
         }
     }
 }
@@ -85,12 +85,12 @@ impl<'texture_creator> Eyes<'texture_creator> {
         Ok(Self { atlas })
     }
 
-    pub fn tick(&self, clock_msec: u64, state: &mut EyesState) -> bool {
-        tick(clock_msec * 1000, state)
+    pub fn tick(&self, clock_musec: u64, state: &mut EyesState) -> bool {
+        tick(clock_musec, state)
     }
 
-    pub fn next_tick_at_msec(&self, state: &EyesState) -> u64 {
-        next_tick_at_nsec(state) / 1000
+    pub fn next_tick_at_musec(&self, state: &EyesState) -> u64 {
+        next_tick_at_musec(state)
     }
 
     pub fn render<T: RenderTarget>(&self, state: &EyesState, canvas: &mut Canvas<T>) -> Result<()> {
@@ -116,12 +116,12 @@ impl<'texture_creator> Eyes<'texture_creator> {
     }
 }
 
-pub fn tick(clock_nsec: u64, state: &mut EyesState) -> bool {
-    let old_clock_nsec = state.clock_nsec;
-    state.clock_nsec = clock_nsec;
+pub fn tick(clock_musec: u64, state: &mut EyesState) -> bool {
+    let old_clock_musec = state.clock_musec;
+    state.clock_musec = clock_musec;
 
-    let ticks_old = old_clock_nsec / NSEC_PER_TICK;
-    let ticks_new = clock_nsec / NSEC_PER_TICK;
+    let ticks_old = old_clock_musec / MUSEC_PER_TICK;
+    let ticks_new = clock_musec / MUSEC_PER_TICK;
 
     let ticks = ticks_new.strict_sub(ticks_old) as isize;
     if ticks == 0 {
@@ -145,7 +145,7 @@ pub fn tick(clock_nsec: u64, state: &mut EyesState) -> bool {
     redraw
 }
 
-pub fn next_tick_at_nsec(state: &EyesState) -> u64 {
+pub fn next_tick_at_musec(state: &EyesState) -> u64 {
     let min_counter = state.eye_counters[0..EYE_SPEC.len()]
         .iter()
         .copied()
@@ -153,10 +153,10 @@ pub fn next_tick_at_nsec(state: &EyesState) -> u64 {
         .unwrap();
 
     let delta = if min_counter <= 0 {
-        (state.clock_nsec + 1).next_multiple_of(NSEC_PER_TICK) - state.clock_nsec
+        (state.clock_musec + 1).next_multiple_of(MUSEC_PER_TICK) - state.clock_musec
     } else {
-        (1 + min_counter as u64) * NSEC_PER_TICK - (state.clock_nsec % NSEC_PER_TICK)
+        (1 + min_counter as u64) * MUSEC_PER_TICK - (state.clock_musec % MUSEC_PER_TICK)
     };
 
-    state.clock_nsec + delta
+    state.clock_musec + delta
 }

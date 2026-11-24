@@ -17,7 +17,7 @@ use crate::{
     geometry::Rect,
     scene::{CursorType, MouseButton, Scene, SceneEvent},
     scenes::{
-        common::{FADEIN_MSEC_MENU, FadeController, TextGrid, draw_background},
+        common::{FADEIN_MUSEC_MENU, FadeController, TextGrid, draw_background},
         scene_main_screen::{eyes::Eyes, scroller::Scroller},
     },
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
@@ -77,19 +77,19 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
                     choice: None,
                     scroller: Default::default(),
                     eyes: Default::default(),
-                    clock_msec: 0,
+                    clock_musec: 0,
                 }),
             ),
         };
 
         let scroller = Scroller::new(texture_creator, &game_data)?;
         let eyes = Eyes::new(texture_creator, &game_data)?;
-        let fade_controller = FadeController::new(fade_state, FADEIN_MSEC_MENU, FADEIN_MSEC_MENU);
+        let fade_controller = FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEIN_MUSEC_MENU);
 
         let mut scene = Self {
             game_data,
             global_state,
-            clock_offset: scene_state.clock_msec,
+            clock_offset: scene_state.clock_musec,
             state: scene_state,
             texture_screen,
             texture_static,
@@ -203,31 +203,31 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_msec: u64) -> Result<()> {
-        self.fade_controller.tick(clock_msec);
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_musec: u64) -> Result<()> {
+        self.fade_controller.tick(clock_musec);
 
-        clock_msec += self.clock_offset;
-        self.state.clock_msec = clock_msec;
+        clock_musec += self.clock_offset;
+        self.state.clock_musec = clock_musec;
 
-        if self.scroller.tick(clock_msec, &mut self.state.scroller) {
+        if self.scroller.tick(clock_musec, &mut self.state.scroller) {
             self.redraw.insert(Redraw::SCROLLER);
         }
 
-        if self.eyes.tick(clock_msec, &mut self.state.eyes) {
+        if self.eyes.tick(clock_musec, &mut self.state.eyes) {
             self.redraw.insert(Redraw::EYES);
         }
 
         Ok(())
     }
 
-    fn next_tick_at_msec(&self) -> Option<u64> {
+    fn next_tick_at_musec(&self) -> Option<u64> {
         let next_tick_fade = self
             .fade_controller
-            .next_tick_since_creation_at_msec()
+            .next_tick_since_creation_at_musec()
             .map(|t| t + self.clock_offset);
 
-        let next_tick_scroller = self.scroller.next_tick_at_msec(&self.state.scroller);
-        let next_tick_eyes = self.eyes.next_tick_at_msec(&self.state.eyes);
+        let next_tick_scroller = self.scroller.next_tick_at_musec(&self.state.scroller);
+        let next_tick_eyes = self.eyes.next_tick_at_musec(&self.state.eyes);
 
         [
             next_tick_fade,

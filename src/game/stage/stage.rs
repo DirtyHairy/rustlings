@@ -23,8 +23,8 @@ use crate::scene::{self, CursorType, MouseCoordinates, Scene, SceneEvent};
 use crate::stage::event_collector::{EventCollector, GameEvent, MouseButton, MouseOwnerChange};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
 
-const MAX_TIMESLICE_EXCESS_MSEC: u64 = 100;
-const TIME_BUDGET_SAFETY_MARGIN_MSEC: u64 = 3;
+const MAX_TIMESLICE_EXCESS_MUSEC: u64 = 100000;
+const TIME_BUDGET_SAFETY_MARGIN_MUSEC: u64 = 3000;
 const FALLBACK_REFRESH_RATE: f32 = 60.;
 const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
 
@@ -44,12 +44,12 @@ pub struct Stage<'sdl> {
     rerender: bool,
     suspended: bool,
     ts_reference: Instant,
-    time_offset: u64,
-    time_old: u64,
+    time_offset_musec: u64,
+    time_old_musec: u64,
     speed: u32,
 
     last_time_per_frame_update: Instant,
-    cached_time_per_frame_msec: Option<u64>,
+    cached_time_per_frame_musec: Option<u64>,
 }
 
 impl From<MouseButton> for scene::MouseButton {
@@ -77,11 +77,11 @@ impl<'sdl> Stage<'sdl> {
             rerender: false,
             suspended: false,
             ts_reference: Instant::now(),
-            time_old: 0,
-            time_offset: 0,
+            time_old_musec: 0,
+            time_offset_musec: 0,
             speed: 1,
             last_time_per_frame_update: Instant::now(),
-            cached_time_per_frame_msec: None,
+            cached_time_per_frame_musec: None,
         }
     }
 
@@ -95,8 +95,8 @@ impl<'sdl> Stage<'sdl> {
         self.rerender = true;
         self.suspended = false;
         self.ts_reference = Instant::now();
-        self.time_old = 0;
-        self.time_offset = 0;
+        self.time_old_musec = 0;
+        self.time_offset_musec = 0;
 
         self.transfer_mouse_state(&mut render_state)?;
 
@@ -111,35 +111,35 @@ impl<'sdl> Stage<'sdl> {
             render_state.mouse_y,
         )));
 
-        let mut aggregate_timeout: Option<u64> = None;
+        let mut aggregate_timeout_musec: Option<u64> = None;
 
         loop {
             if !self.suspended {
                 self.render_scene(scene, &mut render_state)?;
             }
 
-            let frame_budget = self
-                .time_per_frame_msec()
-                .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MSEC);
+            let frame_budget_musec = self
+                .time_per_frame_musec()
+                .saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MUSEC);
             let ts_frame_start = Instant::now();
 
             let now = Instant::now();
-            let mut time = self.time_since_reference(now) + self.time_offset;
+            let mut time_musec = self.time_since_reference_musec(now) + self.time_offset_musec;
 
-            if let Some(aggregate_timeout) = aggregate_timeout
-                && time - self.time_old
-                    > (aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC) * self.speed as u64
+            if let Some(aggregate_timeout_musec) = aggregate_timeout_musec
+                && time_musec - self.time_old_musec
+                    > (aggregate_timeout_musec + MAX_TIMESLICE_EXCESS_MUSEC) * self.speed as u64
             {
                 self.ts_reference = now;
-                self.time_offset = self.time_old
-                    + (aggregate_timeout + MAX_TIMESLICE_EXCESS_MSEC) * self.speed as u64;
+                self.time_offset_musec = self.time_old_musec
+                    + (aggregate_timeout_musec + MAX_TIMESLICE_EXCESS_MUSEC) * self.speed as u64;
 
-                time = self.time_since_reference(now) + self.time_offset;
+                time_musec = self.time_since_reference_musec(now) + self.time_offset_musec;
             }
 
             if !self.suspended {
-                self.time_old = time;
-                scene.tick(self.canvas, time)?;
+                self.time_old_musec = time_musec;
+                scene.tick(self.canvas, time_musec)?;
 
                 if scene.is_complete() {
                     return Ok(StopReason::NextScene);
@@ -152,21 +152,21 @@ impl<'sdl> Stage<'sdl> {
                 return Ok(stop_reason);
             }
 
-            aggregate_timeout = if scene.will_redraw() || self.last_opacity != Some(scene.opacity())
-            {
-                Some(0)
-            } else {
-                scene
-                    .next_tick_at_msec()
-                    .map(|x| x.saturating_sub(time) / self.speed as u64)
-            };
+            aggregate_timeout_musec =
+                if scene.will_redraw() || self.last_opacity != Some(scene.opacity()) {
+                    Some(0)
+                } else {
+                    scene
+                        .next_tick_at_musec()
+                        .map(|x| x.saturating_sub(time_musec) / self.speed as u64)
+                };
 
             let mut event_pump = self.sdl_context.event_pump()?;
             let expose_watch = ExposeWatch::new(self, &mut render_state, scene)?;
 
             event_collector.collect_events(
-                ts_frame_start + Duration::from_millis(frame_budget),
-                aggregate_timeout,
+                ts_frame_start + Duration::from_micros(frame_budget_musec),
+                aggregate_timeout_musec,
                 &mut event_pump,
             );
 
@@ -176,8 +176,8 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn time_since_reference(&self, now: Instant) -> u64 {
-        now.duration_since(self.ts_reference).as_millis() as u64 * self.speed as u64
+    fn time_since_reference_musec(&self, now: Instant) -> u64 {
+        now.duration_since(self.ts_reference).as_micros() as u64 * self.speed as u64
     }
 
     fn transfer_mouse_state(&mut self, render_state: &mut RenderState) -> Result<()> {
@@ -224,9 +224,9 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::Redraw => self.rerender = true,
                 GameEvent::ToggleFullscreen => {
                     toggle_fullscreen = !toggle_fullscreen;
-                    self.cached_time_per_frame_msec = None;
+                    self.cached_time_per_frame_musec = None;
                 }
-                GameEvent::ModeChanged => self.cached_time_per_frame_msec = None,
+                GameEvent::ModeChanged => self.cached_time_per_frame_musec = None,
                 GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
                 GameEvent::MouseMove { .. } => (),
                 GameEvent::MouseDown { x, y, button } => {
@@ -252,7 +252,7 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::SetSpeed(speed) => {
                     let now = Instant::now();
 
-                    self.time_offset += self.time_since_reference(now);
+                    self.time_offset_musec += self.time_since_reference_musec(now);
                     self.ts_reference = now;
                     self.speed = speed;
                 }
@@ -338,10 +338,10 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn time_per_frame_msec(&mut self) -> u64 {
+    fn time_per_frame_musec(&mut self) -> u64 {
         let now = Instant::now();
 
-        if self.cached_time_per_frame_msec.is_none()
+        if self.cached_time_per_frame_musec.is_none()
             || now
                 .duration_since(self.last_time_per_frame_update)
                 .as_millis()
@@ -350,11 +350,11 @@ impl<'sdl> Stage<'sdl> {
             let refresh_rate =
                 current_refresh_rate(self.canvas.window()).unwrap_or(FALLBACK_REFRESH_RATE);
 
-            self.cached_time_per_frame_msec = Some((1000. / refresh_rate).floor() as u64);
+            self.cached_time_per_frame_musec = Some((1000000. / refresh_rate).floor() as u64);
             self.last_time_per_frame_update = now;
         }
 
-        self.cached_time_per_frame_msec.unwrap()
+        self.cached_time_per_frame_musec.unwrap()
     }
 
     fn update_layout(&mut self, render_state: &mut RenderState<'sdl>) -> Result<()> {

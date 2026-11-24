@@ -7,4 +7,4 @@ pub const SCREEN_HEIGHT: u32 = 200;
 
 pub const ENGINE_FPS: u64 = 15;
 pub const ENGINE_FPS_REALTIME: u64 = 17;
-pub const ENGINE_TICK_MSEC: u64 = 1000 / ENGINE_FPS;
+pub const ENGINE_TICK_MUSEC: u64 = 1000000 / ENGINE_FPS;
