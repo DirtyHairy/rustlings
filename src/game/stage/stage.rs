@@ -418,7 +418,8 @@ impl<'sdl> Stage<'sdl> {
 
             let (width, height) = self.canvas.window().size();
 
-            render_state.mouse_enabled = x >= 0. && x < width as f32 && y > 0. && y < height as f32;
+            render_state.mouse_enabled =
+                x >= 0. && x < width as f32 && y >= 0. && y < height as f32;
 
             self.rerender = true;
         }
