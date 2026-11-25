@@ -197,7 +197,12 @@ impl<'sdl> Stage<'sdl> {
 
             drop(expose_watch);
 
+            let mouse_was_enabled = render_state.mouse_enabled;
             self.update_mouse_state(&event_collector, &mut render_state);
+
+            if mouse_was_enabled != render_state.mouse_enabled {
+                scene.set_mouse_enabled(render_state.mouse_enabled);
+            }
         }
     }
 
@@ -318,7 +323,7 @@ impl<'sdl> Stage<'sdl> {
                 }
                 GameEvent::ModeChanged => self.cached_frame_structure = None,
                 GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
-                GameEvent::MouseMove { .. } => (),
+                GameEvent::MouseMove { .. } | GameEvent::MouseEnter | GameEvent::MouseLeave => (),
                 GameEvent::MouseDown { x, y, button } => {
                     scene.dispatch_event(SceneEvent::MouseDown(
                         button.into(),
@@ -329,8 +334,6 @@ impl<'sdl> Stage<'sdl> {
                     button.into(),
                     self.mouse_coordinates_from(render_state, scene, x, y),
                 )),
-                GameEvent::MouseEnter => scene.set_mouse_enabled(true),
-                GameEvent::MouseLeave => scene.set_mouse_enabled(false),
                 GameEvent::EnterFullscreen => {
                     scene.set_is_fullscreen(true);
                     self.suspended = false;
@@ -412,6 +415,7 @@ impl<'sdl> Stage<'sdl> {
         if let Some((x, y)) = aggregated_events.mouse_coordinates {
             render_state.mouse_x = x;
             render_state.mouse_y = y;
+            render_state.mouse_enabled = true;
             self.rerender = true;
         }
 
