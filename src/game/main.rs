@@ -48,8 +48,8 @@ fn main() -> Result<()> {
             .default_missing_value("")
             .help("SDL render driver. Default is auto, leave blank to get a list of possible values")
         )
-        .arg(Arg::new("no vsync")
-            .long("no-vsync")
+        .arg(Arg::new("disable vsync")
+            .long("disable-vsync")
             .action(ArgAction::SetTrue)
             .help("disable vsync")
         );
@@ -70,7 +70,7 @@ fn main() -> Result<()> {
     let config = Config {
         data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().into(),
         render_driver: render_driver.cloned(),
-        vsync: !matches.get_one::<bool>("no vsync").copied().unwrap(),
+        vsync: !matches.get_one::<bool>("disable vsync").copied().unwrap(),
     };
 
     game::run(&config)
