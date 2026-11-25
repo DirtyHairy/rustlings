@@ -415,7 +415,11 @@ impl<'sdl> Stage<'sdl> {
         if let Some((x, y)) = aggregated_events.mouse_coordinates {
             render_state.mouse_x = x;
             render_state.mouse_y = y;
-            render_state.mouse_enabled = true;
+
+            let (width, height) = self.canvas.window().size();
+
+            render_state.mouse_enabled = x >= 0. && x < width as f32 && y > 0. && y < height as f32;
+
             self.rerender = true;
         }
 
