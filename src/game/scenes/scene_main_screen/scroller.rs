@@ -14,13 +14,16 @@ use sdl3::{
     sys::blendmode::SDL_BLENDMODE_NONE,
 };
 
-use crate::state::{SCROLLER_VISIBLE_CHARS, ScrollerPhase, ScrollerState};
+use crate::{
+    state::{SCROLLER_VISIBLE_CHARS, ScrollerPhase, ScrollerState},
+    timing::clamped_tick_duration_musec,
+};
 
 const WIDTH: u32 = 640;
 const SCREEN_HEIGHT: u32 = 350;
 const HEIGHT: u32 = 16;
 
-const MUSEC_PER_TICK: u64 = 1000000 / 30;
+const TICKS_PER_SECOND: u32 = 30;
 
 const TICKS_PAUSE: u64 = 100;
 const TICKS_PER_LETTER: u64 = 4;
@@ -60,6 +63,8 @@ pub struct Scroller<'texture_creator, 'a> {
     index_lemming_left: usize,
     index_lemming_right: usize,
 
+    tick_duration_musec: u64,
+
     text: &'a [u8],
 }
 
@@ -67,14 +72,16 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
     pub fn new<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
+        fps: f32,
     ) -> Result<Self> {
-        Self::new_with_text(texture_creator, game_data, TEXT)
+        Self::new_with_text(texture_creator, game_data, TEXT, fps)
     }
 
     pub fn new_with_text<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
         text: &'a [u8],
+        fps: f32,
     ) -> Result<Self> {
         let font_frames: Vec<Bitmap> = game_data
             .font_main
@@ -106,15 +113,16 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
             index_lemming_left,
             index_lemming_right,
             text,
+            tick_duration_musec: clamped_tick_duration_musec(TICKS_PER_SECOND, fps),
         })
     }
 
     pub fn tick(&mut self, clock_musec: u64, state: &mut ScrollerState) -> bool {
-        tick(state, self.text, clock_musec)
+        tick(state, self.text, clock_musec, self.tick_duration_musec)
     }
 
     pub fn next_tick_at_musec(&self, state: &ScrollerState) -> u64 {
-        next_tick_at_musec(state)
+        next_tick_at_musec(state, self.tick_duration_musec)
     }
 
     pub fn render<T: RenderTarget>(
@@ -189,12 +197,17 @@ fn compose_onto(fg: &Bitmap, bg: &Bitmap) -> Result<Bitmap> {
     })
 }
 
-fn tick(state: &mut ScrollerState, text: &[u8], clock_musec: u64) -> bool {
+fn tick(
+    state: &mut ScrollerState,
+    text: &[u8],
+    clock_musec: u64,
+    tick_duration_musec: u64,
+) -> bool {
     let old_clock_musec = state.clock_musec;
     state.clock_musec = clock_musec;
 
-    let old_ticks = old_clock_musec / MUSEC_PER_TICK;
-    let new_ticks = clock_musec / MUSEC_PER_TICK;
+    let old_ticks = old_clock_musec / tick_duration_musec;
+    let new_ticks = clock_musec / tick_duration_musec;
     let mut ticks = new_ticks.saturating_sub(old_ticks);
 
     let mut redraw = false;
@@ -235,13 +248,14 @@ fn tick(state: &mut ScrollerState, text: &[u8], clock_musec: u64) -> bool {
     redraw
 }
 
-fn next_tick_at_musec(state: &ScrollerState) -> u64 {
+fn next_tick_at_musec(state: &ScrollerState, tick_duration_musec: u64) -> u64 {
     match state.phase {
         ScrollerPhase::Pause => {
-            state.clock_musec + TICKS_PAUSE.saturating_sub(state.ticks_in_phase) * MUSEC_PER_TICK
-                - (state.clock_musec % MUSEC_PER_TICK)
+            state.clock_musec
+                + TICKS_PAUSE.saturating_sub(state.ticks_in_phase) * tick_duration_musec
+                - (state.clock_musec % tick_duration_musec)
         }
-        ScrollerPhase::Scroll => (state.clock_musec + 1).next_multiple_of(MUSEC_PER_TICK),
+        ScrollerPhase::Scroll => (state.clock_musec + 1).next_multiple_of(tick_duration_musec),
     }
 }
 
@@ -277,12 +291,12 @@ fn resolve_font_index(c: u8) -> usize {
 mod test {
     use crate::{
         scenes::scene_main_screen::scroller::{
-            FONT_INDEX_BLANK, MUSEC_PER_TICK, TICKS_PER_LETTER, next_tick_at_musec,
-            resolve_font_index, tick,
+            FONT_INDEX_BLANK, TICKS_PER_LETTER, next_tick_at_musec, resolve_font_index, tick,
         },
         state::{ScrollerPhase, ScrollerState},
     };
 
+    const TEST_TICK_DURATION_MUSEC: u64 = 1000000 / 60;
     const FIXTURE: &[u8] = "abc\ndefg\n".as_bytes();
 
     #[test]
@@ -306,15 +320,28 @@ mod test {
         let mut state: ScrollerState = Default::default();
 
         for _ in 1..=TICKS_PER_LETTER + 1 {
-            assert_eq!(next_tick_at_musec(&state), MUSEC_PER_TICK);
-            tick(&mut state, FIXTURE, TICKS_PER_LETTER);
+            assert_eq!(
+                next_tick_at_musec(&state, TEST_TICK_DURATION_MUSEC),
+                TEST_TICK_DURATION_MUSEC
+            );
+            tick(
+                &mut state,
+                FIXTURE,
+                TICKS_PER_LETTER,
+                TEST_TICK_DURATION_MUSEC,
+            );
         }
     }
 
     #[test]
     fn scroller_is_still_empty_after_three_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 3 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            3 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
         for c in state.current_line {
             assert_eq!(c, FONT_INDEX_BLANK);
@@ -324,7 +351,12 @@ mod test {
     #[test]
     fn scroller_shifts_in_the_first_character_after_four_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 4 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            4 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
         let (&last, rest) = state.current_line.split_last().unwrap();
 
@@ -342,7 +374,12 @@ mod test {
     #[test]
     fn scroller_enters_pause_after_hitting_newline() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 16 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            16 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
         assert_eq!(state.phase, ScrollerPhase::Pause);
 
@@ -364,19 +401,40 @@ mod test {
     #[test]
     fn pause_lasts_100_ticks() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 16 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            16 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
-        assert_eq!(next_tick_at_musec(&state), 116 * MUSEC_PER_TICK);
+        assert_eq!(
+            next_tick_at_musec(&state, TEST_TICK_DURATION_MUSEC),
+            116 * TEST_TICK_DURATION_MUSEC
+        );
 
-        tick(&mut state, FIXTURE, 66 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            66 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
-        assert_eq!(next_tick_at_musec(&state), 116 * MUSEC_PER_TICK);
+        assert_eq!(
+            next_tick_at_musec(&state, TEST_TICK_DURATION_MUSEC),
+            116 * TEST_TICK_DURATION_MUSEC
+        );
     }
 
     #[test]
     fn after_pause_the_next_char_is_shifted_in_and_scrolling_resume() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, 116 * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            116 * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
         assert_eq!(state.phase, ScrollerPhase::Scroll);
 
@@ -398,7 +456,12 @@ mod test {
     #[test]
     fn scroller_wraps_at_the_end() {
         let mut state: ScrollerState = Default::default();
-        tick(&mut state, FIXTURE, (16 + 100 + 16 + 100) * MUSEC_PER_TICK);
+        tick(
+            &mut state,
+            FIXTURE,
+            (16 + 100 + 16 + 100) * TEST_TICK_DURATION_MUSEC,
+            TEST_TICK_DURATION_MUSEC,
+        );
 
         assert_eq!(state.phase, ScrollerPhase::Scroll);
 

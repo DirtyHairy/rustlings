@@ -25,7 +25,7 @@ use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTextu
 
 const MAX_TIMESLICE_EXCESS_MUSEC: u64 = 100000;
 const TIME_BUDGET_SAFETY_MARGIN_MUSEC: u64 = 3000;
-const FALLBACK_REFRESH_RATE: f32 = 60.;
+pub const FALLBACK_REFRESH_RATE: f32 = 60.;
 const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
 const FRAME_SAFE_BOUNDARY_FRACTION: u64 = 20;
 const USE_FRAME_SYNC_THRESHOLD_MUSEC: u64 = 100000;
@@ -97,6 +97,10 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
+    pub fn use_frame_sync(is_software: bool, vsync: bool, framerate_available: bool) -> bool {
+        !is_software && framerate_available && vsync
+    }
+
     pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<StopReason> {
         let mut render_state = RenderState::new(scene, &self.game_data, self.texture_creator)?;
 
@@ -133,7 +137,7 @@ impl<'sdl> Stage<'sdl> {
                 framerate_available,
             } = self.frame_structure();
 
-            let use_frame_sync = !self.is_software && framerate_available && vsync;
+            let use_frame_sync = Self::use_frame_sync(self.is_software, vsync, framerate_available);
 
             if !self.suspended {
                 self.render_scene(use_frame_sync, scene, &mut render_state)?;
@@ -159,13 +163,9 @@ impl<'sdl> Stage<'sdl> {
                 // All timing critical update intervals are chosen to be multiples of a single frame.
                 // If the tick coincides with a frame boundary we enter an unstable state where
                 // the timing loop alternates between two ticks per interval and zero ticks per interval.
-                // We compensate by making sure that the game time at the beginning of a new frame lies
-                // in the middle of the frame window.
-                self.clamp_tick_to_frame_bulk(
-                    &mut time_musec,
-                    frame_duration_musec,
-                    ts_frame_start,
-                );
+                // We compensate by adjusting the phase of the game clock such that the beginning of a new
+                // frame (in game time) lies in the middle of the frame window (in real time).
+                self.adjust_tick_phase(&mut time_musec, frame_duration_musec, ts_frame_start);
             }
 
             if !self.suspended {
@@ -220,12 +220,7 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn clamp_tick_to_frame_bulk(
-        &mut self,
-        time_musec: &mut u64,
-        frame_duration_musec: u64,
-        now: Instant,
-    ) {
+    fn adjust_tick_phase(&mut self, time_musec: &mut u64, frame_duration_musec: u64, now: Instant) {
         if time_musec
             .next_multiple_of(frame_duration_musec)
             .saturating_sub(*time_musec)

@@ -2,9 +2,8 @@ use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
 use rustlings::{
-    game_data,
     game_data::{
-        ENGINE_TICK_MUSEC, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, NUM_LEVELS,
+        self, ENGINE_TICKS_PER_SECOND, GameData, LEVEL_HEIGHT, LEVEL_WIDTH, Level, NUM_LEVELS,
         decode_level_index, file::ground::InteractionType,
     },
     sdl::with_texture_canvas,
@@ -28,6 +27,7 @@ use crate::{
         self, ChoiceBriefing, FadeState, GameState, GameStateGlobal, ObjectState,
         SceneStateBriefing,
     },
+    timing::clamped_tick_duration_musec,
 };
 
 const WIDTH: u32 = 640;
@@ -85,6 +85,8 @@ pub struct SceneBriefing<'texture_creator> {
 
     level_renderer: LevelRenderer<'texture_creator>,
     fade_controller: FadeController,
+
+    tick_duration_musec: u64,
 }
 
 impl<'texture_creator> SceneBriefing<'texture_creator> {
@@ -92,6 +94,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Option<SceneStateBriefing>)>,
+        fps: f32,
         canvas: &mut Canvas<U>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self>
@@ -136,6 +139,8 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
             level_renderer,
             fade_controller,
+
+            tick_duration_musec: clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND, fps),
         };
 
         scene.log_level();
@@ -294,8 +299,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         let clock_musec_old = self.state.clock_musec;
         self.state.clock_musec = clock_musec;
 
-        let engine_ticks_old = clock_musec_old / ENGINE_TICK_MUSEC;
-        let engine_ticks = clock_musec / ENGINE_TICK_MUSEC;
+        let engine_ticks_old = clock_musec_old / self.tick_duration_musec;
+        let engine_ticks = clock_musec / self.tick_duration_musec;
 
         let delta = engine_ticks.saturating_sub(engine_ticks_old) as usize;
         if delta > 0 {
@@ -314,7 +319,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn next_tick_at_musec(&self) -> Option<u64> {
-        let mut next_tick = (self.state.clock_musec + 1).next_multiple_of(ENGINE_TICK_MUSEC);
+        let mut next_tick = (self.state.clock_musec + 1).next_multiple_of(self.tick_duration_musec);
 
         if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_musec() {
             next_tick = next_tick.min(next_tick_fade + self.clock_offset_musec);

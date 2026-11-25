@@ -62,6 +62,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Box<SceneStateMainScreen>)>,
+        fps: f32,
         canvas: &mut Canvas<Window>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
@@ -84,8 +85,8 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
             ),
         };
 
-        let scroller = Scroller::new(texture_creator, &game_data)?;
-        let eyes = Eyes::new(texture_creator, &game_data)?;
+        let scroller = Scroller::new(texture_creator, &game_data, fps)?;
+        let eyes = Eyes::new(texture_creator, &game_data, fps)?;
         let fade_controller =
             FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 

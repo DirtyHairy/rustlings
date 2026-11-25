@@ -16,6 +16,7 @@ use crate::{
 pub fn create_scene<'texture_creator, T>(
     game_data: Rc<GameData>,
     game_state: GameState,
+    fps: f32,
     canvas: &mut Canvas<Window>,
     texture_creator: &'texture_creator TextureCreator<T>,
 ) -> Result<Box<dyn Scene<'texture_creator> + 'texture_creator>> {
@@ -24,12 +25,14 @@ pub fn create_scene<'texture_creator, T>(
             game_data,
             game_state.global,
             state,
+            fps,
             texture_creator,
         )?)),
         state::Scene::Briefing(state) => Ok(Box::new(SceneBriefing::new(
             game_data,
             game_state.global,
             state,
+            fps,
             canvas,
             texture_creator,
         )?)),
@@ -44,6 +47,7 @@ pub fn create_scene<'texture_creator, T>(
             game_data,
             game_state.global,
             state,
+            fps,
             canvas,
             texture_creator,
         )?)),

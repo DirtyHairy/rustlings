@@ -2,7 +2,7 @@ use std::{collections::VecDeque, rc::Rc};
 
 use anyhow::Result;
 use rustlings::game_data::{
-    Bitmap, ENGINE_FPS, ENGINE_FPS_REALTIME, ENGINE_TICK_MUSEC, GameData, LEVEL_HEIGHT,
+    Bitmap, ENGINE_TICKS_PER_SECOND, ENGINE_TICKS_PER_SECOND_REALTIME, GameData, LEVEL_HEIGHT,
     LEVEL_WIDTH, Level, LevelParameters, SCREEN_HEIGHT, SCREEN_WIDTH, Skill,
     file::ground::InteractionType,
 };
@@ -25,6 +25,7 @@ use crate::{
         },
     },
     state::{self, FadeState, GameStateGlobal, TerrainProps},
+    timing::clamped_tick_duration_musec,
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
@@ -49,6 +50,7 @@ pub struct SceneLevel<'texture_creator> {
     right_mouse_down: bool,
 
     pause_tick_scheduled: bool,
+    tick_duration_musec: u64,
 
     cache: Cache,
 }
@@ -58,6 +60,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Box<SceneStateLevel>)>,
+        fps: f32,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(global_state.current_level)?;
@@ -111,6 +114,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             shift_down: false,
             right_mouse_down: false,
             pause_tick_scheduled: false,
+            tick_duration_musec: clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND, fps),
             cache: Default::default(),
         })
     }
@@ -312,8 +316,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_old = clock_musec_old / ENGINE_TICK_MUSEC;
-        let engine_ticks = clock_musec / ENGINE_TICK_MUSEC;
+        let engine_ticks_old = clock_musec_old / self.tick_duration_musec;
+        let engine_ticks = clock_musec / self.tick_duration_musec;
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
@@ -331,9 +335,9 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
         }
 
         let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
-            (((clock_musec as i64 + self.state.simulation_clock_offset_musec).max(0)
-                * ENGINE_FPS as i64)
-                / (1000000 * ENGINE_FPS_REALTIME as i64)) as u32,
+            ((clock_musec as i64 + self.state.simulation_clock_offset_musec).max(0)
+                / (self.tick_duration_musec as i64 * ENGINE_TICKS_PER_SECOND_REALTIME as i64))
+                as u32,
         );
 
         if remaining_time_seconds != self.state.remaining_time_seconds {
@@ -353,7 +357,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             || self.pause_tick_scheduled
             || self.skill_panel_controller.needs_tick()
         {
-            Some((self.state.clock_musec + 1).next_multiple_of(ENGINE_TICK_MUSEC))
+            Some((self.state.clock_musec + 1).next_multiple_of(self.tick_duration_musec))
         } else {
             None
         };

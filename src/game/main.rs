@@ -10,6 +10,7 @@ mod scene;
 mod scenes;
 mod stage;
 mod state;
+mod timing;
 
 fn validate_render_driver(render_driver: &str) -> bool {
     if sdl3::render::drivers()
