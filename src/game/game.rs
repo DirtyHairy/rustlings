@@ -22,6 +22,7 @@ pub struct Config {
     pub data_dir: String,
     pub render_driver: Option<String>,
     pub vsync: bool,
+    pub disable_frame_sync: bool,
 }
 
 const WINDOW_WIDTH: u32 = 640;
@@ -110,7 +111,7 @@ pub fn run(config: &Config) -> Result<()> {
 
     loop {
         let run_result: StopReason;
-        let render_configuration = RenderConfiguration::query(&canvas);
+        let render_configuration = RenderConfiguration::query(&canvas, config.disable_frame_sync);
 
         {
             let mut scene = create_scene(

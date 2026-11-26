@@ -53,6 +53,11 @@ fn main() -> Result<()> {
             .long("disable-vsync")
             .action(ArgAction::SetTrue)
             .help("disable vsync")
+        )
+        .arg(Arg::new("disable frame sync")
+            .long("disable-frame-sync")
+            .action(ArgAction::SetTrue)
+            .help("don't lock engine speed to dusplay refresh rate")
         );
 
     let matches = command.get_matches();
@@ -72,6 +77,10 @@ fn main() -> Result<()> {
         data_dir: matches.get_one::<String>("DATA DIRECTORY").unwrap().into(),
         render_driver: render_driver.cloned(),
         vsync: !matches.get_one::<bool>("disable vsync").copied().unwrap(),
+        disable_frame_sync: matches
+            .get_one::<bool>("disable frame sync")
+            .copied()
+            .unwrap(),
     };
 
     game::run(&config)

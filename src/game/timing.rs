@@ -14,7 +14,7 @@ pub struct RenderConfiguration {
 }
 
 impl RenderConfiguration {
-    pub fn query(canvas: &Canvas<Window>) -> Self {
+    pub fn query(canvas: &Canvas<Window>, disable_frame_sync: bool) -> Self {
         let vsync = get_canvas_vsync(canvas);
         let real_fps = current_refresh_rate(canvas.window());
         let is_software = canvas.renderer_name.to_lowercase() == "software";
@@ -25,7 +25,7 @@ impl RenderConfiguration {
             FPS_FALLBACK
         };
 
-        let use_frame_sync = !is_software && real_fps.is_some() && vsync;
+        let use_frame_sync = !is_software && real_fps.is_some() && vsync && !disable_frame_sync;
         let frame_duration_musec = (1000000. / fps).round() as u64;
 
         let time_budget_per_frame_musec = if vsync {
