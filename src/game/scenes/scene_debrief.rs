@@ -231,7 +231,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneDebrief<'texture_creator
     }
 
     fn next_tick_at_musec(&self) -> Option<u64> {
-        self.fade_controller.next_tick_since_creation_at_musec()
+        self.fade_controller.next_tick()
     }
 
     fn is_complete(&self) -> bool {

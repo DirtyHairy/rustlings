@@ -44,8 +44,6 @@ pub struct SceneMainScreen<'texture_creator> {
     game_data: Rc<GameData>,
     global_state: GameStateGlobal,
 
-    clock_offset: u64,
-
     state: Box<SceneStateMainScreen>,
 
     texture_screen: Texture<'texture_creator>,
@@ -73,7 +71,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         let texture_static =
             texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
 
-        let (fade_state, scene_state) = match state {
+        let (fade_state, mut scene_state) = match state {
             Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
             None => (
                 None,
@@ -81,20 +79,30 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
                     choice: None,
                     scroller: Default::default(),
                     eyes: Default::default(),
-                    clock_musec: 0,
                 }),
             ),
         };
 
-        let scroller = Scroller::new(texture_creator, &game_data, render_configuration)?;
-        let eyes = Eyes::new(texture_creator, &game_data, render_configuration)?;
+        let scroller = Scroller::new(
+            texture_creator,
+            &game_data,
+            &mut scene_state.scroller,
+            render_configuration,
+        )?;
+
+        let eyes = Eyes::new(
+            texture_creator,
+            &game_data,
+            &mut scene_state.eyes,
+            render_configuration,
+        )?;
+
         let fade_controller =
             FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 
         let mut scene = Self {
             game_data,
             global_state,
-            clock_offset: scene_state.clock_musec,
             state: scene_state,
             texture_screen,
             texture_static,
@@ -208,11 +216,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
     }
 
-    fn tick(&mut self, _canvas: &mut Canvas<Window>, mut clock_musec: u64) -> Result<()> {
+    fn tick(&mut self, _canvas: &mut Canvas<Window>, clock_musec: u64) -> Result<()> {
         self.fade_controller.tick(clock_musec);
-
-        clock_musec += self.clock_offset;
-        self.state.clock_musec = clock_musec;
 
         if self.scroller.tick(clock_musec, &mut self.state.scroller) {
             self.redraw.insert(Redraw::SCROLLER);
@@ -226,11 +231,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
     }
 
     fn next_tick_at_musec(&self) -> Option<u64> {
-        let next_tick_fade = self
-            .fade_controller
-            .next_tick_since_creation_at_musec()
-            .map(|t| t + self.clock_offset);
-
+        let next_tick_fade = self.fade_controller.next_tick();
         let next_tick_scroller = self.scroller.next_tick_at_musec(&self.state.scroller);
         let next_tick_eyes = self.eyes.next_tick_at_musec(&self.state.eyes);
 
@@ -242,7 +243,6 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         .into_iter()
         .flatten()
         .min()
-        .map(|t| t.saturating_sub(self.clock_offset))
     }
 
     fn is_complete(&self) -> bool {

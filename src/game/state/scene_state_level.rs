@@ -62,6 +62,7 @@ pub struct SceneStateLevel {
     pub terrain_map: Vec<TerrainProps>,
     pub object_state: ObjectsState,
 
+    pub tick_duration_musec: u64,
     pub clock_musec: u64,
     pub simulation_clock_offset_musec: i64,
     pub paused: bool,
@@ -83,4 +84,21 @@ pub struct SceneStateLevel {
     pub spawn_countdown: Option<u32>,
 
     pub armageddon: Option<ArmageddonState>,
+}
+
+impl SceneStateLevel {
+    pub fn update_tick_duration_musec(&mut self, tick_duration_musec: u64) {
+        let old_tick_duration_musec = self.tick_duration_musec;
+        self.tick_duration_musec = tick_duration_musec;
+
+        if old_tick_duration_musec == 0 {
+            return;
+        }
+
+        self.clock_musec = ((self.clock_musec * tick_duration_musec) / old_tick_duration_musec)
+            .next_multiple_of(tick_duration_musec);
+        self.simulation_clock_offset_musec = (self.simulation_clock_offset_musec
+            * tick_duration_musec as i64)
+            / old_tick_duration_musec as i64;
+    }
 }

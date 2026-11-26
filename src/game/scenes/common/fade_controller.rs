@@ -34,7 +34,7 @@ impl FadeController {
         self.state.clock_musec = clock_musec + self.clock_offset_musec;
     }
 
-    pub fn next_tick_since_creation_at_musec(&self) -> Option<u64> {
+    pub fn next_tick(&self) -> Option<u64> {
         if let Some(fadeout_started_at_musec) = self.state.fadeout_started_at_musec {
             let opacity = self.opacity();
             if opacity == 0 {

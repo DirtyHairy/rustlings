@@ -50,7 +50,6 @@ pub struct SceneLevel<'texture_creator> {
     right_mouse_down: bool,
 
     pause_tick_scheduled: bool,
-    tick_duration_musec: u64,
 
     cache: Cache,
 }
@@ -66,7 +65,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         let level = game_data.resolve_level(global_state.current_level)?;
         let simulation = Simulation::new(Rc::clone(&game_data), &level)?;
 
-        let (fade_state, scene_state) = match state {
+        let (fade_state, mut scene_state) = match state {
             Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
             None => {
                 let mut scene_state = Box::new(SceneStateLevel {
@@ -93,6 +92,10 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             }
         };
 
+        scene_state.update_tick_duration_musec(
+            render_configuration.clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
+        );
+
         let renderer = Renderer::new(&level, &scene_state, Rc::clone(&game_data), texture_creator)?;
         let skill_panel_controller = SkillPanelController::new(&level);
         let scroll_controller = ScrollController::new();
@@ -114,8 +117,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             shift_down: false,
             right_mouse_down: false,
             pause_tick_scheduled: false,
-            tick_duration_musec: render_configuration
-                .clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
+
             cache: Default::default(),
         })
     }
@@ -317,8 +319,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             self.renderer.mark_for_redraw(Redraw::SCREEN);
         }
 
-        let engine_ticks_old = clock_musec_old / self.tick_duration_musec;
-        let engine_ticks = clock_musec / self.tick_duration_musec;
+        let engine_ticks_old = clock_musec_old / self.state.tick_duration_musec;
+        let engine_ticks = clock_musec / self.state.tick_duration_musec;
 
         for _ in engine_ticks_old..engine_ticks {
             if !self.state.paused || self.pause_tick_scheduled {
@@ -337,7 +339,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
 
         let remaining_time_seconds = (self.level_parameters.time_limit * 60).saturating_sub(
             ((clock_musec as i64 + self.state.simulation_clock_offset_musec).max(0)
-                / (self.tick_duration_musec as i64 * ENGINE_TICKS_PER_SECOND_REALTIME as i64))
+                / (self.state.tick_duration_musec as i64 * ENGINE_TICKS_PER_SECOND_REALTIME as i64))
                 as u32,
         );
 
@@ -358,14 +360,14 @@ impl<'texture_creator> Scene<'texture_creator> for SceneLevel<'texture_creator> 
             || self.pause_tick_scheduled
             || self.skill_panel_controller.needs_tick()
         {
-            Some((self.state.clock_musec + 1).next_multiple_of(self.tick_duration_musec))
+            Some((self.state.clock_musec + 1).next_multiple_of(self.state.tick_duration_musec))
         } else {
             None
         };
 
         let next_tick_fade = self
             .fade_controller
-            .next_tick_since_creation_at_musec()
+            .next_tick()
             .map(|tick| tick + self.clock_offset_musec);
 
         let next_tick_scroll = self.scroll_controller.next_tick_at_musec(&self.state);

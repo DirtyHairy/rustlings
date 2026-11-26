@@ -85,8 +85,6 @@ pub struct SceneBriefing<'texture_creator> {
 
     level_renderer: LevelRenderer<'texture_creator>,
     fade_controller: FadeController,
-
-    tick_duration_musec: u64,
 }
 
 impl<'texture_creator> SceneBriefing<'texture_creator> {
@@ -112,11 +110,16 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             .collect::<Result<_>>()?;
 
         let (fade_state, scene_state) = state.unzip();
-        let scene_state = scene_state.flatten().unwrap_or_else(|| SceneStateBriefing {
+        let mut scene_state = scene_state.flatten().unwrap_or_else(|| SceneStateBriefing {
+            tick_duration_musec: 0,
             clock_musec: 0,
             choice: None,
             objects: objects.iter().map(|o| o.into()).collect(),
         });
+
+        scene_state.update_tick_duration_musec(
+            render_configuration.clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
+        );
 
         let terrain = game_data.compose_terrain(&level)?;
         let level_renderer =
@@ -139,9 +142,6 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
 
             level_renderer,
             fade_controller,
-
-            tick_duration_musec: render_configuration
-                .clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
         };
 
         scene.log_level();
@@ -300,8 +300,8 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
         let clock_musec_old = self.state.clock_musec;
         self.state.clock_musec = clock_musec;
 
-        let engine_ticks_old = clock_musec_old / self.tick_duration_musec;
-        let engine_ticks = clock_musec / self.tick_duration_musec;
+        let engine_ticks_old = clock_musec_old / self.state.tick_duration_musec;
+        let engine_ticks = clock_musec / self.state.tick_duration_musec;
 
         let delta = engine_ticks.saturating_sub(engine_ticks_old) as usize;
         if delta > 0 {
@@ -320,9 +320,10 @@ impl<'texture_creator> Scene<'texture_creator> for SceneBriefing<'texture_creato
     }
 
     fn next_tick_at_musec(&self) -> Option<u64> {
-        let mut next_tick = (self.state.clock_musec + 1).next_multiple_of(self.tick_duration_musec);
+        let mut next_tick =
+            (self.state.clock_musec + 1).next_multiple_of(self.state.tick_duration_musec);
 
-        if let Some(next_tick_fade) = self.fade_controller.next_tick_since_creation_at_musec() {
+        if let Some(next_tick_fade) = self.fade_controller.next_tick() {
             next_tick = next_tick.min(next_tick_fade + self.clock_offset_musec);
         }
 

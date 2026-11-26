@@ -25,7 +25,7 @@ use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTextu
 use crate::timing::RenderConfiguration;
 
 const MAX_TIMESLICE_EXCESS_MUSEC: u64 = 100000;
-const FRAME_SAFE_BOUNDARY_FRACTION: u64 = 20;
+const FRAME_SAFE_BOUNDARY_FRACTION: u64 = 10;
 const USE_FRAME_SYNC_THRESHOLD_MUSEC: u64 = 100000;
 
 pub enum StopReason {

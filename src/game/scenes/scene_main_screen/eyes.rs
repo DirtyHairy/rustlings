@@ -62,6 +62,7 @@ impl Default for EyesState {
     fn default() -> Self {
         Self {
             eye_counters: array::from_fn::<isize, EYE_COUNT, _>(|i| i as isize * (0x28 >> 1)),
+            tick_duration_musec: 0,
             clock_musec: 0,
         }
     }
@@ -69,13 +70,14 @@ impl Default for EyesState {
 
 pub struct Eyes<'texture_creator> {
     atlas: SdlAtlas<'texture_creator>,
-    tick_duration_musec: u64,
+    clock_offset_musec: u64,
 }
 
 impl<'texture_creator> Eyes<'texture_creator> {
     pub fn new<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
+        state: &mut EyesState,
         render_configuration: &RenderConfiguration,
     ) -> Result<Self> {
         let mut atlas_bulder = SdlAtlasBuilder::new();
@@ -87,18 +89,22 @@ impl<'texture_creator> Eyes<'texture_creator> {
         let mut atlas = atlas_bulder.build(&MENU_SCREEN_PALETTE, texture_creator)?;
         atlas.apply_blend_mode(SDL_BLENDMODE_NONE);
 
+        state.update_tick_duration_musec(
+            render_configuration.clamped_tick_duration_musec(TICKS_PER_SECOND),
+        );
+
         Ok(Self {
             atlas,
-            tick_duration_musec: render_configuration.clamped_tick_duration_musec(TICKS_PER_SECOND),
+            clock_offset_musec: state.clock_musec,
         })
     }
 
     pub fn tick(&self, clock_musec: u64, state: &mut EyesState) -> bool {
-        tick(clock_musec, state, self.tick_duration_musec)
+        tick(clock_musec + self.clock_offset_musec, state)
     }
 
     pub fn next_tick_at_musec(&self, state: &EyesState) -> u64 {
-        next_tick_at_musec(state, self.tick_duration_musec)
+        next_tick_at_musec(state).saturating_sub(self.clock_offset_musec)
     }
 
     pub fn render<T: RenderTarget>(&self, state: &EyesState, canvas: &mut Canvas<T>) -> Result<()> {
@@ -124,12 +130,12 @@ impl<'texture_creator> Eyes<'texture_creator> {
     }
 }
 
-pub fn tick(clock_musec: u64, state: &mut EyesState, tick_duration_musec: u64) -> bool {
+pub fn tick(clock_musec: u64, state: &mut EyesState) -> bool {
     let old_clock_musec = state.clock_musec;
     state.clock_musec = clock_musec;
 
-    let ticks_old = old_clock_musec / tick_duration_musec;
-    let ticks_new = clock_musec / tick_duration_musec;
+    let ticks_old = old_clock_musec / state.tick_duration_musec;
+    let ticks_new = clock_musec / state.tick_duration_musec;
 
     let ticks = ticks_new.strict_sub(ticks_old) as isize;
     if ticks == 0 {
@@ -153,7 +159,7 @@ pub fn tick(clock_musec: u64, state: &mut EyesState, tick_duration_musec: u64) -
     redraw
 }
 
-pub fn next_tick_at_musec(state: &EyesState, tick_duration_musec: u64) -> u64 {
+pub fn next_tick_at_musec(state: &EyesState) -> u64 {
     let min_counter = state.eye_counters[0..EYE_SPEC.len()]
         .iter()
         .copied()
@@ -161,9 +167,10 @@ pub fn next_tick_at_musec(state: &EyesState, tick_duration_musec: u64) -> u64 {
         .unwrap();
 
     let delta = if min_counter <= 0 {
-        (state.clock_musec + 1).next_multiple_of(tick_duration_musec) - state.clock_musec
+        (state.clock_musec + 1).next_multiple_of(state.tick_duration_musec) - state.clock_musec
     } else {
-        (1 + min_counter as u64) * tick_duration_musec - (state.clock_musec % tick_duration_musec)
+        (1 + min_counter as u64) * state.tick_duration_musec
+            - (state.clock_musec % state.tick_duration_musec)
     };
 
     state.clock_musec + delta
