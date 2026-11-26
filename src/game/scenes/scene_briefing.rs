@@ -27,7 +27,7 @@ use crate::{
         self, ChoiceBriefing, FadeState, GameState, GameStateGlobal, ObjectState,
         SceneStateBriefing,
     },
-    timing::clamped_tick_duration_musec,
+    timing::RenderConfiguration,
 };
 
 const WIDTH: u32 = 640;
@@ -94,7 +94,7 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Option<SceneStateBriefing>)>,
-        fps: f32,
+        render_configuration: &RenderConfiguration,
         canvas: &mut Canvas<U>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self>
@@ -140,7 +140,8 @@ impl<'texture_creator> SceneBriefing<'texture_creator> {
             level_renderer,
             fade_controller,
 
-            tick_duration_musec: clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND, fps),
+            tick_duration_musec: render_configuration
+                .clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
         };
 
         scene.log_level();

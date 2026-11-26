@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Result, anyhow};
 use rustlings::game_data::GameData;
-use rustlings::sdl::{current_refresh_rate, get_canvas_vsync, is_main_thread, with_texture_canvas};
+use rustlings::sdl::{is_main_thread, with_texture_canvas};
 use sdl3::event::EventWatch;
 use sdl3::mouse::MouseState;
 use sdl3::pixels::{Color, PixelFormat};
@@ -22,26 +22,17 @@ use sdl3::{
 use crate::scene::{self, CursorType, MouseCoordinates, Scene, SceneEvent};
 use crate::stage::event_collector::{EventCollector, GameEvent, MouseButton, MouseOwnerChange};
 use crate::stage::render_state::{Layer, PrescalingMode, RenderState, StaticTexture};
+use crate::timing::RenderConfiguration;
 
 const MAX_TIMESLICE_EXCESS_MUSEC: u64 = 100000;
-const TIME_BUDGET_SAFETY_MARGIN_MUSEC: u64 = 3000;
-pub const FALLBACK_REFRESH_RATE: f32 = 60.;
-const REFRESH_RATE_UPDATE_INTERVAL_MSEC: u128 = 500;
 const FRAME_SAFE_BOUNDARY_FRACTION: u64 = 20;
 const USE_FRAME_SYNC_THRESHOLD_MUSEC: u64 = 100000;
 
 pub enum StopReason {
     Quit,
     RenderReset,
+    RenderConfigChange,
     NextScene,
-}
-
-#[derive(Clone, Copy)]
-struct FrameStructure {
-    time_budget_musec: u64,
-    duration_musec: u64,
-    vsync: bool,
-    framerate_available: bool,
 }
 
 pub struct Stage<'sdl> {
@@ -58,10 +49,7 @@ pub struct Stage<'sdl> {
     ts_reference: Instant,
     time_offset_musec: u64,
 
-    last_time_per_frame_update: Instant,
-    cached_frame_structure: Option<FrameStructure>,
-
-    is_software: bool,
+    render_configuration: RenderConfiguration,
 }
 
 impl From<MouseButton> for scene::MouseButton {
@@ -78,10 +66,10 @@ impl<'sdl> Stage<'sdl> {
         sdl_context: &'sdl Sdl,
         canvas: &'sdl mut Canvas<Window>,
         texture_creator: &'sdl TextureCreator<WindowContext>,
+        render_configuration: RenderConfiguration,
         game_data: Rc<GameData>,
     ) -> Self {
         Self {
-            is_software: canvas.renderer_name.to_lowercase() == "software",
             sdl_context,
             canvas,
             texture_creator,
@@ -92,13 +80,8 @@ impl<'sdl> Stage<'sdl> {
             ts_reference: Instant::now(),
             time_offset_musec: 0,
             speed: 1,
-            last_time_per_frame_update: Instant::now(),
-            cached_frame_structure: None,
+            render_configuration,
         }
-    }
-
-    pub fn use_frame_sync(is_software: bool, vsync: bool, framerate_available: bool) -> bool {
-        !is_software && framerate_available && vsync
     }
 
     pub fn run(&mut self, scene: &mut dyn Scene<'sdl>) -> Result<StopReason> {
@@ -130,17 +113,8 @@ impl<'sdl> Stage<'sdl> {
         let mut aggregation_timeout_musec: Option<u64> = None;
 
         loop {
-            let FrameStructure {
-                duration_musec: frame_duration_musec,
-                time_budget_musec: frame_budget_musec,
-                vsync,
-                framerate_available,
-            } = self.frame_structure();
-
-            let use_frame_sync = Self::use_frame_sync(self.is_software, vsync, framerate_available);
-
             if !self.suspended {
-                self.render_scene(use_frame_sync, scene, &mut render_state)?;
+                self.render_scene(scene, &mut render_state)?;
             }
 
             // start of the next frame
@@ -159,13 +133,13 @@ impl<'sdl> Stage<'sdl> {
                 ts_frame_start,
             );
 
-            if use_frame_sync && !self.suspended {
+            if self.render_configuration.use_frame_sync && !self.suspended {
                 // All timing critical update intervals are chosen to be multiples of a single frame.
                 // If the tick coincides with a frame boundary we enter an unstable state where
                 // the timing loop alternates between two ticks per interval and zero ticks per interval.
                 // We compensate by adjusting the phase of the game clock such that the beginning of a new
                 // frame (in game time) lies in the middle of the frame window (in real time).
-                self.adjust_tick_phase(&mut time_musec, frame_duration_musec, ts_frame_start);
+                self.adjust_tick_phase(&mut time_musec, ts_frame_start);
             }
 
             if !self.suspended {
@@ -183,14 +157,18 @@ impl<'sdl> Stage<'sdl> {
                 return Ok(stop_reason);
             }
 
-            aggregation_timeout_musec =
-                self.calculate_aggregation_timeout(scene, time_musec, use_frame_sync);
+            if self.render_configuration.is_stale(self.canvas) {
+                return Ok(StopReason::RenderConfigChange);
+            }
+
+            aggregation_timeout_musec = self.calculate_aggregation_timeout(scene, time_musec);
 
             let mut event_pump = self.sdl_context.event_pump()?;
+            let time_budget_per_frame_musec = self.render_configuration.time_budget_per_frame_musec;
             let expose_watch = ExposeWatch::new(self, &mut render_state, scene)?;
 
             event_collector.collect_events(
-                ts_frame_start + Duration::from_micros(frame_budget_musec),
+                ts_frame_start + Duration::from_micros(time_budget_per_frame_musec),
                 aggregation_timeout_musec,
                 &mut event_pump,
             );
@@ -225,7 +203,9 @@ impl<'sdl> Stage<'sdl> {
         }
     }
 
-    fn adjust_tick_phase(&mut self, time_musec: &mut u64, frame_duration_musec: u64, now: Instant) {
+    fn adjust_tick_phase(&mut self, time_musec: &mut u64, now: Instant) {
+        let frame_duration_musec = self.render_configuration.frame_duration_musec;
+
         if time_musec
             .next_multiple_of(frame_duration_musec)
             .saturating_sub(*time_musec)
@@ -252,14 +232,15 @@ impl<'sdl> Stage<'sdl> {
         &self,
         scene: &mut dyn Scene<'sdl>,
         time_musec: u64,
-        use_frame_sync: bool,
     ) -> Option<u64> {
         if scene.will_redraw() || self.last_opacity != Some(scene.opacity()) {
             Some(0)
         } else {
             scene.next_tick_at_musec().map(|x| {
                 let mut timeout = x.saturating_sub(time_musec) / self.speed as u64;
-                if use_frame_sync && timeout < USE_FRAME_SYNC_THRESHOLD_MUSEC {
+                if self.render_configuration.use_frame_sync
+                    && timeout < USE_FRAME_SYNC_THRESHOLD_MUSEC
+                {
                     timeout = 0;
                 }
 
@@ -289,12 +270,11 @@ impl<'sdl> Stage<'sdl> {
 
     fn render_scene(
         &mut self,
-        use_frame_sync: bool,
         scene: &mut dyn Scene<'sdl>,
         render_state: &mut RenderState<'sdl>,
     ) -> Result<()> {
         let scene_changed = scene.draw(self.canvas)?;
-        let rerender = use_frame_sync
+        let rerender = self.render_configuration.use_frame_sync
             || (self.rerender || scene_changed || Some(scene.opacity()) != self.last_opacity);
 
         if rerender {
@@ -319,9 +299,7 @@ impl<'sdl> Stage<'sdl> {
                 GameEvent::Redraw => self.rerender = true,
                 GameEvent::ToggleFullscreen => {
                     toggle_fullscreen = !toggle_fullscreen;
-                    self.cached_frame_structure = None;
                 }
-                GameEvent::ModeChanged => self.cached_frame_structure = None,
                 GameEvent::DispatchSceneEvent(event) => scene.dispatch_event(event),
                 GameEvent::MouseMove { .. } | GameEvent::MouseEnter | GameEvent::MouseLeave => (),
                 GameEvent::MouseDown { x, y, button } => {
@@ -434,56 +412,6 @@ impl<'sdl> Stage<'sdl> {
                 self.rerender = true;
             }
             None => (),
-        }
-    }
-
-    fn frame_structure(&mut self) -> FrameStructure {
-        let now = Instant::now();
-
-        if self.cached_frame_structure.is_none()
-            || now
-                .duration_since(self.last_time_per_frame_update)
-                .as_millis()
-                >= REFRESH_RATE_UPDATE_INTERVAL_MSEC
-        {
-            self.cached_frame_structure = Some(self.calculate_frame_structure());
-            self.last_time_per_frame_update = now;
-        }
-
-        self.cached_frame_structure.unwrap()
-    }
-
-    fn calculate_frame_structure(&self) -> FrameStructure {
-        let vsync = get_canvas_vsync(self.canvas);
-
-        let Some(refresh_rate) = current_refresh_rate(self.canvas.window()) else {
-            let duration_musec = (1000000. / FALLBACK_REFRESH_RATE).floor() as u64;
-
-            let time_budget_musec = if vsync {
-                duration_musec.saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MUSEC)
-            } else {
-                duration_musec
-            };
-
-            return FrameStructure {
-                time_budget_musec,
-                duration_musec,
-                framerate_available: false,
-                vsync,
-            };
-        };
-
-        let duration_musec = (1000000. / refresh_rate).floor() as u64;
-        let mut time_budget_musec = (1000000. / refresh_rate).floor() as u64;
-        if vsync {
-            time_budget_musec = time_budget_musec.saturating_sub(TIME_BUDGET_SAFETY_MARGIN_MUSEC);
-        }
-
-        FrameStructure {
-            time_budget_musec,
-            duration_musec,
-            framerate_available: true,
-            vsync,
         }
     }
 

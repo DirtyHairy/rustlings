@@ -25,7 +25,7 @@ use crate::{
         },
     },
     state::{self, FadeState, GameStateGlobal, TerrainProps},
-    timing::clamped_tick_duration_musec,
+    timing::RenderConfiguration,
 };
 use crate::{
     scenes::scene_level::scroll_controller::ScrollController,
@@ -60,7 +60,7 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Box<SceneStateLevel>)>,
-        fps: f32,
+        render_configuration: &RenderConfiguration,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
         let level = game_data.resolve_level(global_state.current_level)?;
@@ -114,7 +114,8 @@ impl<'texture_creator> SceneLevel<'texture_creator> {
             shift_down: false,
             right_mouse_down: false,
             pause_tick_scheduled: false,
-            tick_duration_musec: clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND, fps),
+            tick_duration_musec: render_configuration
+                .clamped_tick_duration_musec(ENGINE_TICKS_PER_SECOND),
             cache: Default::default(),
         })
     }

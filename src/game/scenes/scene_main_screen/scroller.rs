@@ -16,7 +16,7 @@ use sdl3::{
 
 use crate::{
     state::{SCROLLER_VISIBLE_CHARS, ScrollerPhase, ScrollerState},
-    timing::clamped_tick_duration_musec,
+    timing::RenderConfiguration,
 };
 
 const WIDTH: u32 = 640;
@@ -72,16 +72,16 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
     pub fn new<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
-        fps: f32,
+        render_configuration: &RenderConfiguration,
     ) -> Result<Self> {
-        Self::new_with_text(texture_creator, game_data, TEXT, fps)
+        Self::new_with_text(texture_creator, game_data, TEXT, render_configuration)
     }
 
     pub fn new_with_text<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
         text: &'a [u8],
-        fps: f32,
+        render_configuration: &RenderConfiguration,
     ) -> Result<Self> {
         let font_frames: Vec<Bitmap> = game_data
             .font_main
@@ -113,7 +113,7 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
             index_lemming_left,
             index_lemming_right,
             text,
-            tick_duration_musec: clamped_tick_duration_musec(TICKS_PER_SECOND, fps),
+            tick_duration_musec: render_configuration.clamped_tick_duration_musec(TICKS_PER_SECOND),
         })
     }
 

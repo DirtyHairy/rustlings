@@ -13,8 +13,9 @@ use sdl3::{
 
 use crate::{
     scenes::create_scene,
-    stage::{FALLBACK_REFRESH_RATE, Stage, StopReason},
+    stage::{Stage, StopReason},
     state::{self, GameState},
+    timing::RenderConfiguration,
 };
 
 pub struct Config {
@@ -109,20 +110,13 @@ pub fn run(config: &Config) -> Result<()> {
 
     loop {
         let run_result: StopReason;
-
-        let vsync = get_canvas_vsync(&canvas);
-        let is_software = canvas.renderer_name.to_lowercase() == "software";
-        let fps = if Stage::use_frame_sync(is_software, vsync, true) {
-            current_refresh_rate(&window).unwrap_or(FALLBACK_REFRESH_RATE)
-        } else {
-            FALLBACK_REFRESH_RATE
-        };
+        let render_configuration = RenderConfiguration::query(&canvas);
 
         {
             let mut scene = create_scene(
                 Rc::clone(&game_data),
                 game_state,
-                fps.max(30.),
+                &render_configuration,
                 &mut canvas,
                 &texture_creator,
             )?;
@@ -131,6 +125,7 @@ pub fn run(config: &Config) -> Result<()> {
                 &sdl_context,
                 &mut canvas,
                 &texture_creator,
+                render_configuration,
                 Rc::clone(&game_data),
             );
 
@@ -157,7 +152,7 @@ pub fn run(config: &Config) -> Result<()> {
                 // See above.
                 (canvas, texture_creator) = init_canvas(window.clone())?;
             }
-            StopReason::NextScene => (),
+            StopReason::NextScene | StopReason::RenderConfigChange => (),
         }
     }
 

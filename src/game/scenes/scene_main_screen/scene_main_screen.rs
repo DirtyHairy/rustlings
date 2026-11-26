@@ -23,6 +23,7 @@ use crate::{
         scene_main_screen::{eyes::Eyes, scroller::Scroller},
     },
     state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
+    timing::RenderConfiguration,
 };
 
 const WIDTH: u32 = 640;
@@ -62,7 +63,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         game_data: Rc<GameData>,
         global_state: GameStateGlobal,
         state: Option<(FadeState, Box<SceneStateMainScreen>)>,
-        fps: f32,
+        render_configuration: &RenderConfiguration,
         canvas: &mut Canvas<Window>,
         texture_creator: &'texture_creator TextureCreator<T>,
     ) -> Result<Self> {
@@ -85,8 +86,8 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
             ),
         };
 
-        let scroller = Scroller::new(texture_creator, &game_data, fps)?;
-        let eyes = Eyes::new(texture_creator, &game_data, fps)?;
+        let scroller = Scroller::new(texture_creator, &game_data, render_configuration)?;
+        let eyes = Eyes::new(texture_creator, &game_data, render_configuration)?;
         let fade_controller =
             FadeController::new(fade_state, FADEIN_MUSEC_MENU, FADEOUT_MUSEC_MENU);
 

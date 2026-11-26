@@ -12,7 +12,7 @@ use sdl3::{
 
 use crate::{
     state::{EYE_COUNT, EyesState},
-    timing::clamped_tick_duration_musec,
+    timing::RenderConfiguration,
 };
 
 struct EyeSpec {
@@ -76,7 +76,7 @@ impl<'texture_creator> Eyes<'texture_creator> {
     pub fn new<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
-        fps: f32,
+        render_configuration: &RenderConfiguration,
     ) -> Result<Self> {
         let mut atlas_bulder = SdlAtlasBuilder::new();
 
@@ -89,7 +89,7 @@ impl<'texture_creator> Eyes<'texture_creator> {
 
         Ok(Self {
             atlas,
-            tick_duration_musec: clamped_tick_duration_musec(TICKS_PER_SECOND, fps),
+            tick_duration_musec: render_configuration.clamped_tick_duration_musec(TICKS_PER_SECOND),
         })
     }
 

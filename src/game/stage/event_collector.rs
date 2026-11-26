@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use rustlings::sdl::delay_precise;
 use sdl3::{
     EventPump,
-    event::{DisplayEvent, Event, WindowEvent},
+    event::{Event, WindowEvent},
     keyboard::{Keycode, Mod},
     mouse::MouseButton as SdlMouseButton,
     sys::events::{self, SDL_EVENT_WINDOW_ENTER_FULLSCREEN, SDL_EVENT_WINDOW_LEAVE_FULLSCREEN},
@@ -47,7 +47,6 @@ pub enum GameEvent {
     MouseLeave,
     EnterFullscreen,
     LeaveFullscreen,
-    ModeChanged,
     SetSpeed(u32),
 }
 
@@ -194,18 +193,6 @@ impl EventCollector {
                 GameEvents::One(GameEvent::RenderReset)
             }
 
-            Event::Display {
-                display_event: DisplayEvent::Moved,
-                ..
-            }
-            | Event::Display {
-                display_event: DisplayEvent::CurrentModeChanged,
-                ..
-            }
-            | Event::Display {
-                display_event: DisplayEvent::DesktopModeChanged,
-                ..
-            } => GameEvents::One(GameEvent::ModeChanged),
             Event::KeyDown {
                 keycode: Some(keycode),
                 keymod,
