@@ -118,7 +118,10 @@ impl EventCollector {
         });
 
         for event in event_pump
-            .wait_event_timeout(Duration::from_micros(wait_timeout))
+            // err by slightly overshooting rather than undershooting to avoid a
+            // long - short - long -short stagger pattern (which will cause visible
+            // jitter as we always wait for at least one frame)
+            .wait_event_timeout(Duration::from_millis(wait_timeout.div_ceil(1000)))
             .into_iter()
             .chain(event_pump.poll_iter())
         {
