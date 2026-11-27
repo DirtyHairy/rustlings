@@ -43,7 +43,7 @@ struct DrawState<'a> {
 fn dump_level(level_index: usize, level: &Level) {
     println!(
         "{} {}:",
-        DifficultyRating::from(level_index / 30),
+        DifficultyRating::from_repr(level_index / 30).unwrap(),
         level_index % 30 + 1
     );
 

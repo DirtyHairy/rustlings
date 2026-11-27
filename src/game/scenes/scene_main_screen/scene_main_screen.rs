@@ -3,13 +3,14 @@ use std::rc::Rc;
 use anyhow::{Result, anyhow};
 use bitflags::{Flags, bitflags};
 use rustlings::{
-    game_data::{GameData, file::palette::MENU_SCREEN_PALETTE},
-    sdl::{SdlAtlasBuilder, with_texture_canvas},
+    game_data::{GameData, LEVELS_PER_DIFFICULTY, file::palette::MENU_SCREEN_PALETTE},
+    sdl::{SdlAtlas, SdlAtlasBuilder, with_texture_canvas},
 };
 use sdl3::{
     keyboard::Keycode,
     pixels::PixelFormat,
-    render::{BlendMode, Canvas, Texture, TextureCreator},
+    render::{Canvas, Texture, TextureCreator},
+    sys::blendmode::SDL_BLENDMODE_NONE,
     video::Window,
 };
 
@@ -22,7 +23,10 @@ use crate::{
         },
         scene_main_screen::{eyes::Eyes, scroller::Scroller},
     },
-    state::{self, ChoiceMainScreen, FadeState, GameState, GameStateGlobal, SceneStateMainScreen},
+    state::{
+        self, AudioSetting, ChoiceMainScreen, FadeState, GameState, GameStateGlobal,
+        SceneStateMainScreen,
+    },
     timing::RenderConfiguration,
 };
 
@@ -37,6 +41,8 @@ bitflags! {
         const STATIC = 0x01;
         const SCROLLER = 0x02;
         const EYES = 0x04;
+        const DIFFICULTY = 0x08;
+        const AUDIO_SETTING = 0x10;
     }
 }
 
@@ -47,13 +53,17 @@ pub struct SceneMainScreen<'texture_creator> {
     state: Box<SceneStateMainScreen>,
 
     texture_screen: Texture<'texture_creator>,
-    texture_static: Texture<'texture_creator>,
 
     redraw: Redraw,
 
     fade_controller: FadeController,
     scroller: Scroller<'texture_creator>,
     eyes: Eyes<'texture_creator>,
+
+    atlas: SdlAtlas<'texture_creator>,
+    atlas_index_difficulty: usize,
+    atlas_index_audio_settings: usize,
+    atlas_index_audio_signs: usize,
 }
 
 impl<'texture_creator> SceneMainScreen<'texture_creator> {
@@ -68,9 +78,6 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         let texture_screen =
             texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
 
-        let texture_static =
-            texture_creator.create_texture_target(PixelFormat::RGBA8888, WIDTH, HEIGHT)?;
-
         let (fade_state, mut scene_state) = match state {
             Some((fade_state, scene_state)) => (Some(fade_state), scene_state),
             None => (
@@ -82,6 +89,15 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
                 }),
             ),
         };
+
+        let mut atlas_builder = SdlAtlasBuilder::new();
+        let atlas_index_difficulty = atlas_builder.add_sprite(&game_data.main_menu.ratings);
+        let atlas_index_audio_settings =
+            atlas_builder.add_sprite(&game_data.main_menu.audio_settings);
+        let atlas_index_audio_signs = atlas_builder.add_sprite(&game_data.main_menu.signs);
+
+        let mut atlas = atlas_builder.build(&MENU_SCREEN_PALETTE, texture_creator)?;
+        atlas.apply_blend_mode(SDL_BLENDMODE_NONE);
 
         let scroller = Scroller::new(
             texture_creator,
@@ -105,11 +121,14 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
             global_state,
             state: scene_state,
             texture_screen,
-            texture_static,
             redraw: Redraw::all(),
             fade_controller,
             scroller,
             eyes,
+            atlas,
+            atlas_index_audio_settings,
+            atlas_index_difficulty,
+            atlas_index_audio_signs,
         };
 
         scene.draw_static(canvas, texture_creator)?;
@@ -139,7 +158,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
         text_grid.write(8, 17, "(C)MCMXCI Psygnosis Ltd");
         text_grid.write(11, 18, "A DMA Design Game");
 
-        with_texture_canvas(canvas, &mut self.texture_static, |canvas| {
+        with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
             draw_background(0, &self.game_data, texture_creator, canvas)?;
 
             atlas.blit(canvas, index_logo + 1, 0, 20, 0, false, false)?;
@@ -212,6 +231,33 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
                 keycode: Keycode::Escape,
                 ..
             } => self.state.choice = Some(ChoiceMainScreen::Quit),
+            SceneEvent::KeyDown {
+                keycode: Keycode::Up,
+                ..
+            } => {
+                self.global_state.difficulty = self.global_state.difficulty.next();
+                self.global_state.current_level =
+                    LEVELS_PER_DIFFICULTY * self.global_state.difficulty as usize;
+
+                self.redraw.insert(Redraw::DIFFICULTY);
+            }
+            SceneEvent::KeyDown {
+                keycode: Keycode::Down,
+                ..
+            } => {
+                self.global_state.difficulty = self.global_state.difficulty.previous();
+                self.global_state.current_level =
+                    LEVELS_PER_DIFFICULTY * self.global_state.difficulty as usize;
+
+                self.redraw.insert(Redraw::DIFFICULTY);
+            }
+            SceneEvent::KeyDown {
+                keycode: Keycode::F3,
+                ..
+            } => {
+                self.global_state.audio_setting = self.global_state.audio_setting.next();
+                self.redraw.insert(Redraw::AUDIO_SETTING);
+            }
             _ => (),
         }
     }
@@ -275,17 +321,56 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            if self.redraw.contains(Redraw::STATIC) {
-                self.texture_static.set_blend_mode(BlendMode::None);
-                canvas.copy(&self.texture_static, None, None)?;
-            }
-
             if self.redraw.intersects(Redraw::STATIC | Redraw::EYES) {
                 self.eyes.render(&self.state.eyes, canvas)?;
             }
 
             if self.redraw.intersects(Redraw::STATIC | Redraw::SCROLLER) {
                 self.scroller.render(&self.state.scroller, canvas)?;
+            }
+
+            if self.redraw.intersects(Redraw::STATIC | Redraw::DIFFICULTY) {
+                self.atlas.blit(
+                    canvas,
+                    self.atlas_index_difficulty,
+                    0x1e6,
+                    0x91,
+                    3 - self.global_state.difficulty as usize,
+                    false,
+                    false,
+                )?;
+            }
+
+            if self
+                .redraw
+                .intersects(Redraw::STATIC | Redraw::AUDIO_SETTING)
+            {
+                self.atlas.blit(
+                    canvas,
+                    self.atlas_index_audio_signs,
+                    324,
+                    120,
+                    2,
+                    false,
+                    false,
+                )?;
+
+                if self.global_state.audio_setting != AudioSetting::None {
+                    let iframe = if self.global_state.audio_setting == AudioSetting::Music {
+                        0
+                    } else {
+                        1
+                    };
+                    self.atlas.blit(
+                        canvas,
+                        self.atlas_index_audio_settings,
+                        0x15f,
+                        0x92,
+                        iframe,
+                        false,
+                        false,
+                    )?;
+                }
             }
 
             Ok(())

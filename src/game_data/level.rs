@@ -1,31 +1,31 @@
-use strum::Display;
+use strum::{Display, EnumCount, FromRepr};
 
 pub const NUM_LEVELS: usize = 120;
 pub const LEVELS_PER_DIFFICULTY: usize = 30;
 
-#[derive(Clone, Copy, Display)]
+#[derive(Clone, Copy, Display, Default, FromRepr, EnumCount)]
 pub enum DifficultyRating {
+    #[default]
     Fun,
     Tricky,
     Taxing,
     Mayhem,
 }
 
-impl From<usize> for DifficultyRating {
-    fn from(value: usize) -> Self {
-        match value % 4 {
-            0 => Self::Fun,
-            1 => Self::Tricky,
-            2 => Self::Taxing,
-            3 => Self::Mayhem,
-            _ => unreachable!(),
-        }
+impl DifficultyRating {
+    pub fn next(self) -> Self {
+        Self::from_repr((self as usize + 1) % DifficultyRating::COUNT).expect("unreachable")
+    }
+
+    pub fn previous(self) -> Self {
+        Self::from_repr((self as usize + DifficultyRating::COUNT - 1) % DifficultyRating::COUNT)
+            .expect("unreachable")
     }
 }
 
 pub fn decode_level_index(index: usize) -> (DifficultyRating, usize) {
     (
-        DifficultyRating::from((index % NUM_LEVELS) / LEVELS_PER_DIFFICULTY),
+        DifficultyRating::from_repr((index % NUM_LEVELS) / LEVELS_PER_DIFFICULTY).unwrap(),
         (index % LEVELS_PER_DIFFICULTY) + 1,
     )
 }
