@@ -52,7 +52,7 @@ pub struct SceneMainScreen<'texture_creator> {
     redraw: Redraw,
 
     fade_controller: FadeController,
-    scroller: Scroller<'texture_creator, 'static>,
+    scroller: Scroller<'texture_creator>,
     eyes: Eyes<'texture_creator>,
 }
 

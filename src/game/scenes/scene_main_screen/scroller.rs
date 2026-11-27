@@ -58,38 +58,20 @@ impl Default for ScrollerState {
     }
 }
 
-pub struct Scroller<'texture_creator, 'a> {
+pub struct Scroller<'texture_creator> {
     atlas: SdlAtlas<'texture_creator>,
 
     index_lemming_left: usize,
     index_lemming_right: usize,
 
-    text: &'a [u8],
-
     clock_offset: u64,
 }
 
-impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
+impl<'texture_creator> Scroller<'texture_creator> {
     pub fn new<T>(
         texture_creator: &'texture_creator TextureCreator<T>,
         game_data: &GameData,
         state: &mut ScrollerState,
-        render_configuration: &RenderConfiguration,
-    ) -> Result<Self> {
-        Self::new_with_text(
-            texture_creator,
-            game_data,
-            state,
-            TEXT,
-            render_configuration,
-        )
-    }
-
-    pub fn new_with_text<T>(
-        texture_creator: &'texture_creator TextureCreator<T>,
-        game_data: &GameData,
-        state: &mut ScrollerState,
-        text: &'a [u8],
         render_configuration: &RenderConfiguration,
     ) -> Result<Self> {
         let font_frames: Vec<Bitmap> = game_data
@@ -125,13 +107,12 @@ impl<'texture_creator, 'a> Scroller<'texture_creator, 'a> {
             atlas,
             index_lemming_left,
             index_lemming_right,
-            text,
             clock_offset: state.clock_musec,
         })
     }
 
     pub fn tick(&mut self, clock_musec: u64, state: &mut ScrollerState) -> bool {
-        tick(state, self.text, clock_musec + self.clock_offset)
+        tick(state, TEXT, clock_musec + self.clock_offset)
     }
 
     pub fn next_tick_at_musec(&self, state: &ScrollerState) -> u64 {
