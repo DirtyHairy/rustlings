@@ -2,7 +2,7 @@ use rustlings::sdl::{current_refresh_rate, get_canvas_vsync};
 use sdl3::{render::Canvas, video::Window};
 
 const FPS_FALLBACK: f32 = 60.;
-const TIME_BUDGET_SAFETY_MARGIN_MUSEC: u64 = 3000;
+const TIME_BUDGET_SAFETY_MARGIN_MUSEC: u64 = 1000;
 
 pub struct RenderConfiguration {
     pub vsync: bool,
