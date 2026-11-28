@@ -38,7 +38,6 @@ const TEXTURE_ID_SCREEN: usize = 0;
 bitflags! {
     #[derive(Clone, Copy)]
     struct Redraw: u32 {
-        const STATIC = 0x01;
         const SCROLLER = 0x02;
         const EYES = 0x04;
         const DIFFICULTY = 0x08;
@@ -321,15 +320,15 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
         }
 
         with_texture_canvas(canvas, &mut self.texture_screen, |canvas| {
-            if self.redraw.intersects(Redraw::STATIC | Redraw::EYES) {
+            if self.redraw.intersects(Redraw::EYES) {
                 self.eyes.render(&self.state.eyes, canvas)?;
             }
 
-            if self.redraw.intersects(Redraw::STATIC | Redraw::SCROLLER) {
+            if self.redraw.intersects(Redraw::SCROLLER) {
                 self.scroller.render(&self.state.scroller, canvas)?;
             }
 
-            if self.redraw.intersects(Redraw::STATIC | Redraw::DIFFICULTY) {
+            if self.redraw.intersects(Redraw::DIFFICULTY) {
                 self.atlas.blit(
                     canvas,
                     self.atlas_index_difficulty,
@@ -341,10 +340,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
                 )?;
             }
 
-            if self
-                .redraw
-                .intersects(Redraw::STATIC | Redraw::AUDIO_SETTING)
-            {
+            if self.redraw.intersects(Redraw::AUDIO_SETTING) {
                 self.atlas.blit(
                     canvas,
                     self.atlas_index_menu_signs,
