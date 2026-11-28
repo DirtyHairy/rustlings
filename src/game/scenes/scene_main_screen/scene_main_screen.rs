@@ -63,7 +63,7 @@ pub struct SceneMainScreen<'texture_creator> {
     atlas: SdlAtlas<'texture_creator>,
     atlas_index_difficulty: usize,
     atlas_index_audio_settings: usize,
-    atlas_index_audio_signs: usize,
+    atlas_index_menu_signs: usize,
 }
 
 impl<'texture_creator> SceneMainScreen<'texture_creator> {
@@ -128,7 +128,7 @@ impl<'texture_creator> SceneMainScreen<'texture_creator> {
             atlas,
             atlas_index_audio_settings,
             atlas_index_difficulty,
-            atlas_index_audio_signs,
+            atlas_index_menu_signs: atlas_index_audio_signs,
         };
 
         scene.draw_static(canvas, texture_creator)?;
@@ -347,7 +347,7 @@ impl<'texture_creator> Scene<'texture_creator> for SceneMainScreen<'texture_crea
             {
                 self.atlas.blit(
                     canvas,
-                    self.atlas_index_audio_signs,
+                    self.atlas_index_menu_signs,
                     324,
                     120,
                     2,
